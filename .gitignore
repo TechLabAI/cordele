@@ -27,6 +27,16 @@ node_modules/
 # Nx build output — scoped to frontend/dist/ so it does NOT match a
 # frontend module named `dist` (e.g. libs/dist/, a source library).
 frontend/dist/
+
+# Compiled output of the NestJS services. Scoped per service (not a bare `dist/`)
+# for the same reason as frontend/dist/ above: a bare pattern would also swallow
+# a source directory that happens to be named dist.
+backend/services/*/dist/
+backend/services/*/*.tsbuildinfo
+
+# Playwright run output
+playwright-report/
+test-results/
 .nx/
 
 # Autopilot checkpoints (ephemeral runtime state — F-CKPT, D-326)
