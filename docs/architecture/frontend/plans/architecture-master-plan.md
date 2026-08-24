@@ -15,8 +15,8 @@ Legenda de status: `pendente` | `em andamento` | `OK` | `bloqueado` | `N/A`
 
 | Data | Escopo | Gate | Comando de recuperacao | Status |
 |---|---|---|---|---|
-| 2026-08-24 | IMP/imp | e2eValidate | `npx nx e2e imp-e2e --list --skipInstall` | OK - 27 tests em 2 ficheiros, exit 0 (exigiu .nxignore com design-reference/) |
-| 2026-08-24 | IMP/imp | feChecks | `npx nx run-many -t lint test build -p imp` | FAIL - libs/imp/.eslintrc.json estende ../../.eslintrc.json que nao existe na raiz do frontend; imp:test tambem falha |
+| 2026-08-24 | IMP/imp | e2eValidate | `npx nx e2e imp-e2e --list --skipInstall` | OK - 27 tests listados |
+| 2026-08-24 | IMP/imp | feChecks | `npx nx run-many -t lint test build -p imp` | OK (D-603) - lint+test+build |
 | 2026-08-24 | IMP/imp | e2e specs vazios | `npx nx e2e imp-e2e --list --skipInstall` | RESOLVIDO D-601 - confirmado por execucao real: 27 tests listados (antes 0) |
 
 ## Log cronologico
