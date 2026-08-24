@@ -1,22 +1,43 @@
 {
   "name": "imp",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/imp/src",
-  "projectType": "library",
   "prefix": "imp",
-  "tags": ["scope:imp", "type:feature"],
+  "projectType": "library",
+  "tags": [
+    "scope:imp",
+    "type:feature"
+  ],
   "targets": {
-    "lint": {
-      "executor": "@nx/eslint:lint",
+    "build": {
+      "executor": "@nx/angular:ng-packagr-lite",
+      "outputs": [
+        "{workspaceRoot}/dist/{projectRoot}"
+      ],
       "options": {
-        "lintFilePatterns": ["libs/imp/**/*.ts"]
-      }
+        "project": "libs/imp/ng-package.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "libs/imp/tsconfig.lib.prod.json"
+        },
+        "development": {
+          "tsConfig": "libs/imp/tsconfig.lib.json"
+        }
+      },
+      "defaultConfiguration": "production"
     },
     "test": {
-      "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/libs/imp"],
+      "executor": "@nx/vitest:test",
+      "outputs": [
+        "{options.reportsDirectory}"
+      ],
       "options": {
-        "jestConfig": "libs/imp/jest.config.ts"
+        "reportsDirectory": "coverage/libs/imp"
       }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
     }
   }
 }

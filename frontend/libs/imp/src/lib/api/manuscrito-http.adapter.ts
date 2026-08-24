@@ -4,7 +4,7 @@
  * Track D: created by fe-architect-promote IMP @ cordele (D-494).
  */
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   ContentTree,
