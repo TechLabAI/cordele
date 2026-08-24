@@ -1,0 +1,31 @@
+{#-
+  components.json.j2 — shadcn/ui CLI manifest (D-548).
+
+  Tells `npx shadcn@latest add <component>` where to write generated primitives
+  and which aliases to import them through. `rsc: true` keeps generated files
+  server-component-first (D-546); client-only primitives get their own
+  'use client' banner from the generator.
+
+  Variables: none required (kept parametric for the Tailwind entry CSS path).
+-#}
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "new-york",
+  "rsc": true,
+  "tsx": true,
+  "tailwind": {
+    "config": "tailwind.config.ts",
+    "css": "src/app/globals.css",
+    "baseColor": "slate",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@/components",
+    "ui": "@/components/ui",
+    "utils": "@/lib/utils",
+    "lib": "@/lib",
+    "hooks": "@/hooks"
+  }
+}

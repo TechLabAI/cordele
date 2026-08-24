@@ -1,0 +1,95 @@
+{#-
+  react/lib/<module>/components/<module>-list.tsx.j2 - list page.
+
+  Rendered by: scripts/fe-react-module-generator.py →
+    frontend/src/lib/{module_id}/components/{module_id}-list.tsx
+
+  Variables used:
+    - module_id, ModuleId, module_name
+
+  D-547: filters/selection come from the Zustand slice; rows come from React
+  Query. D-548: shadcn/ui primitives + the shared DataTable.
+-#}
+{%- set Mod = ModuleId if ModuleId is defined and ModuleId else (module_id | pascal) -%}
+{%- set mod = Mod[0] | lower ~ Mod[1:] -%}
+{%- set title = module_name if module_name is defined and module_name else Mod -%}
+'use client';
+
+import { useRouter } from 'next/navigation';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { DataTable, type DataTableColumn } from '@/lib/shared/ui/data-table';
+import { PageHeader } from '@/lib/shared/ui/page-header';
+import { use{{ Mod }}List } from '../hooks/use-{{ module_id }}';
+import { use{{ Mod }}Store, select{{ Mod }}Query } from '../store/{{ module_id }}-store';
+import type { {{ Mod }} } from '../types/{{ module_id }}.types';
+
+const COLUMNS: DataTableColumn<{{ Mod }}>[] = [
+  { id: 'code', header: 'Code', sortable: true, cell: (row) => row.code },
+  { id: 'name', header: 'Name', sortable: true, cell: (row) => row.name },
+  { id: 'status', header: 'Status', sortable: true, cell: (row) => row.status },
+  {
+    id: 'updatedAt',
+    header: 'Updated',
+    sortable: true,
+    cell: (row) => new Intl.DateTimeFormat().format(row.updatedAt),
+  },
+];
+
+export function {{ Mod }}ListPage() {
+  const router = useRouter();
+  const query = use{{ Mod }}Store(select{{ Mod }}Query);
+  const setSearch = use{{ Mod }}Store((state) => state.setSearch);
+  const setPage = use{{ Mod }}Store((state) => state.setPage);
+  const setSort = use{{ Mod }}Store((state) => state.setSort);
+
+  const { data, isLoading, isError, error, refetch } = use{{ Mod }}List();
+
+  return (
+    <section className="space-y-4">
+      <PageHeader
+        title="{{ title }}"
+        description="Browse and manage {{ title }} records."
+        actions={
+          <Button onClick={() => router.push('/{{ module_id }}/new')}>New</Button>
+        }
+      />
+
+      <div className="flex items-center gap-2">
+        <Input
+          value={query.search ?? ''}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search..."
+          aria-label="Search {{ title }}"
+          className="max-w-xs"
+        />
+      </div>
+
+      {isError ? (
+        <div role="alert" className="space-y-2 rounded-md border border-destructive p-4">
+          <p className="text-sm text-destructive">{error?.message ?? 'Failed to load records.'}</p>
+          <Button variant="outline" size="sm" onClick={() => void refetch()}>
+            Retry
+          </Button>
+        </div>
+      ) : (
+        <DataTable
+          columns={COLUMNS}
+          rows={data?.items ?? []}
+          rowKey={(row) => row.id}
+          loading={isLoading}
+          emptyMessage="No {{ title }} records yet."
+          sortBy={query.sortBy}
+          sortDir={query.sortDir}
+          onSortChange={setSort}
+          page={query.page}
+          pageSize={query.pageSize}
+          total={data?.total ?? 0}
+          onPageChange={setPage}
+          onRowClick={(row) => router.push(`/{{ module_id }}/${row.id}`)}
+        />
+      )}
+    </section>
+  );
+}

@@ -1,0 +1,98 @@
+{#-
+  react/components/shell/Topbar.tsx.j2 - breadcrumb, notifications, user menu.
+
+  Rendered by: /new-project P5 (_frontend_react) →
+    frontend/src/components/shell/Topbar.tsx
+
+  Variables used:
+    - project_display_name
+    - multi_tenancy_mode, multi_tenancy_term
+
+  D-548: shadcn/ui `DropdownMenu` + `Button`; icons from lucide-react.
+-#}
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Bell } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useAuth } from '@/lib/shared/auth/use-auth';
+
+function toCrumbs(pathname: string) {
+  const segments = pathname.split('/').filter(Boolean);
+  return segments.map((segment, index) => ({
+    label: segment.replace(/-/g, ' '),
+    href: `/${segments.slice(0, index + 1).join('/')}`,
+    last: index === segments.length - 1,
+  }));
+}
+
+export function Topbar() {
+  const pathname = usePathname() ?? '/';
+  const { user, signOut } = useAuth();
+  const crumbs = toCrumbs(pathname);
+
+  return (
+    <header className="flex h-14 shrink-0 items-center gap-4 border-b bg-card px-4">
+      <nav aria-label="Breadcrumb" className="min-w-0 flex-1">
+        <ol className="flex items-center gap-2 truncate text-sm text-muted-foreground">
+          <li>
+            <Link href="/" className="hover:text-foreground">
+              {{ project_display_name }}
+            </Link>
+          </li>
+          {crumbs.map((crumb) => (
+            <li key={crumb.href} className="flex items-center gap-2">
+              <span aria-hidden="true">/</span>
+              {crumb.last ? (
+                <span className="font-medium capitalize text-foreground" aria-current="page">
+                  {crumb.label}
+                </span>
+              ) : (
+                <Link href={crumb.href} className="capitalize hover:text-foreground">
+                  {crumb.label}
+                </Link>
+              )}
+            </li>
+          ))}
+        </ol>
+      </nav>
+
+      <Button variant="ghost" size="icon" aria-label="Notifications">
+        <Bell className="size-4" aria-hidden="true" />
+      </Button>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="max-w-48 truncate">
+            {user?.name ?? 'Account'}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel className="truncate">
+            {user?.email ?? 'Not signed in'}
+          </DropdownMenuLabel>
+{%- if multi_tenancy_mode != 'single' %}
+          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+            {{ multi_tenancy_term }}: {user?.tenant ?? '-'}
+          </DropdownMenuLabel>
+{%- endif %}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/profile">Profile</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => void signOut()}>Sign out</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </header>
+  );
+}

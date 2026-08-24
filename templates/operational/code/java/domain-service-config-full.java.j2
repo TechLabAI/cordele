@@ -1,0 +1,24 @@
+{#-
+  domain-service-config-full.java.j2 — Full DomainServiceConfig with @Bean per aggregate.
+
+  Variables: pkg_full, aggregates (list of PascalCase names)
+-#}
+package {{ pkg_full }}.infrastructure.config;
+
+{% for a in aggregates -%}
+import {{ pkg_full }}.domain.service.{{ a }}DomainService;
+{% endfor -%}
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class DomainServiceConfig {
+
+{%- for a in aggregates %}
+
+    @Bean
+    public {{ a }}DomainService {{ a[0]|lower }}{{ a[1:] }}DomainService() {
+        return new {{ a }}DomainService();
+    }
+{%- endfor %}
+}

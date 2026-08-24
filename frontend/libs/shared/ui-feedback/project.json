@@ -1,0 +1,9 @@
+{
+  "name": "shared-ui-feedback",
+  "projectType": "library",
+  "sourceRoot": "libs/shared/ui-feedback/src",
+  "tags": [
+    "type:ui",
+    "scope:shared"
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "_schema_version": 1,
+  "version": "1.0.0",
+  "last_changed": "2026-05-25",
+  "isolation_strategies": [
+    {
+      "id": "schema-per-tenant",
+      "label": "Schema per tenant",
+      "description": "Each {{ multi_tenancy_term }} lives in its own Postgres schema; a global schema holds shared catalogues (users, roles, vocabulary, parameters). Hibernate switches search_path per connection via a custom MultiTenantConnectionProvider.",
+      "hibernate_strategy": "SCHEMA",
+      "connection_provider": "MultiTenantConnectionProvider",
+      "trade_offs": {
+        "positives": [
+          "Strong isolation: backup, restore, retention and audit per {{ multi_tenancy_term }}.",
+          "Migrations applied N+1 times (1 global + N per {{ multi_tenancy_term }}) — explicit and auditable.",
+          "Cross-{{ multi_tenancy_term }} reports use explicit UNION ALL across schemas — protects against accidental leak.",
+          "Per-{{ multi_tenancy_term }} dump/restore is trivial — useful for GDPR/LGPD right-to-erasure or moving a {{ multi_tenancy_term }} to another instance."
+        ],
+        "negatives": [
+          "Cross-{{ multi_tenancy_term }} queries require explicit code (no automatic JOIN).",
+          "New {{ multi_tenancy_term }} = new migration set (schema + every V*.sql) — automated but adds an operational step.",
+          "DDL drift risk: all emp_* schemas must be on the same migration version. The migrations service is the single source of truth."
+        ]
+      }
+    },
+    {
+      "id": "tenant-id-column",
+      "label": "Tenant-id column",
+      "description": "Single schema; every row carries a tenant_id column. Filter applied universally via Hibernate @Filter or query interceptor at the EntityManager level.",
+      "hibernate_strategy": "DISCRIMINATOR",
+      "connection_provider": null,
+      "trade_offs": {
+        "positives": [
+          "Single schema simplifies migrations and backup operations.",
+          "Cross-{{ multi_tenancy_term }} queries are trivial — just drop the filter where allowed.",
+          "Smaller infrastructure footprint."
+        ],
+        "negatives": [
+          "Risk of leak if the filter is forgotten in custom native queries.",
+          "Heavier indexes — every secondary index must include tenant_id to remain selective.",
+          "Single backup/restore — harder to operate per-{{ multi_tenancy_term }} retention or GDPR-style erasure."
+        ]
+      }
+    },
+    {
+      "id": "database-per-tenant",
+      "label": "Database per tenant",
+      "description": "Each {{ multi_tenancy_term }} in a separate Postgres database, with its own connection pool. The application maintains N HikariCP DataSources and resolves which one to use per request.",
+      "hibernate_strategy": "DATABASE",
+      "connection_provider": "MultiTenantConnectionProvider",
+      "trade_offs": {
+        "positives": [
+          "Strongest isolation — physical separation, easy to move a {{ multi_tenancy_term }} to a different host.",
+          "Per-{{ multi_tenancy_term }} resource limits possible at the DB level."
+        ],
+        "negatives": [
+          "N connection pools at runtime — memory + handshake cost scales linearly.",
+          "Complex local development (N databases to seed).",
+          "Higher infrastructure cost.",
+          "Schema migrations harder to orchestrate (must hit every DB)."
+        ]
+      }
+    },
+    {
+      "id": "none",
+      "label": "Single-tenant",
+      "description": "No tenant isolation — the application serves a single internal {{ multi_tenancy_term }}. No tenant_id is propagated; the request context is empty of tenant data.",
+      "hibernate_strategy": null,
+      "connection_provider": null,
+      "trade_offs": {
+        "positives": [
+          "Simplest model — no holder, no filter, no propagation."
+        ],
+        "negatives": [
+          "Cannot serve multiple tenants without a non-trivial refactor."
+        ]
+      }
+    }
+  ],
+  "modes": [
+    {
+      "id": "multi-empresa",
+      "label": "Multi-empresa (group)",
+      "description": "Corporate multi-tenant: N known units of the same economic group share users, RBAC and master catalogues; only operational data differs per unit. Tenants are pre-registered and known at design time. For SaaS with unknown external clients (dynamic tenant discovery), use the `multi-tenant` mode instead.",
+      "default_term": "empresa",
+      "default_term_plural": "empresas",
+      "supported_isolation_strategies": [
+        "schema-per-tenant",
+        "tenant-id-column"
+      ]
+    },
+    {
+      "id": "multi-tenant",
+      "label": "Multi-tenant (SaaS B2B)",
+      "description": "SaaS multi-tenant: external clients isolated as dynamically-discovered tenants. Tenants are unknown at design time. RBAC is per-tenant; catalogues may be shared or per-tenant depending on product design.",
+      "default_term": "tenant",
+      "default_term_plural": "tenants",
+      "supported_isolation_strategies": [
+        "schema-per-tenant",
+        "database-per-tenant",
+        "tenant-id-column"
+      ]
+    },
+    {
+      "id": "single",
+      "label": "Single-tenant",
+      "description": "Internal project without isolation. No tenant_id propagation. Use when the application has exactly one consumer organisation.",
+      "default_term": "unit",
+      "default_term_plural": "units",
+      "supported_isolation_strategies": [
+        "none"
+      ]
+    }
+  ],
+  "context_propagation": {
+    "sync": {
+      "jwt_claim_template": "{{ multi_tenancy_term }}_id",
+      "http_header_template": "X-{{ multi_tenancy_term | capitalize }}-Id",
+      "holder_class_template": "{{ multi_tenancy_term | capitalize }}ContextHolder",
+      "filter_class_template": "{{ multi_tenancy_term | capitalize }}ContextFilter",
+      "mdc_key_template": "{{ multi_tenancy_term }}Id",
+      "enforcement_rule": "RULE-07",
+      "enforcement_description": "Every application.service method MUST call holder.require() at entry, enforced by an ArchUnit rule. Forgetting it raises a compile-time test failure rather than a silent runtime leak."
+    },
+    "async": {
+      "jms_header_template": "{{ multi_tenancy_term }}Id",
+      "executor_class_template": "{{ multi_tenancy_term | capitalize }}ContextExecutor",
+      "cleanup": "always_in_finally_block",
+      "cleanup_description": "ThreadLocal does not cross thread boundaries. The {{ multi_tenancy_term }} id travels as a JMS message header; the consumer reads it, binds the holder, processes, and calls holder.clear() in a finally block. Failing to clear leaks state across thread-pool reuse — this is mandatory."
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{#-
+  session.py -- async engine + session factory (D-542).
+
+  Rendered by py-module-generator.py to
+  src/<package_name>/<module_id>/infrastructure/persistence/session.py.
+
+  Contract consumed elsewhere:
+    fastapi/main.py         -> init_engine(settings), dispose_engine()
+    fastapi/dependencies.py -> session_factory()  (async context manager)
+-#}
+"""Async SQLAlchemy engine and session factory for {{ MODULE_ID }}."""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+
+from {{ package_name }}.{{ module_id }}.settings import Settings, get_settings
+
+_engine: AsyncEngine | None = None
+_sessionmaker: async_sessionmaker[AsyncSession] | None = None
+
+
+async def init_engine(settings: Settings | None = None) -> AsyncEngine:
+    """Create the process-wide engine. Idempotent -- safe on lifespan restart."""
+    global _engine, _sessionmaker
+    if _engine is not None:
+        return _engine
+    cfg = settings or get_settings()
+    _engine = create_async_engine(
+        cfg.async_database_url,
+        pool_size=cfg.db_pool_size,
+        max_overflow=cfg.db_max_overflow,
+        echo=cfg.db_echo,
+        pool_pre_ping=True,
+    )
+    # expire_on_commit=False keeps attributes readable after commit, which is
+    # what lets a service return a domain object built from a committed row
+    # without tripping MissingGreenlet on lazy refresh.
+    _sessionmaker = async_sessionmaker(
+        _engine, class_=AsyncSession, expire_on_commit=False
+    )
+    return _engine
+
+
+async def dispose_engine() -> None:
+    """Tear the engine down on shutdown. Idempotent."""
+    global _engine, _sessionmaker
+    if _engine is not None:
+        await _engine.dispose()
+    _engine = None
+    _sessionmaker = None
+
+
+def get_engine() -> AsyncEngine:
+    """Return the live engine; raises if init_engine() has not run."""
+    if _engine is None:
+        raise RuntimeError(
+            "engine not initialized -- init_engine() runs in the FastAPI lifespan"
+        )
+    return _engine
+
+
+@asynccontextmanager
+async def session_factory() -> AsyncIterator[AsyncSession]:
+    """Yield one AsyncSession. Commit/rollback is the caller's responsibility.
+
+    Used as `async with session_factory() as session:` by get_db().
+    """
+    if _sessionmaker is None:
+        await init_engine()
+    assert _sessionmaker is not None  # narrowed by init_engine above
+    async with _sessionmaker() as session:
+        yield session

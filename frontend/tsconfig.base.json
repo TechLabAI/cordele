@@ -1,0 +1,63 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "ES2022",
+    "lib": [
+      "ES2022",
+      "dom"
+    ],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@cordele/imp": [
+        "libs/imp/src/index.ts"
+      ],
+      "@cordele/comp": [
+        "libs/comp/src/index.ts"
+      ],
+      "@cordele/pub": [
+        "libs/pub/src/index.ts"
+      ],
+      "@cordele/proj": [
+        "libs/proj/src/index.ts"
+      ],
+      "@cordele/shared/auth-session": [
+        "libs/shared/auth-session/src/index.ts"
+      ],
+      "@cordele/shared/empresa-context": [
+        "libs/shared/empresa-context/src/index.ts"
+      ],
+      "@cordele/shared/access-decision": [
+        "libs/shared/access-decision/src/index.ts"
+      ],
+      "@cordele/shared/access-http-base": [
+        "libs/shared/access-http-base/src/index.ts"
+      ],
+      "@cordele/shared/error-model": [
+        "libs/shared/error-model/src/index.ts"
+      ],
+      "@cordele/shared/observability": [
+        "libs/shared/observability/src/index.ts"
+      ],
+      "@cordele/shared/ui-tokens": [
+        "libs/shared/ui-tokens/src/index.ts"
+      ],
+      "@cordele/shared/ui-components": [
+        "libs/shared/ui-components/src/index.ts"
+      ],
+      "@cordele/shared/ui-feedback": [
+        "libs/shared/ui-feedback/src/index.ts"
+      ]
+    }
+  },
+  "//": "extend paths as additional libs (feature/data-access/ui) are scaffolded"
+}

@@ -1,0 +1,9 @@
+{
+  "name": "shared-access-decision",
+  "projectType": "library",
+  "sourceRoot": "libs/shared/access-decision/src",
+  "tags": [
+    "type:domain",
+    "scope:shared"
+  ]
+}

@@ -1,0 +1,316 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://techlab/arch/decisions/persistence.schema.json",
+  "title": "Persistence conventions architecture decision",
+  "description": "Cross-project Postgres + JPA conventions: PK strategy, required extensions, audit columns, soft-delete pattern, canonical column types, numbering pattern, schema annotation, FK rule, snapshot pattern, encoding. Singleton aspect (no modules[]) — these are global conventions, not per-domain. Source of truth for be-entity-generator (Phase 2: auto-emit audit columns / detect monetary types) and be-migration-generator (Phase 2: emit CREATE EXTENSION). D-066.",
+  "type": "object",
+  "required": [
+    "_schema_version",
+    "version",
+    "primary_key",
+    "audit_columns",
+    "soft_delete",
+    "column_types",
+    "numbering",
+    "schema_annotation",
+    "fk_rule",
+    "snapshot_pattern",
+    "encoding"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$comment": {
+      "type": "string",
+      "description": "Free-text note for maintainers; not consumed by any generator."
+    },
+    "_schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "last_changed": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "primary_key": {
+      "type": "object",
+      "required": [
+        "strategy",
+        "rationale"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": [
+            "uuid_v4",
+            "uuid_v7",
+            "bigserial",
+            "natural_key"
+          ],
+          "description": "PK identifier strategy. uuid_v7 is time-ordered (better B-tree clustering than v4)."
+        },
+        "function": {
+          "type": "string",
+          "description": "Postgres function expression (e.g. 'uuid_generate_v7()'). Empty when strategy doesn't need one."
+        },
+        "sql_type": {
+          "type": "string",
+          "description": "Default SQL type for the PK column (e.g. 'UUID')."
+        },
+        "rationale": {
+          "type": "string"
+        }
+      }
+    },
+    "extensions_required": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "purpose"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Postgres extension name (e.g. 'pg_trgm')."
+          },
+          "purpose": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Postgres extensions that must be installed on each schema (be-migration-generator emits CREATE EXTENSION IF NOT EXISTS in V0001)."
+    },
+    "audit_columns": {
+      "type": "object",
+      "required": [
+        "created_at",
+        "created_by",
+        "updated_at",
+        "updated_by",
+        "applies_to"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "description": "Column name for the creation timestamp."
+        },
+        "created_by": {
+          "type": "string",
+          "description": "Column name for the creating user id."
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "updated_by": {
+          "type": "string"
+        },
+        "type_timestamp": {
+          "type": "string",
+          "description": "SQL type + constraints for *_at columns (e.g. 'TIMESTAMPTZ NOT NULL DEFAULT now()')."
+        },
+        "type_user": {
+          "type": "string",
+          "description": "SQL type for *_by columns (e.g. 'UUID')."
+        },
+        "applies_to": {
+          "type": "string",
+          "enum": [
+            "all_root_aggregates",
+            "all_tables",
+            "opt_in"
+          ],
+          "description": "Scope of application. 'all_root_aggregates' = every root aggregate table; 'opt_in' = only when entity declares it."
+        }
+      }
+    },
+    "soft_delete": {
+      "type": "object",
+      "required": [
+        "column",
+        "type",
+        "applies_to"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "column": {
+          "type": "string",
+          "description": "Soft-delete column name (e.g. 'ativo')."
+        },
+        "type": {
+          "type": "string",
+          "description": "SQL type + constraints (e.g. 'BOOLEAN NOT NULL DEFAULT TRUE')."
+        },
+        "deletion_table": {
+          "type": "string",
+          "description": "Companion table that records the soft-delete event (e.g. 'exclusao_documento')."
+        },
+        "applies_to": {
+          "type": "string",
+          "enum": [
+            "all_root_aggregates",
+            "all_tables",
+            "opt_in"
+          ]
+        }
+      }
+    },
+    "column_types": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "sql_type",
+          "description"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "description": "Canonical name (e.g. 'monetary', 'quantity', 'percentage'). Referenced by be-entity-generator to pick the right Java type / precision."
+          },
+          "sql_type": {
+            "type": "string",
+            "description": "Postgres type (e.g. 'NUMERIC(15,2)')."
+          },
+          "java_type": {
+            "type": "string",
+            "description": "Suggested Java type (e.g. 'java.math.BigDecimal')."
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "numbering": {
+      "type": "object",
+      "required": [
+        "pattern",
+        "serial_padding",
+        "column_type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "pattern": {
+          "type": "string",
+          "description": "Human-readable pattern (e.g. '<PREFIX>-<YEAR>-<SERIAL>')."
+        },
+        "format_example": {
+          "type": "string"
+        },
+        "serial_padding": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Zero-pad width for the serial component (5 → 00042)."
+        },
+        "sequence_pattern": {
+          "type": "string",
+          "description": "Postgres sequence name pattern (e.g. 'seq_<entity>_numero')."
+        },
+        "column_type": {
+          "type": "string",
+          "description": "SQL type for the column holding the formatted number (e.g. 'VARCHAR(20)')."
+        }
+      }
+    },
+    "schema_annotation": {
+      "type": "object",
+      "required": [
+        "comment_prefix",
+        "valid_values"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "comment_prefix": {
+          "type": "string",
+          "description": "SQL comment marker placed on the first line of each DDL block (e.g. '-- schema: ')."
+        },
+        "valid_values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "Allowed schema tokens. May include Jinja placeholders (e.g. '{{ multi_tenancy_term }}')."
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "fk_rule": {
+      "type": "object",
+      "required": [
+        "same_schema",
+        "cross_schema"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "same_schema": {
+          "type": "string",
+          "enum": [
+            "physical_fk",
+            "logical_fk"
+          ]
+        },
+        "cross_schema": {
+          "type": "string",
+          "enum": [
+            "physical_fk",
+            "logical_fk"
+          ]
+        },
+        "logical_fk_description": {
+          "type": "string"
+        },
+        "rationale": {
+          "type": "string"
+        }
+      }
+    },
+    "snapshot_pattern": {
+      "type": "object",
+      "required": [
+        "suffix",
+        "description"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "suffix": {
+          "type": "string",
+          "description": "Column-name suffix that marks a snapshot field (e.g. '_snapshot')."
+        },
+        "immutability_trigger": {
+          "type": "string",
+          "description": "Condition under which snapshot fields become immutable (e.g. \"status IN ('CONFIRMADA','FATURADA','CANCELADA')\")."
+        },
+        "description": {
+          "type": "string"
+        },
+        "adr": {
+          "type": "string",
+          "description": "Reference to the originating ADR (e.g. 'ADR-005')."
+        }
+      }
+    },
+    "encoding": {
+      "type": "string",
+      "enum": [
+        "UTF-8",
+        "LATIN1"
+      ],
+      "description": "Database encoding. UTF-8 strongly recommended."
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "roles": [
+    {
+      "code": "COORDENADORA_EDITORIAL",
+      "name": "Coordenador(a) Editorial",
+      "description": "Marina, coordenadora editorial em editora independente com 20-80 títulos/ano.",
+      "category": "default",
+      "active": true,
+      "data_scope_tipo": null,
+      "permission_bundle": {
+        "kind": "all",
+        "note": "TODO: refine permissions — defaulted to `all` because per-role authority is not declared in discovery. Edit before going to production."
+      }
+    }
+  ]
+}

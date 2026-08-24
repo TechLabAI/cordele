@@ -1,0 +1,51 @@
+{#-
+  docker-compose.yml.j2 — Local infrastructure (PostgreSQL 16 + ActiveMQ Classic 5.18).
+
+  Variables (passed):
+    - meta: ToolMeta (uses meta.package_suffix)
+    - db_name: f"{meta.package_suffix}_dev"
+    - db_user: meta.package_suffix
+    - db_pass: f"{meta.package_suffix}_dev_pass"
+-#}
+# docker-compose.yml
+version: '3.9'
+
+services:
+
+  {{ meta.package_suffix }}-db:
+    image: postgres:16
+    container_name: {{ meta.package_suffix }}-postgres
+    environment:
+      POSTGRES_DB: {{ db_name }}
+      POSTGRES_USER: {{ db_user }}
+      POSTGRES_PASSWORD: {{ db_pass }}
+    ports:
+      - "5432:5432"
+    volumes:
+      - {{ meta.package_suffix }}-pgdata:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ db_user }} -d {{ db_name }}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+{% if events_broker != "kafka" %}
+  {{ meta.package_suffix }}-activemq:
+    image: apache/activemq-classic:5.18
+    container_name: {{ meta.package_suffix }}-activemq
+    ports:
+      - "61616:61616"   # Broker JMS
+      - "8161:8161"     # Console de administração
+    environment:
+      ACTIVEMQ_ADMIN_LOGIN: admin
+      ACTIVEMQ_ADMIN_PASSWORD: admin
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8161/api/jolokia/read/org.apache.activemq:type=Broker,brokerName=localhost,service=Health/CurrentStatus || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+{% endif %}
+
+volumes:
+  {{ meta.package_suffix }}-pgdata:

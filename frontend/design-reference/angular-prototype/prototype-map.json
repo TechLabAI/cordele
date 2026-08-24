@@ -1,0 +1,178 @@
+{
+  "project": "cordele",
+  "scope": "@cordele",
+  "angularVersion": "21",
+  "nxVersion": "22",
+  "theme": "dark",
+  "density": 0.85,
+  "colors": {
+    "primary": "#00B4A6",
+    "warning": "#F59E0B",
+    "ai": "#8B5CF6"
+  },
+  "screens": [
+    {
+      "id": "entrada",
+      "label": "Entrada",
+      "icon": "\u2022",
+      "ngComponent": "EntradaComponent",
+      "ngSelector": "app-entrada",
+      "ngRoute": "/entrada",
+      "sourceTs": "apps/cordele-web/src/app/screens/entrada/entrada.component.ts",
+      "wireframeRef": "\u00a75.1\u20135.5",
+      "objetivo": "Primeira experi\u00eancia do produto. Transmite a proposta de valor e convida ao cadastro/login. Full-bleed, fora do shell de navega\u00e7\u00e3o.",
+      "componentes": [
+        "Label de produto (brand, uppercase, letra pequena)",
+        "Headline H1 (Poppins bold, 2.5rem)",
+        "Subt\u00edtulo (Inter, text-secondary)",
+        "CTA prim\u00e1rio \"Enviar meu manuscrito\" \u2192 leva a T03 (Upload) ap\u00f3s login",
+        "Link secund\u00e1rio \"Entrar na minha conta\" \u2192 tela de login",
+        "Elemento decorativo tipogr\u00e1fico \"\u00ea\" (fundo, opacity baixa)"
+      ],
+      "hasAiDrawer": false
+    },
+    {
+      "id": "biblioteca-de-projetos",
+      "label": "Biblioteca De Projetos",
+      "icon": "\u2022",
+      "ngComponent": "BibliotecaDeProjetosComponent",
+      "ngSelector": "app-biblioteca-de-projetos",
+      "ngRoute": "/biblioteca-de-projetos",
+      "sourceTs": "apps/cordele-web/src/app/screens/biblioteca-de-projetos/biblioteca-de-projetos.component.ts",
+      "wireframeRef": "\u00a75.1\u20135.5",
+      "objetivo": "Lista todos os projetos editoriais da editora. Ponto de partida para retomar projetos existentes ou iniciar um novo.",
+      "componentes": [
+        "Grid de cards de projeto (2 colunas desktop, 1 coluna mobile)",
+        "Card: t\u00edtulo, autor, contagem de cap\u00edtulos/imagens, data, badge de status",
+        "Badge de status: V\u00e1lido (success) \u00b7 N avisos (warning) \u00b7 N erros (error) \u00b7 Rascunho (neutral)",
+        "CTA \"Abrir\" (prim\u00e1rio) e bot\u00e3o de download \u00edcone (secund\u00e1rio)",
+        "Bot\u00e3o \"Novo projeto\" no header (vai para T03)",
+        "Estado vazio com CTA"
+      ],
+      "hasAiDrawer": false
+    },
+    {
+      "id": "upload",
+      "label": "Upload",
+      "icon": "\ud83d\udce4",
+      "ngComponent": "UploadComponent",
+      "ngSelector": "app-upload",
+      "ngRoute": "/upload",
+      "sourceTs": "apps/cordele-web/src/app/screens/upload/upload.component.ts",
+      "wireframeRef": "\u00a75.1\u20135.5",
+      "objetivo": "Editor nomeia o projeto e faz upload do manuscrito (DOCX ou Markdown). Ponto de entrada de dados no sistema.",
+      "componentes": [
+        "Campo de texto \"Nome do projeto\" (obrigat\u00f3rio)",
+        "Drop zone de upload (drag-and-drop + click to select)",
+        "Barra de progresso de upload + mensagem de status",
+        "Valida\u00e7\u00e3o inline de tipo de arquivo",
+        "CTA \"Importar manuscrito\" (desabilitado at\u00e9 nome + arquivo preenchidos)",
+        "Barra de etapas no topbar (etapa 1 ativa)"
+      ],
+      "hasAiDrawer": false
+    },
+    {
+      "id": "revisao-de-estrutura",
+      "label": "Revisao De Estrutura",
+      "icon": "\u2022",
+      "ngComponent": "RevisaoDeEstruturaComponent",
+      "ngSelector": "app-revisao-de-estrutura",
+      "ngRoute": "/revisao-de-estrutura",
+      "sourceTs": "apps/cordele-web/src/app/screens/revisao-de-estrutura/revisao-de-estrutura.component.ts",
+      "wireframeRef": "\u00a75.1\u20135.5",
+      "objetivo": "Exibe a estrutura detectada no manuscrito ap\u00f3s o parsing. Editor confirma, ignora trechos n\u00e3o reconhecidos ou decide reimportar. Garante o princ\u00edpio 2.1 (nada some sem aviso).",
+      "componentes": [
+        "Resumo de parsing: contadores de cap\u00edtulos, imagens, pend\u00eancias",
+        "Lista de cap\u00edtulos detectados (sum\u00e1rio colaps\u00e1vel)",
+        "Painel de pend\u00eancias: cada trecho n\u00e3o reconhecido com localiza\u00e7\u00e3o, descri\u00e7\u00e3o e a\u00e7\u00f5es (Ignorar / Ver detalhes)",
+        "CTA \"Confirmar\" (avan\u00e7a para T05) \u2014 habilitado mesmo com pend\u00eancias (editor decide)",
+        "Link \"Reimportar outro arquivo\" (volta a T03)",
+        "Barra de etapas no topbar (etapa 1 completa, etapa 2 selecionada)"
+      ],
+      "hasAiDrawer": false
+    },
+    {
+      "id": "configuracoes",
+      "label": "Configura\u00e7\u00f5es",
+      "icon": "\u2699\ufe0f",
+      "ngComponent": "ConfiguracoesComponent",
+      "ngSelector": "app-configuracoes",
+      "ngRoute": "/config",
+      "sourceTs": "apps/cordele-web/src/app/screens/configuracoes/configuracoes.component.ts",
+      "wireframeRef": "\u00a75.1\u20135.5",
+      "objetivo": "Editor preenche os metadados editoriais: t\u00edtulo, autor, ISBN, capa, idioma, categoria. Campos obrigat\u00f3rios s\u00e3o claramente marcados.",
+      "componentes": [
+        "Campos de texto: T\u00edtulo*, Autor*, ISBN (opcional), Categoria (opcional)",
+        "Select de Idioma (pt, en, es, fr)",
+        "Drop zone de imagem de capa com preview miniatura",
+        "Valida\u00e7\u00e3o inline de campos obrigat\u00f3rios (marcados com *)",
+        "CTA \"Ir para preview\" (desabilitado at\u00e9 campos obrigat\u00f3rios preenchidos)",
+        "Barra de etapas: etapa 2 ativa"
+      ],
+      "hasAiDrawer": false
+    },
+    {
+      "id": "editor-de-layout-preview",
+      "label": "Editor De Layout Preview",
+      "icon": "\u2022",
+      "ngComponent": "EditorDeLayoutPreviewComponent",
+      "ngSelector": "app-editor-de-layout-preview",
+      "ngRoute": "/editor-de-layout-preview",
+      "sourceTs": "apps/cordele-web/src/app/screens/editor-de-layout-preview/editor-de-layout-preview.component.ts",
+      "wireframeRef": "\u00a75.1\u20135.5",
+      "objetivo": "Editor visualiza o manuscrito renderizado p\u00e1gina a p\u00e1gina com os estilos aplicados. Ajusta tipografia, espa\u00e7amento e hierarquia de t\u00edtulos em tempo real. Confirma que o resultado visual est\u00e1 correto antes de exportar.",
+      "componentes": [
+        "\u00c1rea de preview: renderiza cap\u00edtulo ativo com estilos aplicados",
+        "Paginador: p\u00e1gina atual / total de p\u00e1ginas (anterior / pr\u00f3xima)",
+        "Painel de estilos lateral (desktop) / gaveta inferior (mobile):",
+        "Select de fonte de corpo (Serif / Sans-serif)",
+        "Slider de tamanho de fonte (12px\u201320px)",
+        "Slider de espa\u00e7amento de linha (1.2\u20132.0)",
+        "Sliders H1/H2/H3 tamanho",
+        "Slider de margens laterais",
+        "Bot\u00e3o \"Exportar\" (CTA prim\u00e1rio)",
+        "Barra de etapas: etapa 3 ativa"
+      ],
+      "hasAiDrawer": false
+    },
+    {
+      "id": "exportacao-e-validacao",
+      "label": "Exportacao E Validacao",
+      "icon": "\u2022",
+      "ngComponent": "ExportacaoEValidacaoComponent",
+      "ngSelector": "app-exportacao-e-validacao",
+      "ngRoute": "/exportacao-e-validacao",
+      "sourceTs": "apps/cordele-web/src/app/screens/exportacao-e-validacao/exportacao-e-validacao.component.ts",
+      "wireframeRef": "\u00a75.1\u20135.5",
+      "objetivo": "Exibe o processo de gera\u00e7\u00e3o do ePub e o resultado da valida\u00e7\u00e3o epubcheck. Se v\u00e1lido: libera download. Se com erros: exibe lista com localiza\u00e7\u00e3o e orienta\u00e7\u00e3o de corre\u00e7\u00e3o.",
+      "componentes": [
+        "Barra de progresso de gera\u00e7\u00e3o com status textual",
+        "Painel de resultado: badge de status (v\u00e1lido / avisos / erros)",
+        "Resumo do ePub: nome, tamanho, p\u00e1ginas, cap\u00edtulos, imagens",
+        "Lista de avisos (dobr\u00e1veis, n\u00e3o bloqueantes)",
+        "Lista de erros cr\u00edticos com: c\u00f3digo epubcheck + descri\u00e7\u00e3o leg\u00edvel + a\u00e7\u00e3o de corre\u00e7\u00e3o",
+        "CTA prim\u00e1rio: \"Baixar ePub\" (s\u00f3 se v\u00e1lido) ou \"Corrigir [localiza\u00e7\u00e3o]\"",
+        "Link \"Ajustar layout\" (volta a T06)"
+      ],
+      "hasAiDrawer": false
+    },
+    {
+      "id": "download-e-historico",
+      "label": "Download E Historico",
+      "icon": "\u2022",
+      "ngComponent": "DownloadEHistoricoComponent",
+      "ngSelector": "app-download-e-historico",
+      "ngRoute": "/download-e-historico",
+      "sourceTs": "apps/cordele-web/src/app/screens/download-e-historico/download-e-historico.component.ts",
+      "wireframeRef": "\u00a75.1\u20135.5",
+      "objetivo": "Confirma\u00e7\u00e3o de download e hist\u00f3rico de exporta\u00e7\u00f5es do projeto. Editor pode baixar vers\u00f5es anteriores ou iniciar nova exporta\u00e7\u00e3o ap\u00f3s ajustes.",
+      "componentes": [
+        "Header do projeto: t\u00edtulo, autor, badge de status atual",
+        "Lista de exporta\u00e7\u00f5es: data/hora, status, tamanho, bot\u00e3o de download",
+        "Links de a\u00e7\u00e3o: voltar a T05, T06, ou gerar nova exporta\u00e7\u00e3o (aciona T07)",
+        "Bot\u00e3o de download de cada vers\u00e3o (somente vers\u00f5es v\u00e1lidas)"
+      ],
+      "hasAiDrawer": false
+    }
+  ]
+}

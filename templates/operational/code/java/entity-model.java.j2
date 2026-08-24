@@ -1,0 +1,13 @@
+{#-
+  entity-model.java.j2 — extracted from gen_entity_model() in be-module-generator.py.
+  Variables: pkg_full, name
+-#}
+package {{ pkg_full }}.domain.model;
+
+import java.util.UUID;
+
+// TODO[SCAFFOLD]: complete fields — no Spring/JPA imports (RULE-01, RULE-02)
+public record {{ name }}(
+    UUID id
+    // TODO[SCAFFOLD]: add domain fields
+) {}

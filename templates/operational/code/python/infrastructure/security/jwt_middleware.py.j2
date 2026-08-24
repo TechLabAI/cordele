@@ -1,0 +1,125 @@
+{#-
+  jwt_middleware.py.j2 -- JWT validation, {{ multi_tenancy_term }} extraction, FastAPI dependency (D-541).
+
+  Variables: package_name, module_id, ModuleId, MODULE_ID, module_name,
+             multi_tenancy_mode, multi_tenancy_term, has_iam_module
+-#}
+"""Security adapter for the {{ module_name }} module.
+
+Validates the bearer token against the issuer JWKS and projects the claims into
+an `AuthenticatedPrincipal`. The rest of the application never parses tokens.
+"""
+
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass, field
+from functools import lru_cache
+from typing import Any
+
+import httpx
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
+
+from {{ package_name }}.{{ module_id }}.settings import get_settings
+
+logger = logging.getLogger(__name__)
+
+bearer_scheme = HTTPBearer(auto_error=False)
+
+{%- if multi_tenancy_mode != "single" %}
+
+# Claim carrying the {{ multi_tenancy_term }} identifier issued by the identity provider.
+{{ multi_tenancy_term|upper }}_CLAIM = "{{ multi_tenancy_term }}_id"
+{%- endif %}
+
+
+@dataclass(frozen=True, slots=True)
+class AuthenticatedPrincipal:
+    """Validated caller, decoupled from the token format."""
+
+    subject: str
+    username: str
+    authorities: frozenset[str] = field(default_factory=frozenset)
+{%- if multi_tenancy_mode != "single" %}
+    {{ multi_tenancy_term }}_id: str | None = None
+{%- endif %}
+    claims: dict[str, Any] = field(default_factory=dict)
+
+
+@lru_cache(maxsize=1)
+def _jwks_client() -> httpx.Client:
+    """HTTP client used to fetch the issuer JWKS (cached for the process)."""
+    return httpx.Client(timeout=5.0)
+
+
+def _fetch_jwks() -> dict[str, Any]:
+    """Fetch the JWK set. Replace with a cached/rotating loader in production."""
+    settings = get_settings()
+    response = _jwks_client().get(settings.jwk_set_uri)
+    response.raise_for_status()
+    return response.json()
+
+
+def decode_token(token: str) -> dict[str, Any]:
+    """Decode and verify a bearer token, returning its claims."""
+    settings = get_settings()
+    try:
+        return jwt.decode(
+            token,
+            _fetch_jwks(),
+            algorithms=["RS256"],
+            audience=settings.jwt_audience,
+            issuer=settings.jwt_issuer,
+        )
+    except JWTError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="{{ MODULE_ID }}_INVALID_TOKEN",
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+
+
+def to_principal(claims: dict[str, Any]) -> AuthenticatedPrincipal:
+    """Project raw JWT claims onto the principal used by the application."""
+    realm_roles = claims.get("realm_access", {}).get("roles", [])
+    scopes = str(claims.get("scope", "")).split()
+    return AuthenticatedPrincipal(
+        subject=str(claims.get("sub", "")),
+        username=str(claims.get("preferred_username") or claims.get("sub", "")),
+        authorities=frozenset([*realm_roles, *scopes]),
+{%- if multi_tenancy_mode != "single" %}
+        {{ multi_tenancy_term }}_id=claims.get({{ multi_tenancy_term|upper }}_CLAIM),
+{%- endif %}
+        claims=claims,
+    )
+
+
+async def require_principal(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> AuthenticatedPrincipal:
+    """FastAPI dependency: reject anonymous calls, return the principal."""
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="{{ MODULE_ID }}_MISSING_TOKEN",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return to_principal(decode_token(credentials.credentials))
+
+
+def require_authority(authority: str):
+    """Dependency factory enforcing one authority, mirroring @PreAuthorize."""
+
+    async def _guard(
+        principal: AuthenticatedPrincipal = Depends(require_principal),
+    ) -> AuthenticatedPrincipal:
+        if authority not in principal.authorities:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="{{ MODULE_ID }}_FORBIDDEN",
+            )
+        return principal
+
+    return _guard

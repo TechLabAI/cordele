@@ -1,0 +1,81 @@
+{#-
+  data-scope-filter-aspect.java.j2 — AOP aspect that activates Hibernate filters
+  per request based on AccessContextHolder.requireDataScope().
+
+  Variables:
+    pkg_full
+    scope_types: list of rbac.data_scope.types entries (id, value_kind?, ...).
+                 Used to emit one if/elif branch per tipo.
+    entity_scope_filters: dict[tipo -> list[{filter_name, param, kind}]],
+                 derived from entity-scope.arch.json. Each branch enables
+                 ALL filters declared for that tipo. D-062.
+
+  Per-entity @FilterDef + @Filter declarations live on the JPA entities,
+  emitted by be-entity-generator from the same entity-scope.arch.json — see
+  shared/rbac/enforcement.md.
+
+  D-059 (Tier 2.1 Phase 2) + D-062 (entity-scope integration).
+-#}
+package {{ pkg_full }}.shared.security;
+
+import jakarta.persistence.EntityManager;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
+import org.aspectj.lang.annotation.Aspect;
+import org.hibernate.Session;
+import org.springframework.stereotype.Component;
+
+import java.util.UUID;
+
+/**
+ * Activates Hibernate filters around each application-service call based on
+ * the current request's {@link DataScope}. Filter names + parameters are
+ * derived from entity-scope.arch.json: every entity declared under a given
+ * tipo contributes one {@code enableFilter} call. Filters are disabled in a
+ * {@code finally} block to avoid leaking into other requests reusing the
+ * same {@code EntityManager} from the pool.
+ */
+@Slf4j
+@Aspect
+@Component
+@RequiredArgsConstructor
+public class DataScopeFilterAspect {
+
+    private final EntityManager em;
+
+    @Around("execution(* {{ pkg_full }}..application.service..*(..))")
+    public Object aroundService(ProceedingJoinPoint pjp) throws Throwable {
+        Session session = em.unwrap(Session.class);
+        DataScope scope = AccessContextHolder.requireDataScope();
+
+        try {
+            if (scope == null || scope.isUnrestricted()) {
+                return pjp.proceed();
+            }
+{%- for tipo, filters in entity_scope_filters.items() %}
+            if ("{{ tipo }}".equals(scope.tipo())) {
+{%- for f in filters %}
+{%- if f.kind == 'list' %}
+                session.enableFilter("{{ f.filter_name }}")
+                       .setParameterList("{{ f.param }}", scope.valoresUuid());
+{%- else %}
+                session.enableFilter("{{ f.filter_name }}")
+                       .setParameter("{{ f.param }}", UUID.fromString(scope.valores().get(0)));
+{%- endif %}
+{%- endfor %}
+                return pjp.proceed();
+            }
+{%- endfor %}
+            log.warn("data-scope tipo '{}' has no filter wiring — proceeding without restriction", scope.tipo());
+            return pjp.proceed();
+        } finally {
+{%- for tipo, filters in entity_scope_filters.items() %}
+{%- for f in filters %}
+            session.disableFilter("{{ f.filter_name }}");
+{%- endfor %}
+{%- endfor %}
+        }
+    }
+}

@@ -1,0 +1,105 @@
+{#-
+  jwt-auth.guard.ts.j2 — auth guard + principal contract (D-544).
+
+  Variables: project_name, multi_tenancy_mode, multi_tenancy_term
+-#}
+import {
+  createParamDecorator,
+  ExecutionContext,
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+  ForbiddenException,
+{%- endif %}
+  Injectable,
+  SetMetadata,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { AuthGuard } from '@nestjs/passport';
+
+/** Request-scoped principal produced by `JwtStrategy.validate`. */
+export interface AuthenticatedUser {
+  readonly userId: string;
+  readonly username: string;
+  readonly roles: string[];
+  readonly scopes: string[];
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+  /** Resolved {{ multi_tenancy_term }} — every repository call is scoped by it. */
+  readonly tenantId: string;
+{%- endif %}
+}
+
+export const IS_PUBLIC_KEY = 'isPublic';
+
+/** Opts a route out of authentication (health checks, webhooks, docs). */
+export const Public = (): MethodDecorator & ClassDecorator =>
+  SetMetadata(IS_PUBLIC_KEY, true);
+
+/** Injects the authenticated principal into a controller handler. */
+export const CurrentUser = createParamDecorator(
+  (_data: unknown, ctx: ExecutionContext): AuthenticatedUser => {
+    const request = ctx.switchToHttp().getRequest<{ user?: AuthenticatedUser }>();
+    if (!request.user) {
+      throw new UnauthorizedException('No authenticated principal on request');
+    }
+    return request.user;
+  },
+);
+
+/**
+ * Bearer-token guard for {{ project_name }}.
+ *
+ * Runs the `jwt` Passport strategy, honours `@Public()`{% if multi_tenancy_mode and multi_tenancy_mode != 'none' %} and resolves the
+ * {{ multi_tenancy_term }} from the token (with an `X-Tenant-Id` header override
+ * that is only accepted for principals holding the `{{ multi_tenancy_term }}-admin` role){% endif %}.
+ */
+@Injectable()
+export class JwtAuthGuard extends AuthGuard('jwt') {
+  constructor(private readonly reflector: Reflector) {
+    super();
+  }
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) {
+      return true;
+    }
+
+    const allowed = (await super.canActivate(context)) as boolean;
+    if (!allowed) {
+      return false;
+    }
+
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+    const request = context.switchToHttp().getRequest<{
+      user: AuthenticatedUser;
+      headers: Record<string, string | string[] | undefined>;
+    }>();
+    request.user = this.resolveTenant(request.user, request.headers['x-tenant-id']);
+{%- endif %}
+    return true;
+  }
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+
+  private resolveTenant(
+    user: AuthenticatedUser,
+    header: string | string[] | undefined,
+  ): AuthenticatedUser {
+    const requested = Array.isArray(header) ? header[0] : header;
+
+    if (requested && requested !== user.tenantId) {
+      if (!user.roles.includes('{{ multi_tenancy_term }}-admin')) {
+        throw new ForbiddenException('Not allowed to act on behalf of another {{ multi_tenancy_term }}');
+      }
+      return { ...user, tenantId: requested };
+    }
+
+    if (!user.tenantId) {
+      throw new ForbiddenException('Token carries no {{ multi_tenancy_term }} claim');
+    }
+    return user;
+  }
+{%- endif %}
+}

@@ -1,0 +1,121 @@
+{#-
+  react/lib/shared/auth/auth-context.tsx.j2 - session provider.
+
+  Rendered by: /new-project P5 (_frontend_react) →
+    frontend/src/lib/shared/auth/auth-context.tsx
+
+  Variables used:
+    - project_name
+    - multi_tenancy_mode, multi_tenancy_term
+
+  D-546: client-only provider mounted from `components/providers.tsx`.
+  The access token is kept in memory + sessionStorage (never localStorage), so a
+  closed tab ends the session; refresh tokens stay in an HttpOnly cookie set by
+  the backend.
+-#}
+'use client';
+
+import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
+
+const AUTH_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '/api';
+export const SESSION_STORAGE_KEY = '{{ project_name }}.session';
+
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  roles: string[];
+{%- if multi_tenancy_mode != 'single' %}
+  /** Active {{ multi_tenancy_term }} identifier for this session. */
+  tenant: string;
+{%- endif %}
+}
+
+export interface Credentials {
+  email: string;
+  password: string;
+{%- if multi_tenancy_mode != 'single' %}
+  tenant: string;
+{%- endif %}
+}
+
+export interface Session {
+  user: AuthUser;
+  accessToken: string;
+}
+
+export interface AuthContextValue {
+  user: AuthUser | null;
+  accessToken: string | null;
+  isAuthenticated: boolean;
+  /** False once the stored session has been read on mount. */
+  isLoading: boolean;
+  signIn: (credentials: Credentials) => Promise<void>;
+  signOut: () => Promise<void>;
+}
+
+export const AuthContext = createContext<AuthContextValue | null>(null);
+
+function readStoredSession(): Session | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+  if (!raw) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw) as Session;
+  } catch {
+    window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    return null;
+  }
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setSession(readStoredSession());
+    setIsLoading(false);
+  }, []);
+
+  const signIn = useCallback(async (credentials: Credentials) => {
+    const response = await fetch(`${AUTH_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(credentials),
+    });
+    if (!response.ok) {
+      throw new Error('Invalid credentials.');
+    }
+    const next = (await response.json()) as Session;
+    window.sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(next));
+    setSession(next);
+  }, []);
+
+  const signOut = useCallback(async () => {
+    try {
+      await fetch(`${AUTH_BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
+    } finally {
+      window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      setSession(null);
+    }
+  }, []);
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user: session?.user ?? null,
+      accessToken: session?.accessToken ?? null,
+      isAuthenticated: Boolean(session),
+      isLoading,
+      signIn,
+      signOut,
+    }),
+    [session, isLoading, signIn, signOut],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}

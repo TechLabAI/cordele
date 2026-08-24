@@ -1,0 +1,55 @@
+{#-
+  react/app/[module]/page.tsx.j2 - dynamic module route.
+
+  Rendered by: /new-project P5 (_frontend_react) →
+    frontend/src/app/[module]/page.tsx
+
+  Variables used:
+    - modules   list of module dicts (hasUi=true, isInfrastructure=false)
+
+  D-546: one dynamic segment serves every registered feature module. Each entry
+  is code-split with `next/dynamic`, so a module's bundle only ships when its
+  route is visited. `params` is a Promise in Next 15 - unwrapped with `use()`.
+-#}
+'use client';
+
+import { use } from 'react';
+import dynamic from 'next/dynamic';
+import { notFound } from 'next/navigation';
+import type { ComponentType } from 'react';
+
+const MODULE_REGISTRY: Record<string, ComponentType> = {
+{%- for m in modules %}
+{%- if not m.isInfrastructure and m.hasUi %}
+{%- set _lib_raw = m.frontendLib if m.frontendLib else (m.prefix | lower) %}
+{%- set lib = _lib_raw[5:] if _lib_raw[:5] == 'libs/' else _lib_raw %}
+  '{{ lib }}': dynamic(
+    () => import('@/lib/{{ lib }}').then((mod) => mod.{{ lib | pascal }}ListPage),
+    { ssr: false, loading: () => <ModuleFallback /> },
+  ),
+{%- endif %}
+{%- endfor %}
+};
+
+function ModuleFallback() {
+  return (
+    <div className="p-6 text-sm text-muted-foreground" role="status" aria-live="polite">
+      Loading module...
+    </div>
+  );
+}
+
+export default function ModulePage({
+  params,
+}: {
+  params: Promise<{ module: string }>;
+}) {
+  const { module: moduleId } = use(params);
+  const ModuleView = MODULE_REGISTRY[moduleId];
+
+  if (!ModuleView) {
+    notFound();
+  }
+
+  return <ModuleView />;
+}

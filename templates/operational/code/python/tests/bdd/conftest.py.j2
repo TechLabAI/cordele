@@ -1,0 +1,70 @@
+{#-
+  bdd/conftest.py.j2 -- pytest-bdd fixtures (D-541).
+
+  Variables: package_name, module_id, ModuleId, MODULE_ID, module_name,
+             multi_tenancy_mode, multi_tenancy_term
+-#}
+"""pytest-bdd wiring for the {{ module_name }} module.
+
+Feature files live in `tests/bdd/features/`; step definitions in
+`tests/bdd/steps/`. Scenarios mirror the acceptance criteria of the module
+backlog one-to-one.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+import pytest
+
+FEATURES_DIR = Path(__file__).parent / "features"
+
+pytest_plugins = ["{{ package_name }}.{{ module_id }}.tests.bdd.steps.common_steps"]
+
+
+@dataclass
+class ScenarioContext:
+    """Mutable bag shared by the steps of a single scenario."""
+
+    payload: dict[str, Any] = field(default_factory=dict)
+    response: Any | None = None
+    error: Exception | None = None
+    entities: dict[str, Any] = field(default_factory=dict)
+{%- if multi_tenancy_mode != "single" %}
+    {{ multi_tenancy_term }}_id: str = "test-{{ multi_tenancy_term }}"
+{%- endif %}
+
+    def reset(self) -> None:
+        self.payload = {}
+        self.response = None
+        self.error = None
+        self.entities = {}
+
+
+@pytest.fixture
+def context() -> ScenarioContext:
+    """One fresh context per scenario -- never shared across scenarios."""
+    return ScenarioContext()
+
+
+@pytest.fixture
+def features_dir() -> Path:
+    """Root of the feature files, used by `scenarios()` in the step modules."""
+    return FEATURES_DIR
+
+
+@pytest.fixture
+def auth_headers(context: ScenarioContext) -> dict[str, str]:
+    """Default headers applied by the HTTP steps."""
+    headers = {"Authorization": "Bearer test-token"}
+{%- if multi_tenancy_mode != "single" %}
+    headers["X-{{ multi_tenancy_term|capitalize }}-Id"] = context.{{ multi_tenancy_term }}_id
+{%- endif %}
+    return headers
+
+
+def pytest_bdd_step_error(request, feature, scenario, step, step_func, exception, **kwargs):
+    """Report the failing Gherkin step with its feature for faster triage."""
+    print(f"FAILED {{ MODULE_ID }} step: {step.keyword} {step.name} ({feature.name}) -> {exception}")

@@ -1,0 +1,63 @@
+{#-
+  out_.py.j2 -- outbound ports (repository / publisher) as Protocols (D-541).
+
+  Variables: package_name, module_id, ModuleId, module_name,
+             has_msg_broker, msg_broker_name, multi_tenancy_mode, multi_tenancy_term
+-#}
+"""Outbound ports of the {{ module_name }} module.
+
+Driven adapters (SQLAlchemy repository{% if has_msg_broker %}, {{ msg_broker_name }} publisher{% endif %},
+external clients) implement these Protocols. The application layer depends on
+the Protocol, never on the adapter (dependency inversion).
+"""
+
+from __future__ import annotations
+
+from typing import Any, Protocol, runtime_checkable
+from uuid import UUID
+
+from {{ package_name }}.{{ module_id }}.domain.model import {{ ModuleId }}
+
+
+@runtime_checkable
+class {{ ModuleId }}Repository(Protocol):
+    """Persistence port for the {{ module_name }} aggregate."""
+
+    async def save(self, aggregate: {{ ModuleId }}) -> {{ ModuleId }}:
+        """Insert or update the aggregate and return the persisted state."""
+        ...
+
+    async def find_by_id(self, item_id: UUID) -> {{ ModuleId }} | None:
+        """Return the aggregate or `None` when it does not exist."""
+        ...
+
+    async def exists_by_name(self, name: str) -> bool:
+        """Return whether a record with this name already exists."""
+        ...
+
+    async def find_page(self, page: int, size: int) -> tuple[list[{{ ModuleId }}], int]:
+        """Return one page of aggregates plus the total count."""
+        ...
+
+    async def delete(self, item_id: UUID) -> None:
+        """Remove the aggregate; a missing id is a no-op."""
+        ...
+
+
+{% if has_msg_broker -%}
+@runtime_checkable
+class {{ ModuleId }}EventPort(Protocol):
+    """Outbound port used to publish {{ module_name }} domain events."""
+
+    async def publish(self, routing_key: str, payload: dict[str, Any]) -> None:
+        """Publish one event to {{ msg_broker_name }}."""
+        ...
+{%- else -%}
+@runtime_checkable
+class {{ ModuleId }}NotificationPort(Protocol):
+    """Outbound port used to notify other modules about state changes."""
+
+    async def notify(self, event_type: str, payload: dict[str, Any]) -> None:
+        """Emit one notification; the adapter decides the transport."""
+        ...
+{%- endif %}

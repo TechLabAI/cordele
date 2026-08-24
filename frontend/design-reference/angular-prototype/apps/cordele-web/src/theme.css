@@ -1,0 +1,158 @@
+/*
+ * Cordelê Design System — theme.css (Angular/Tailwind v4)
+ * @theme: tokens bare (padrão claro) — Tailwind v4 não aceita seletores aninhados aqui
+ * :root / [data-theme="dark"]: overrides CSS normais
+ */
+
+/* ─── TOKENS PARA TAILWIND (bare custom properties) ──────────────────────── */
+@theme {
+  --bg-base:            oklch(99% 0.003 265);
+  --bg-surface:         oklch(97% 0.005 265);
+  --bg-surface-hover:   oklch(94% 0.007 265);
+  --bg-surface-active:  oklch(91% 0.010 265);
+  --bg-topbar:          oklch(99% 0.003 265);
+  --bg-overlay:         oklch(22% 0.09 265);
+
+  --bg-sidebar:         oklch(28% 0.18 245);
+  --bg-sidebar-hover:   oklch(34% 0.18 245);
+  --bg-sidebar-active:  oklch(40% 0.18 245);
+
+  --color-brand:        oklch(58% 0.19 245);
+  --color-brand-strong: oklch(48% 0.19 245);
+  --color-brand-subtle: oklch(58% 0.19 245);
+  --color-brand-ink:    oklch(99% 0.005 245);
+
+  --color-ink:          oklch(22% 0.09 265);
+  --color-ink-strong:   oklch(14% 0.07 265);
+  --color-ink-subtle:   oklch(50% 0.06 265);
+
+  --text-primary:       oklch(22% 0.09 265);
+  --text-secondary:     oklch(45% 0.06 265);
+  --text-tertiary:      oklch(65% 0.04 265);
+  --text-on-dark:       oklch(96% 0.005 265);
+  --text-on-brand:      oklch(99% 0.003 265);
+
+  --color-success:      oklch(58% 0.18 145);
+  --color-success-ink:  oklch(35% 0.14 145);
+  --color-warning:      oklch(78% 0.16 75);
+  --color-warning-ink:  oklch(45% 0.14 75);
+  --color-error:        oklch(52% 0.23 25);
+  --color-error-ink:    oklch(35% 0.18 25);
+  --color-ai:           oklch(55% 0.22 290);
+  --color-ai-ink:       oklch(75% 0.14 290);
+
+  --border-subtle:      oklch(88% 0.008 265);
+  --border-default:     oklch(82% 0.012 265);
+  --border-strong:      oklch(65% 0.04 265);
+  --border-brand:       oklch(58% 0.19 245);
+
+  --font-display: 'Poppins', system-ui, sans-serif;
+  --font-body:    'Inter', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+
+  --sidebar-width:     240px;
+  --topbar-height:     56px;
+  --content-max-width: 880px;
+}
+
+/* ─── TEMA CLARO (padrão — custom properties com alpha) ─────────────────── */
+:root {
+  --bg-base:            oklch(99% 0.003 265);
+  --bg-surface:         oklch(97% 0.005 265);
+  --bg-surface-hover:   oklch(94% 0.007 265);
+  --bg-surface-active:  oklch(91% 0.010 265);
+  --bg-topbar:          oklch(99% 0.003 265 / 0.95);
+  --bg-overlay:         oklch(22% 0.09 265 / 0.50);
+
+  --bg-sidebar:         oklch(28% 0.18 245);
+  --bg-sidebar-hover:   oklch(34% 0.18 245);
+  --bg-sidebar-active:  oklch(40% 0.18 245);
+
+  --color-brand:        oklch(58% 0.19 245);
+  --color-brand-strong: oklch(48% 0.19 245);
+  --color-brand-subtle: oklch(58% 0.19 245 / 0.12);
+  --color-brand-ink:    oklch(99% 0.005 245);
+
+  --color-ink:          oklch(22% 0.09 265);
+  --color-ink-strong:   oklch(14% 0.07 265);
+  --color-ink-subtle:   oklch(50% 0.06 265);
+
+  --text-primary:       oklch(22% 0.09 265);
+  --text-secondary:     oklch(45% 0.06 265);
+  --text-tertiary:      oklch(65% 0.04 265);
+  --text-on-dark:       oklch(96% 0.005 265);
+  --text-on-brand:      oklch(99% 0.003 265);
+
+  --color-success:      oklch(58% 0.18 145);
+  --color-success-bg:   oklch(58% 0.18 145 / 0.10);
+  --color-success-ink:  oklch(35% 0.14 145);
+
+  --color-warning:      oklch(78% 0.16 75);
+  --color-warning-bg:   oklch(78% 0.16 75 / 0.12);
+  --color-warning-ink:  oklch(45% 0.14 75);
+
+  --color-error:        oklch(52% 0.23 25);
+  --color-error-bg:     oklch(52% 0.23 25 / 0.10);
+  --color-error-ink:    oklch(35% 0.18 25);
+
+  --color-info:         oklch(58% 0.19 245);
+  --color-info-bg:      oklch(58% 0.19 245 / 0.10);
+
+  --color-ai:           oklch(55% 0.22 290);
+  --color-ai-bg:        oklch(55% 0.22 290 / 0.08);
+  --color-ai-ink:       oklch(75% 0.14 290);
+
+  --border-subtle:      oklch(88% 0.008 265);
+  --border-default:     oklch(82% 0.012 265);
+  --border-strong:      oklch(65% 0.04 265);
+  --border-brand:       oklch(58% 0.19 245 / 0.35);
+
+  --shadow-sm:  0 1px 2px oklch(22% 0.09 265 / 0.06);
+  --shadow-md:  0 4px 12px oklch(22% 0.09 265 / 0.10);
+  --shadow-lg:  0 8px 24px oklch(22% 0.09 265 / 0.14);
+
+  --font-display: 'Poppins', system-ui, sans-serif;
+  --font-body:    'Inter', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+
+  --sidebar-width:     240px;
+  --topbar-height:     56px;
+  --content-max-width: 880px;
+}
+
+/* ─── TEMA ESCURO ────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg-base:            oklch(12% 0.03 265);
+  --bg-surface:         oklch(16% 0.04 265);
+  --bg-surface-hover:   oklch(20% 0.04 265);
+  --bg-surface-active:  oklch(24% 0.05 265);
+  --bg-topbar:          oklch(12% 0.03 265 / 0.96);
+  --bg-overlay:         oklch(5% 0.02 265 / 0.70);
+
+  --bg-sidebar:         oklch(8% 0.18 245);
+  --bg-sidebar-hover:   oklch(14% 0.20 245);
+  --bg-sidebar-active:  oklch(20% 0.22 245);
+
+  --color-brand:        oklch(65% 0.19 245);
+  --color-brand-strong: oklch(55% 0.19 245);
+  --color-brand-subtle: oklch(65% 0.19 245 / 0.15);
+
+  --text-primary:       oklch(95% 0.008 265);
+  --text-secondary:     oklch(70% 0.015 265);
+  --text-tertiary:      oklch(50% 0.012 265);
+  --text-on-dark:       oklch(95% 0.008 265);
+
+  --border-subtle:      oklch(22% 0.04 265);
+  --border-default:     oklch(30% 0.05 265);
+  --border-strong:      oklch(45% 0.06 265);
+  --border-brand:       oklch(65% 0.19 245 / 0.30);
+
+  --shadow-sm:  0 1px 2px oklch(5% 0.02 265 / 0.30);
+  --shadow-md:  0 4px 12px oklch(5% 0.02 265 / 0.40);
+  --shadow-lg:  0 8px 24px oklch(5% 0.02 265 / 0.50);
+
+  --color-success-ink:  oklch(72% 0.18 145);
+  --color-warning-ink:  oklch(82% 0.16 75);
+  --color-error-ink:    oklch(70% 0.20 25);
+  --color-ai-ink:       oklch(80% 0.14 290);
+}

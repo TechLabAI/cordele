@@ -1,0 +1,200 @@
+/* TechLab Design System — dark-only, glass, AlumIA amarela
+   Tokens idênticos ao Angular/Nx canonical DS.
+   Só brand_hex muda por projeto. */
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Nunito+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* ── Superfícies ── */
+  --color-base:      #061423;
+  --color-surface:   #0F1D30;
+  --color-surface-2: #162236;
+  --color-surface-3: #1C2B40;
+
+  /* ── Marca (única variável por projeto) ── */
+  --color-brand:        #197ae1;
+  --color-brand-strong: #1C8AFF;
+  --color-brand-active: rgba(25,122,225,0.18);
+  --color-brand-subtle: rgba(25,122,225,0.14);
+  --color-brand-line:   rgba(25,122,225,0.42);
+  --color-brand-ink:    #FFFFFF;
+
+  /* ── Tipografia ── */
+  --color-ink:       #E8F0F8;
+  --color-ink-soft:  #A8BDD0;
+  --color-ink-faint: #5A7490;
+
+  /* ── Bordas ── */
+  --color-line:       rgba(255,255,255,0.07);
+  --color-line-strong:rgba(255,255,255,0.14);
+
+  /* ── Glass ── */
+  --glass-bg:      rgba(15,29,48,0.72);
+  --glass-border:  rgba(255,255,255,0.08);
+  --glass-blur:    12px;
+  --hero-bg:       rgba(0,111,203,0.10);
+  --hero-border:   rgba(0,111,203,0.28);
+
+  /* ── IA (amarela — identidade fixa, NÃO muda com a marca) ── */
+  --color-ai:       #fde047;
+  --color-ai-fill:  #facc15;
+  --color-ai-strong:#eab308;
+  --color-ai-on:    #2b1d00;
+  --color-ai-bg:    rgba(250,204,21,0.12);
+  --color-ai-ink:   #fde047;
+  --color-ai-panel: rgba(250,204,21,0.06);
+
+  /* ── Painel IA (azul-glass independente) ── */
+  --color-panel-base:   #0b1322;
+  --color-panel-bubble: rgba(255,255,255,0.04);
+  --color-panel-border: rgba(255,255,255,0.08);
+  --color-panel-text:   #A8BDD0;
+  --color-panel-muted:  #5A7490;
+  --color-panel-ident:  #60A5FA;
+  --color-panel-field:  rgba(255,255,255,0.04);
+
+  /* ── Semânticas ── */
+  --color-success-bg:  rgba(16,185,129,0.14);
+  --color-success-ink: #34D399;
+  --color-warning-bg:  rgba(245,158,11,0.14);
+  --color-warning-ink: #FBBF24;
+  --color-danger-bg:   rgba(239,68,68,0.14);
+  --color-danger-ink:  #F87171;
+  --color-danger:      #F87171;
+  --color-info-bg:     rgba(59,130,246,0.14);
+  --color-info-ink:    #93C5FD;
+
+  /* ── Inputs ── */
+  --color-field:      rgba(255,255,255,0.04);
+  --color-field-line: rgba(255,255,255,0.12);
+
+  /* ── Sombras ── */
+  --shadow-card: 0 4px 24px rgba(0,0,0,0.36);
+  --shadow-panel: 0 8px 32px rgba(0,0,0,0.48);
+
+  /* ── Raios ── */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-card: 12px;
+  --radius-xl:   16px;
+  --radius-pill: 999px;
+
+  /* ── Espaçamento (escala 4px) ── */
+  --space-1:  4px;  --space-2:  8px;  --space-3: 12px;
+  --space-4: 16px;  --space-5: 20px;  --space-6: 24px;
+  --space-8: 32px;  --space-10:40px;  --space-12:48px;
+
+  /* ── Tipografia ── */
+  --font-display: 'Montserrat', sans-serif;
+  --font-body:    'Nunito Sans', sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+  --text-2xs: 10px; --text-xs: 11px; --text-sm: 13px;
+  --text-base: 14px; --text-md: 15px; --text-lg: 18px;
+  --text-xl: 20px; --text-2xl: 24px; --text-3xl: 30px;
+  --weight-regular: 400; --weight-medium: 500;
+  --weight-semibold: 600; --weight-bold: 700; --weight-extrabold: 800;
+  --leading-tight: 1.25; --leading-relaxed: 1.6;
+}
+
+/* Reset */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; padding: 0; }
+body {
+  background: var(--color-base);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glass */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-card);
+}
+.glass--hero {
+  background: var(--hero-bg);
+  border-color: var(--hero-border);
+}
+
+/* Material Symbols */
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+  line-height: 1;
+  user-select: none;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Shell layout */
+.shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--color-base);
+}
+.shell__sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-line);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  z-index: 10;
+}
+.shell__main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+.shell__topbar {
+  height: 56px;
+  flex-shrink: 0;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-line);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-6);
+  gap: var(--space-4);
+  z-index: 9;
+}
+.shell__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-6);
+  position: relative;
+}
+.shell__content::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 60% at 60% 30%, rgba(25,122,225,0.07) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.shell__ai {
+  width: 320px;
+  flex-shrink: 0;
+  background: var(--color-panel-base);
+  border-left: 1px solid var(--color-panel-border);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.2s ease;
+}
+.shell__ai[data-collapsed='true'] {
+  width: 0;
+  overflow: hidden;
+  border-left: none;
+}

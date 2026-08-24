@@ -1,0 +1,185 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://techlab/arch/decisions/error-model.schema.json",
+  "title": "Error model architecture decision",
+  "description": "Cross-project decisions for the HTTP error model: media type, RFC reference, type URI template, canonical error categories (with default HTTP status + FE handling hint), required ProblemDetail extension fields, and the catalogue of error codes per module. Source of truth for the rendered error-model.md document and (in future phases) for the generated GlobalExceptionHandler. D-064.",
+  "type": "object",
+  "required": [
+    "_schema_version",
+    "version",
+    "media_type",
+    "rfc",
+    "categories",
+    "extension_fields",
+    "modules"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$comment": {
+      "type": "string",
+      "description": "Free-text note for maintainers; not consumed by any generator."
+    },
+    "_schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "last_changed": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "media_type": {
+      "type": "string",
+      "description": "MIME type of error responses. Always 'application/problem+json' for RFC 7807 compliance."
+    },
+    "rfc": {
+      "type": "string",
+      "description": "RFC identifier (e.g. '7807')."
+    },
+    "type_uri_template": {
+      "type": "string",
+      "description": "URI template for the `type` field of ProblemDetail; may contain {{ var }} placeholders interpolated with project context (e.g. project_name) and `{code}` for the error code."
+    },
+    "categories": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "default_http_status",
+          "valid_http_statuses",
+          "description"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*$"
+          },
+          "label": {
+            "type": "string"
+          },
+          "default_http_status": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599
+          },
+          "valid_http_statuses": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 400,
+              "maximum": 599
+            },
+            "minItems": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "fe_action_hint": {
+            "type": "string",
+            "description": "Hint for the frontend on how to present this category (e.g. show_field_marks, redirect_login, show_dialog_with_resolution). Used by the access layer to choose UI affordance."
+          }
+        }
+      }
+    },
+    "extension_fields": {
+      "type": "array",
+      "minItems": 1,
+      "description": "ProblemDetail body extension fields beyond RFC 7807's standard (type/title/status/detail/instance). All live under the top-level `error` object.",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "required",
+          "type"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "type": {
+            "type": "string",
+            "description": "Semantic type (string, uuid, ISO-8601, enum-of-categories, array<field-error>, object)."
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "modules": {
+      "type": "array",
+      "description": "Error code catalogue grouped by module prefix (mirrors permission-catalogue.arch.json modules where appropriate).",
+      "items": {
+        "type": "object",
+        "required": [
+          "prefix",
+          "name",
+          "errors"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "prefix": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "code",
+                "category",
+                "http_status"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "description": "Full stable error code (e.g. 'cad.cliente.duplicado'). MUST start with `<prefix>.` (validated)."
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Category id; MUST exist in categories[*].id (validated)."
+                },
+                "http_status": {
+                  "type": "integer",
+                  "minimum": 400,
+                  "maximum": 599
+                },
+                "title": {
+                  "type": "string",
+                  "description": "Default human-readable message; FE may override via i18n keyed by `code`."
+                },
+                "context_fields": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Optional field names this error attaches under `error.context` for debugging or FE display."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

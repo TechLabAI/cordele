@@ -1,0 +1,49 @@
+{#-
+  vertex-ai-config.java.j2 — extracted from gen_vertex_ai_config() in be-module-generator.py.
+  Variables: pkg_full
+-#}
+package {{ pkg_full }}.infrastructure.config;
+
+import com.google.cloud.vertexai.VertexAI;
+import com.google.cloud.vertexai.generativeai.GenerativeModel;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * Vertex AI integration — auth via GOOGLE_APPLICATION_CREDENTIALS env var
+ * or Workload Identity (GKE) on production.
+ *
+ * Required application.yml:
+ *   gcp:
+ *     vertex-ai:
+ *       project-id: ${GCP_PROJECT_ID}
+ *       location:   ${GCP_VERTEX_LOCATION:us-central1}
+ *       model:      ${GCP_VERTEX_MODEL:gemini-1.5-pro-002}
+ */
+@Configuration
+public class VertexAiConfig {
+
+    @Value("${gcp.vertex-ai.project-id}")
+    private String projectId;
+
+    @Value("${gcp.vertex-ai.location:us-central1}")
+    private String location;
+
+    @Value("${gcp.vertex-ai.model:gemini-1.5-pro-002}")
+    private String model;
+
+    @Bean
+    public VertexAI vertexAi() {
+        if (projectId == null || projectId.isBlank()) {
+            throw new IllegalStateException(
+                "gcp.vertex-ai.project-id is required (env GCP_PROJECT_ID)");
+        }
+        return new VertexAI(projectId, location);
+    }
+
+    @Bean
+    public GenerativeModel generativeModel(VertexAI vertexAi) {
+        return new GenerativeModel(model, vertexAi);
+    }
+}

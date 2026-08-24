@@ -1,0 +1,17 @@
+{#-
+  update-{{ module_id }}.dto.ts.j2 — partial update contract (D-544).
+
+  Variables: module_id, ModuleId, MODULE_ID
+-#}
+import { PartialType } from '@nestjs/swagger';
+
+import { Create{{ ModuleId }}Dto } from './create-{{ module_id }}.dto';
+
+/**
+ * Partial update payload for {{ MODULE_ID }}.
+ *
+ * `PartialType` (from @nestjs/swagger, not @nestjs/mapped-types) keeps every
+ * class-validator rule of the create DTO but marks each field optional, and
+ * carries the OpenAPI metadata over to the generated document.
+ */
+export class Update{{ ModuleId }}Dto extends PartialType(Create{{ ModuleId }}Dto) {}

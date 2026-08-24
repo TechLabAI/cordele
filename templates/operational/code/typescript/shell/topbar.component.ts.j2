@@ -1,0 +1,57 @@
+{#-
+  shell/topbar.component.ts.j2 — Angular topbar / header component.
+
+  Rendered by: /new-project P5 →
+    apps/{project_name}-web/src/app/shell/topbar.component.ts
+
+  Variables used:
+    - project_display_name
+    - multi_tenancy_mode   "multi-empresa" | "multi-tenant" | "single"
+    - multi_tenancy_term   e.g. "empresa"
+
+  D-289: TopbarComponent conditionally renders a tenant selector when multi-tenancy is enabled.
+-#}
+import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+{%- if multi_tenancy_mode != 'single' %}
+import { FormsModule } from '@angular/forms';
+{%- endif %}
+
+@Component({
+  selector: 'app-topbar',
+  standalone: true,
+  imports: [
+{%- if multi_tenancy_mode != 'single' %}
+    FormsModule,
+{%- endif %}
+  ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <header class="topbar">
+      <span class="topbar-title">{{ project_display_name }}</span>
+{%- if multi_tenancy_mode != 'single' %}
+      <select class="topbar-tenant" [ngModel]="active{{ multi_tenancy_term | capitalize }}()" (ngModelChange)="active{{ multi_tenancy_term | capitalize }}.set($event)">
+        <!-- Populated at runtime from the auth/tenant service -->
+      </select>
+{%- endif %}
+      <div class="topbar-actions">
+        <!-- search, notifications, user menu -->
+      </div>
+    </header>
+  `,
+  styles: [`
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .topbar-title { font-weight: 600; }
+    .topbar-actions { margin-left: auto; display: flex; gap: 0.5rem; }
+  `],
+})
+export class TopbarComponent {
+{%- if multi_tenancy_mode != 'single' %}
+  readonly active{{ multi_tenancy_term | capitalize }} = signal<string>('');
+{%- endif %}
+}

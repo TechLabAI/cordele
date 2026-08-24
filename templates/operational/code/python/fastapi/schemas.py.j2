@@ -1,0 +1,94 @@
+{#-
+  schemas.py.j2 -- Pydantic v2 request/response models (D-541).
+
+  Variables: package_name, module_id, ModuleId, module_name,
+             multi_tenancy_mode, multi_tenancy_term
+-#}
+"""Pydantic v2 schemas for the {{ module_name }} HTTP adapter.
+
+Schemas belong to the adapter, not to the domain: they never leak into
+`domain/` (hexagonal RULE-02).
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Generic, Self, TypeVar
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from {{ package_name }}.{{ module_id }}.domain.model import {{ ModuleId }}, Create{{ ModuleId }}Command
+
+T = TypeVar("T")
+
+
+class {{ ModuleId }}Request(BaseModel):
+    """Inbound payload used to create or update a {{ module_name }} record."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str = Field(min_length=1, max_length=255)
+    description: str | None = Field(default=None, max_length=2000)
+    # TODO[SCAFFOLD]: complete fields from the api-contract of this module.
+
+    def to_command(self) -> Create{{ ModuleId }}Command:
+        """Translate the transport payload into a domain command."""
+        return Create{{ ModuleId }}Command(
+            name=self.name,
+            description=self.description,
+        )
+
+
+class {{ ModuleId }}Response(BaseModel):
+    """Outbound representation of a {{ module_name }} record."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+{%- if multi_tenancy_mode != "single" %}
+    {{ multi_tenancy_term }}_id: str = Field(serialization_alias="{{ multi_tenancy_term }}Id")
+{%- endif %}
+    name: str
+    description: str | None = None
+    created_at: datetime = Field(serialization_alias="createdAt")
+
+    @classmethod
+    def from_entity(cls, entity: {{ ModuleId }}) -> Self:
+        return cls(
+            id=entity.id,
+{%- if multi_tenancy_mode != "single" %}
+            {{ multi_tenancy_term }}_id=entity.{{ multi_tenancy_term }}_id,
+{%- endif %}
+            name=entity.name,
+            description=entity.description,
+            created_at=entity.created_at,
+        )
+
+
+class PageMeta(BaseModel):
+    """Pagination envelope shared by every list endpoint of this module."""
+
+    page: int
+    size: int
+    total: int
+    total_pages: int = Field(serialization_alias="totalPages")
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    """Generic paginated list response."""
+
+    items: list[T]
+    meta: PageMeta
+
+    @classmethod
+    def of(cls, items: list[T], page: int, size: int, total: int) -> Self:
+        total_pages = (total + size - 1) // size if size else 0
+        return cls(
+            items=items,
+            meta=PageMeta(page=page, size=size, total=total, total_pages=total_pages),
+        )
+
+
+class Paginated{{ ModuleId }}Response(PaginatedResponse[{{ ModuleId }}Response]):
+    """Paginated list of {{ module_name }} records."""

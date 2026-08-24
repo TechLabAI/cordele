@@ -1,0 +1,145 @@
+{#-
+  react/lib/<module>/api/<module>-api.ts.j2 - typed fetch client.
+
+  Rendered by: scripts/fe-react-module-generator.py →
+    frontend/src/lib/{module_id}/api/{module_id}-api.ts
+
+  Variables used:
+    - module_id, ModuleId, MODULE_ID
+    - multi_tenancy_mode, multi_tenancy_term
+
+  D-546: no axios - the platform `fetch` is enough and keeps the RSC/Edge
+  runtimes usable. Every response is validated with the module's Zod schema, so
+  a contract break surfaces here instead of deep inside a component.
+-#}
+{%- set Mod = ModuleId if ModuleId is defined and ModuleId else (module_id | pascal) -%}
+{%- set mod = Mod[0] | lower ~ Mod[1:] -%}
+import {
+  {{ mod }}InputSchema,
+  {{ mod }}PageSchema,
+  {{ mod }}Schema,
+  type {{ Mod }},
+  type {{ Mod }}Id,
+  type {{ Mod }}Input,
+  type {{ Mod }}Page,
+  type {{ Mod }}Query,
+} from '../types/{{ module_id }}.types';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? '/api';
+const RESOURCE = '{{ module_id }}';
+
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+    readonly details?: unknown,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+export interface RequestContext {
+  /** Bearer token from the auth context. */
+  accessToken?: string | null;
+{%- if multi_tenancy_mode != 'single' %}
+  /** Active {{ multi_tenancy_term }} identifier, sent as `X-Tenant-Id`. */
+  tenantId?: string | null;
+{%- endif %}
+  signal?: AbortSignal;
+}
+
+function buildHeaders(ctx: RequestContext, hasBody: boolean): HeadersInit {
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  if (hasBody) {
+    headers['Content-Type'] = 'application/json';
+  }
+  if (ctx.accessToken) {
+    headers.Authorization = `Bearer ${ctx.accessToken}`;
+  }
+{%- if multi_tenancy_mode != 'single' %}
+  if (ctx.tenantId) {
+    headers['X-Tenant-Id'] = ctx.tenantId;
+  }
+{%- endif %}
+  return headers;
+}
+
+async function request<T>(
+  path: string,
+  init: RequestInit,
+  ctx: RequestContext,
+  parse: (data: unknown) => T,
+): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...init,
+    headers: buildHeaders(ctx, init.body !== undefined),
+    signal: ctx.signal,
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    const details = await response.json().catch(() => undefined);
+    throw new ApiError(response.status, `${init.method ?? 'GET'} ${path} failed`, details);
+  }
+
+  if (response.status === 204) {
+    return parse(undefined);
+  }
+  return parse(await response.json());
+}
+
+function toSearchParams(query: Partial<{{ Mod }}Query>): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== null && value !== '') {
+      params.set(key, String(value));
+    }
+  }
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+}
+
+export const {{ mod }}Api = {
+  list(query: Partial<{{ Mod }}Query>, ctx: RequestContext = {}): Promise<{{ Mod }}Page> {
+    return request(
+      `/${RESOURCE}${toSearchParams(query)}`,
+      { method: 'GET' },
+      ctx,
+      (data) => {{ mod }}PageSchema.parse(data),
+    );
+  },
+
+  getById(id: {{ Mod }}Id, ctx: RequestContext = {}): Promise<{{ Mod }}> {
+    return request(
+      `/${RESOURCE}/${id}`,
+      { method: 'GET' },
+      ctx,
+      (data) => {{ mod }}Schema.parse(data),
+    );
+  },
+
+  create(input: {{ Mod }}Input, ctx: RequestContext = {}): Promise<{{ Mod }}> {
+    const body = JSON.stringify({{ mod }}InputSchema.parse(input));
+    return request(
+      `/${RESOURCE}`,
+      { method: 'POST', body },
+      ctx,
+      (data) => {{ mod }}Schema.parse(data),
+    );
+  },
+
+  update(id: {{ Mod }}Id, input: {{ Mod }}Input, ctx: RequestContext = {}): Promise<{{ Mod }}> {
+    const body = JSON.stringify({{ mod }}InputSchema.parse(input));
+    return request(
+      `/${RESOURCE}/${id}`,
+      { method: 'PUT', body },
+      ctx,
+      (data) => {{ mod }}Schema.parse(data),
+    );
+  },
+
+  remove(id: {{ Mod }}Id, ctx: RequestContext = {}): Promise<void> {
+    return request(`/${RESOURCE}/${id}`, { method: 'DELETE' }, ctx, () => undefined);
+  },
+};

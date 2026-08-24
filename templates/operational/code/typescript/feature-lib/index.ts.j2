@@ -1,0 +1,16 @@
+{#-
+  feature-lib/index.ts.j2 — Nx feature library barrel export.
+
+  Rendered by: fe-module-generator.py generate →
+    libs/{lib}/src/index.ts
+  (D-331: P5 no longer pre-creates libs/<lib>/src/ stubs)
+
+  Variables used:
+    - lib        e.g. "feature-overview"
+    - lib_const  e.g. "FEATURE_OVERVIEW_ROUTES"
+    - lib_class  e.g. "FeatureOverviewPage"
+
+  D-289: Public API barrel — only export what the app shell needs (routes + public components).
+  Keep private component internals out of this file.
+-#}
+export { {{ lib_const }} } from './lib/{{ lib }}.routes';

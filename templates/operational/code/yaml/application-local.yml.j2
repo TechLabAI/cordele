@@ -1,0 +1,54 @@
+{#-
+  application-local.yml.j2 — Local dev profile with platform mocks.
+
+  Variables (passed): meta, db_name, db_user, db_pass, pkg_full, primary_role
+  Variables (auto-injected): migrations_service
+-#}
+# Profile 'local' — desenvolvimento local com mocks de plataforma
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/{{ db_name }}
+    username: {{ db_user }}
+    password: {{ db_pass }}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: t_emp_dev
+  flyway:
+    enabled: false  # schema gerenciado pelo {{ migrations_service }}
+  {% if events_broker == "kafka" -%}
+  kafka:
+    bootstrap-servers: localhost:9092
+  {%- else -%}
+  activemq:
+    broker-url: tcp://localhost:61616
+    user: admin
+    password: admin
+  {%- endif %}
+
+# Desabilita autenticação real com a plataforma no profile local
+platform:
+  identity:
+    mock: true
+    mock-user-id: user-dev-001
+    mock-user-name: Desenvolvedor Local
+    mock-roles:
+      - {{ primary_role }}  # role principal da tool
+  tenant:
+    mock: true
+    mock-tenant-id: tenant-dev
+    mock-organization-id: org-dev-001
+  authorization:
+    mock: true
+    mock-permit-all: true
+
+logging:
+  level:
+    {{ pkg_full }}: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG

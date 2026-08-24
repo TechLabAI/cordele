@@ -1,0 +1,42 @@
+{
+  "_schema_version": 1,
+  "version": "1.0.0",
+  "last_changed": "2026-05-25",
+  "enforcement": {
+    "default": "pre_authorize",
+    "fallback": "deny",
+    "audit_required": [
+      "CREATE",
+      "UPDATE",
+      "DELETE"
+    ]
+  },
+  "data_scope": {
+    "default_field": "tenant_id",
+    "override_allowed": [
+      "ADMIN"
+    ],
+    "types": [
+      {
+        "id": "EMPRESA_COMPLETA",
+        "value_kind": "none",
+        "description": "Sem restrição dentro da empresa — vê todos os registros."
+      }
+    ]
+  },
+  "roles": [
+    {
+      "code": "COORDENADORA_EDITORIAL",
+      "name": "Coordenador(a) Editorial",
+      "description": "Marina, coordenadora editorial em editora independente com 20-80 títulos/ano.",
+      "category": "default",
+      "active": true,
+      "data_scope_tipo": null,
+      "permission_bundle": {
+        "kind": "all",
+        "note": "TODO: refine permissions — defaulted to `all` because per-role authority is not declared in discovery. Edit before going to production."
+      }
+    }
+  ],
+  "$comment": "Workspace ships with minimal defaults (D-103, Gap B). See templates/architecture/decisions/_examples/eerripe-rbac.partial.json for the BOSQ-ERP starting set; copy to <project>/arch/overrides/rbac.partial.json and the D-074 deep-merge will apply it during P2."
+}

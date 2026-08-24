@@ -1,0 +1,24 @@
+{#-
+  feature-lib/lib.routes.ts.j2 — Nx feature library lazy route definition.
+
+  Rendered by: /new-project P5 and fe-module-generator.py generate →
+    libs/{lib}/src/lib/{lib}.routes.ts
+
+  Variables used:
+    - lib        e.g. "feature-overview"
+    - lib_const  e.g. "FEATURE_OVERVIEW_ROUTES"
+    - lib_class  e.g. "FeatureOverviewPageComponent"
+    - lib_slug   e.g. "feature-overview"  (kebab, same as lib)
+
+  D-289: Lazy-loaded route entry point for Nx feature lib.
+  The page component is a standalone Angular component imported inline.
+-#}
+import { Routes } from '@angular/router';
+
+export const {{ lib_const }}: Routes = [
+  {
+    path: '',
+    loadComponent: () =>
+      import('./{{ lib_slug }}-page.component').then(c => c.{{ lib_class }}Component),
+  },
+];

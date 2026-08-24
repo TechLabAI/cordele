@@ -1,0 +1,9 @@
+{
+  "name": "shared-access-http-base",
+  "projectType": "library",
+  "sourceRoot": "libs/shared/access-http-base/src",
+  "tags": [
+    "type:data-access",
+    "scope:shared"
+  ]
+}

@@ -1,0 +1,46 @@
+{#-
+  {{ module_id }}.repository.interface.ts.j2 — repository port (D-544/D-545).
+
+  Variables: module_id, ModuleId, MODULE_ID, multi_tenancy_mode, multi_tenancy_term
+-#}
+import { {{ ModuleId }}Entity } from './{{ module_id }}.entity';
+
+export interface PageRequest {
+  readonly page: number;
+  readonly size: number;
+}
+
+export interface {{ ModuleId }}Page {
+  readonly items: {{ ModuleId }}Entity[];
+  readonly total: number;
+}
+
+/**
+ * Outbound port for {{ MODULE_ID }} persistence.
+ *
+ * The application layer depends on this interface only. The concrete Prisma
+ * adapter is bound in `{{ module_id }}.module.ts`; swapping storage engines
+ * must not require touching anything above this line.
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+ *
+ * Every operation is scoped by {{ multi_tenancy_term }} — there is no
+ * cross-{{ multi_tenancy_term }} read path by design.
+{%- endif %}
+ */
+export interface {{ ModuleId }}RepositoryPort {
+  save(entity: {{ ModuleId }}Entity{% if multi_tenancy_mode and multi_tenancy_mode != 'none' %}, tenantId: string{% endif %}): Promise<{{ ModuleId }}Entity>;
+
+  findById(id: string{% if multi_tenancy_mode and multi_tenancy_mode != 'none' %}, tenantId: string{% endif %}): Promise<{{ ModuleId }}Entity | null>;
+
+  findAll(page: PageRequest{% if multi_tenancy_mode and multi_tenancy_mode != 'none' %}, tenantId: string{% endif %}): Promise<{{ ModuleId }}Page>;
+
+  deleteById(id: string{% if multi_tenancy_mode and multi_tenancy_mode != 'none' %}, tenantId: string{% endif %}): Promise<void>;
+}
+
+/**
+ * Injection token for {{ ModuleId }}RepositoryPort.
+ *
+ * TypeScript interfaces are erased at runtime, so the port needs an explicit
+ * token to be usable as a Nest provider key.
+ */
+export const {{ ModuleId }}RepositoryPort = Symbol('{{ ModuleId }}RepositoryPort');

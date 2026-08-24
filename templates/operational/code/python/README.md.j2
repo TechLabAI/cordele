@@ -1,0 +1,73 @@
+# {{ backend_service }}
+
+{{ module_description or (module_name ~ " bounded context.") }}
+
+FastAPI service of **{{ project_display_name }}**, module `{{ MODULE_ID }}`.
+Stack: FastAPI {{ backend_framework_version }} · SQLAlchemy {{ stack.backend.ormVersion | default("2.x") }} async · Alembic · Python {{ python_version }} (D-541..D-543).
+
+## Layout
+
+```
+src/{{ package_name }}/{{ module_id }}/
+├── fastapi/           HTTP adapter — router, schemas, dependencies
+├── domain/            entities, value objects, domain services (no I/O)
+├── application/       use cases + ports (Protocol) in/out
+├── infrastructure/    SQLAlchemy repositories, messaging, security
+└── tests/             unit · integration (testcontainers) · bdd (pytest-bdd)
+```
+
+The dependency direction is one-way: `fastapi → application → domain`, with
+`infrastructure` implementing the outbound Protocols. Nothing under `domain/`
+imports SQLAlchemy, FastAPI or the broker client — that rule is enforced by
+`lint-imports` (see `docs/architecture/backend/standards/python-hexagonal-patterns.md`).
+
+## Run
+
+```bash
+uv sync                                  # install from pyproject.toml
+cp .env.example .env                     # then fill in the secrets
+uv run alembic upgrade head              # apply migrations
+uv run uvicorn {{ package_name }}.{{ module_id }}.fastapi.main:app --reload
+```
+
+OpenAPI is served at `/docs`; the health probe at `/health`.
+
+## Test
+
+```bash
+uv run pytest                            # whole suite
+uv run pytest -m "not integration"       # unit only, no containers
+uv run pytest --cov={{ package_name }}   # with coverage
+```
+
+Integration tests start a real PostgreSQL through testcontainers — Docker must be
+running. BDD scenarios live in `tests/bdd/` and are generated from the `.feature`
+files by `py-bdd-generator.py`.
+
+## Migrate
+
+```bash
+uv run alembic revision --autogenerate -m "<change>"   # draft from the ORM models
+uv run alembic upgrade head                            # apply
+uv run alembic downgrade -1                            # roll back one revision
+```
+
+Autogenerate only sees models imported by `alembic/env.py` — a new table that is
+not imported there produces an empty revision.
+{%- if has_msg_broker %}
+
+## Events
+
+Published and consumed through {{ msg_broker_name }} (`infrastructure/messaging/`).
+The contract lives in `docs/architecture/backend/services/{{ backend_service }}-spec/`;
+a consumer failure lands the message on the DLQ named by `AMQP_DLQ`.
+{%- endif %}
+
+## Where the rules live
+
+| Question | Document |
+|---|---|
+| Naming, typing, ruff/mypy | `docs/architecture/backend/standards/python-conventions.md` |
+| Layering and ports | `docs/architecture/backend/standards/python-hexagonal-patterns.md` |
+| Test strategy | `docs/architecture/backend/standards/python-testing-conventions.md` |
+| Why Protocol and not ABC | `docs/architecture/backend/adr/` — the `hexagonal-python` ADR (number resolved at generation time, D-563) |

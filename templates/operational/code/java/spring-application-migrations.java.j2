@@ -1,0 +1,22 @@
+{#-
+  spring-application-migrations.java.j2 — Main class for type=migrations (no web, flyway-only).
+  Variables: pkg_full, app_class
+-#}
+package {{ pkg_full }};
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+/**
+ * Centralized Flyway migration runner.
+ *
+ * <p>Runs as a one-shot Spring Boot application (no HTTP port). Flyway auto-configuration applies
+ * all pending migrations against the configured schema on startup, then the JVM exits.
+ */
+@SpringBootApplication
+public class {{ app_class }} {
+
+    public static void main(String[] args) {
+        SpringApplication.run({{ app_class }}.class, args);
+    }
+}

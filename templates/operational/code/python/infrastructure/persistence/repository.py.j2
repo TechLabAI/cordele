@@ -1,0 +1,116 @@
+{#-
+  repository.py.j2 -- SQLAlchemy 2.x AsyncSession repository adapter (D-542).
+
+  Variables: package_name, module_id, ModuleId, MODULE_ID, module_name,
+             multi_tenancy_mode, multi_tenancy_term
+-#}
+"""Persistence adapter for the {{ module_name }} module.
+
+Implements the `{{ ModuleId }}Repository` outbound port with SQLAlchemy 2.x
+async style (`select()` + `AsyncSession`). Every ORM row is translated into a
+domain aggregate before it leaves this class.
+"""
+
+from __future__ import annotations
+
+from uuid import UUID
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from {{ package_name }}.{{ module_id }}.application.ports.out_ import {{ ModuleId }}Repository
+from {{ package_name }}.{{ module_id }}.domain.model import {{ ModuleId }}
+
+from ..models import {{ ModuleId }}Entity
+
+
+class SqlAlchemy{{ ModuleId }}Repository({{ ModuleId }}Repository):
+    """Async repository backed by PostgreSQL through asyncpg."""
+
+    def __init__(
+        self,
+        session: AsyncSession,
+{%- if multi_tenancy_mode != "single" %}
+        {{ multi_tenancy_term }}_id: str | None = None,
+{%- endif %}
+    ) -> None:
+        self._session = session
+{%- if multi_tenancy_mode != "single" %}
+        self._{{ multi_tenancy_term }}_id = {{ multi_tenancy_term }}_id
+{%- endif %}
+
+    async def save(self, aggregate: {{ ModuleId }}) -> {{ ModuleId }}:
+        entity = await self._session.get({{ ModuleId }}Entity, aggregate.id)
+        if entity is None:
+            entity = {{ ModuleId }}Entity(id=aggregate.id)
+            self._session.add(entity)
+        self._apply(entity, aggregate)
+        await self._session.flush()
+        await self._session.refresh(entity)
+        return self._to_domain(entity)
+
+    async def find_by_id(self, item_id: UUID) -> {{ ModuleId }} | None:
+        stmt = self._scoped(select({{ ModuleId }}Entity)).where({{ ModuleId }}Entity.id == item_id)
+        entity = (await self._session.execute(stmt)).scalar_one_or_none()
+        return self._to_domain(entity) if entity is not None else None
+
+    async def exists_by_name(self, name: str) -> bool:
+        stmt = self._scoped(select(func.count()).select_from({{ ModuleId }}Entity)).where(
+            {{ ModuleId }}Entity.name == name
+        )
+        return bool((await self._session.execute(stmt)).scalar_one())
+
+    async def find_page(self, page: int, size: int) -> tuple[list[{{ ModuleId }}], int]:
+        base = self._scoped(select({{ ModuleId }}Entity))
+        rows = (
+            await self._session.execute(
+                base.order_by({{ ModuleId }}Entity.created_at.desc())
+                .offset(page * size)
+                .limit(size)
+            )
+        ).scalars().all()
+
+        total_stmt = self._scoped(select(func.count()).select_from({{ ModuleId }}Entity))
+        total = (await self._session.execute(total_stmt)).scalar_one()
+        return [self._to_domain(row) for row in rows], int(total)
+
+    async def delete(self, item_id: UUID) -> None:
+        entity = await self._session.get({{ ModuleId }}Entity, item_id)
+        if entity is not None:
+            await self._session.delete(entity)
+            await self._session.flush()
+
+    def _scoped(self, stmt):
+        """Apply the {% if multi_tenancy_mode != "single" %}{{ multi_tenancy_term }}{% else %}default{% endif %} filter shared by every query."""
+{%- if multi_tenancy_mode != "single" %}
+        if self._{{ multi_tenancy_term }}_id is None:
+            return stmt
+        return stmt.where({{ ModuleId }}Entity.{{ multi_tenancy_term }}_id == self._{{ multi_tenancy_term }}_id)
+{%- else %}
+        return stmt
+{%- endif %}
+
+    @staticmethod
+    def _apply(entity: {{ ModuleId }}Entity, aggregate: {{ ModuleId }}) -> None:
+        """Copy aggregate state onto the ORM row."""
+{%- if multi_tenancy_mode != "single" %}
+        entity.{{ multi_tenancy_term }}_id = aggregate.{{ multi_tenancy_term }}_id
+{%- endif %}
+        entity.name = aggregate.name
+        entity.description = aggregate.description
+        entity.created_at = aggregate.created_at
+        entity.updated_at = aggregate.updated_at
+
+    @staticmethod
+    def _to_domain(entity: {{ ModuleId }}Entity) -> {{ ModuleId }}:
+        """Translate the ORM row back into the domain aggregate."""
+        return {{ ModuleId }}(
+            id=entity.id,
+{%- if multi_tenancy_mode != "single" %}
+            {{ multi_tenancy_term }}_id=entity.{{ multi_tenancy_term }}_id,
+{%- endif %}
+            name=entity.name,
+            description=entity.description,
+            created_at=entity.created_at,
+            updated_at=entity.updated_at,
+        )

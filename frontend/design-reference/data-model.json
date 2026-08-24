@@ -1,0 +1,335 @@
+{
+  "project": "cordele",
+  "status": "draft (BA)",
+  "version": "0.1.0",
+  "entities": {
+    "ProjetoEditorial": {
+      "description": "Projeto editorial — agrupa manuscrito, metadados e publicações",
+      "fields": {
+        "id": {
+          "type": "string",
+          "pk": true
+        },
+        "nome": {
+          "type": "string"
+        },
+        "status": {
+          "type": "enum",
+          "enum": [
+            "rascunho",
+            "em_composicao",
+            "publicado",
+            "com_erros"
+          ]
+        },
+        "criadoEm": {
+          "type": "datetime"
+        },
+        "ultimaAtividade": {
+          "type": "datetime",
+          "nullable": true
+        },
+        "editora": {
+          "type": "ref",
+          "ref": "Editora",
+          "label": "nome"
+        }
+      }
+    },
+    "Manuscrito": {
+      "description": "Arquivo original parseado — imutável após import",
+      "fields": {
+        "id": {
+          "type": "string",
+          "pk": true
+        },
+        "projetoId": {
+          "type": "ref",
+          "ref": "ProjetoEditorial",
+          "label": "nome"
+        },
+        "nomeArquivo": {
+          "type": "string"
+        },
+        "formato": {
+          "type": "enum",
+          "enum": [
+            "docx",
+            "markdown"
+          ]
+        },
+        "totalCapitulos": {
+          "type": "int"
+        },
+        "totalImagens": {
+          "type": "int"
+        },
+        "trechosNaoParseados": {
+          "type": "int"
+        },
+        "estrutura": {
+          "type": "string"
+        }
+      }
+    },
+    "Metadados": {
+      "description": "Metadados editoriais configurados pelo editor",
+      "fields": {
+        "id": {
+          "type": "string",
+          "pk": true
+        },
+        "projetoId": {
+          "type": "ref",
+          "ref": "ProjetoEditorial",
+          "label": "nome"
+        },
+        "titulo": {
+          "type": "string"
+        },
+        "autor": {
+          "type": "string"
+        },
+        "isbn": {
+          "type": "string",
+          "nullable": true,
+          "source": "mock"
+        },
+        "idioma": {
+          "type": "enum",
+          "enum": [
+            "pt",
+            "en",
+            "es",
+            "fr"
+          ]
+        },
+        "categoria": {
+          "type": "string",
+          "nullable": true,
+          "source": "mock"
+        },
+        "capaUrl": {
+          "type": "string",
+          "nullable": true
+        },
+        "editoraNome": {
+          "type": "string",
+          "nullable": true,
+          "source": "mock"
+        }
+      }
+    },
+    "ConfiguracaoLayout": {
+      "description": "Ajustes de estilo do editor",
+      "fields": {
+        "id": {
+          "type": "string",
+          "pk": true
+        },
+        "projetoId": {
+          "type": "ref",
+          "ref": "ProjetoEditorial",
+          "label": "nome"
+        },
+        "fonteCorpoFamilia": {
+          "type": "enum",
+          "enum": [
+            "serif",
+            "sans-serif"
+          ]
+        },
+        "fonteCorpoTamanho": {
+          "type": "int"
+        },
+        "espacamentoLinha": {
+          "type": "decimal"
+        },
+        "margemLateral": {
+          "type": "int"
+        },
+        "h1Tamanho": {
+          "type": "int"
+        },
+        "h2Tamanho": {
+          "type": "int"
+        },
+        "h3Tamanho": {
+          "type": "int"
+        }
+      }
+    },
+    "Publicacao": {
+      "description": "Registro de cada exportação de ePub",
+      "fields": {
+        "id": {
+          "type": "string",
+          "pk": true
+        },
+        "projetoId": {
+          "type": "ref",
+          "ref": "ProjetoEditorial",
+          "label": "nome"
+        },
+        "arquivoUrl": {
+          "type": "string",
+          "nullable": true
+        },
+        "epubcheckStatus": {
+          "type": "enum",
+          "enum": [
+            "valido",
+            "avisos",
+            "erros_criticos",
+            "pendente"
+          ]
+        },
+        "totalErros": {
+          "type": "int"
+        },
+        "totalAvisos": {
+          "type": "int"
+        },
+        "erros": {
+          "type": "string",
+          "nullable": true
+        },
+        "criadoEm": {
+          "type": "datetime"
+        }
+      }
+    },
+    "Editora": {
+      "description": "Conta da editora (tenant simplificado para POC)",
+      "fields": {
+        "id": {
+          "type": "string",
+          "pk": true
+        },
+        "nome": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "screenBindings": {
+    "entrada": {
+      "reads": [
+        "nenhum (tela pública estática)"
+      ],
+      "writes": [
+        "nenhum"
+      ],
+      "mock": {
+        "nenhum": "mock-data.json#/nenhum"
+      }
+    },
+    "biblioteca-de-projetos": {
+      "reads": [
+        "ProjetoEditorial[] (filtrado pela editora logada)",
+        "Publicacao (última por projeto",
+        "para badge de status)"
+      ],
+      "writes": [
+        "nenhum nesta tela"
+      ],
+      "mock": {
+        "projetos": "mock-data.json#/projetos"
+      }
+    },
+    "upload": {
+      "reads": [
+        "nenhum"
+      ],
+      "writes": [
+        "ProjetoEditorial.nome",
+        "ProjetoEditorial.status=rascunho",
+        "Manuscrito.nomeArquivo",
+        "Manuscrito.formato",
+        "Manuscrito.estrutura (gerada pelo BFF)"
+      ],
+      "mock": {
+        "nenhum": "mock-data.json#/nenhum"
+      }
+    },
+    "revisao-de-estrutura": {
+      "reads": [
+        "Manuscrito (estrutura",
+        "totalCapitulos",
+        "totalImagens",
+        "trechosNaoParseados)"
+      ],
+      "writes": [
+        "nenhum (read-only — manifesto do parsing)"
+      ],
+      "mock": {
+        "manuscrito": "mock-data.json#/manuscrito"
+      }
+    },
+    "configuracoes": {
+      "reads": [
+        "Metadados (existente se projeto já tinha metadados)"
+      ],
+      "writes": [
+        "Metadados.titulo",
+        "Metadados.autor",
+        "Metadados.isbn",
+        "Metadados.idioma",
+        "Metadados.categoria",
+        "Metadados.capaUrl"
+      ],
+      "mock": {
+        "metadados": "mock-data.json#/metadados"
+      }
+    },
+    "edicao-de-layout": {
+      "reads": [
+        "Manuscrito.estrutura (capítulos renderizados)",
+        "Metadados (titulo",
+        "autor)",
+        "ConfiguracaoLayout (valores atuais dos sliders)"
+      ],
+      "writes": [
+        "ConfiguracaoLayout (todos os campos ao ajustar slider)",
+        "Manuscrito.estrutura (ao adicionar/remover páginas — apenas na sessão",
+        "não persiste no arquivo original)"
+      ],
+      "mock": {
+        "manuscrito": "mock-data.json#/manuscrito"
+      }
+    },
+    "exportacao-e-validacao": {
+      "reads": [
+        "Publicacao (gerada nesta sessão — status",
+        "erros",
+        "avisos",
+        "arquivoUrl)",
+        "Manuscrito (totalCapitulos",
+        "totalImagens)"
+      ],
+      "writes": [
+        "Publicacao (criada ao acionar exportação)"
+      ],
+      "mock": {
+        "publicacao": "mock-data.json#/publicacao"
+      }
+    },
+    "download-e-historico": {
+      "reads": [
+        "ProjetoEditorial (nome",
+        "status)",
+        "Publicacao[] (histórico ordenado por criadoEm desc)",
+        "Metadados (autor)"
+      ],
+      "writes": [
+        "nenhum"
+      ],
+      "mock": {
+        "publicacoes": "mock-data.json#/publicacoes"
+      }
+    }
+  }
+}

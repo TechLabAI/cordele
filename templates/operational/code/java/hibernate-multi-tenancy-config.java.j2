@@ -1,0 +1,46 @@
+{#-
+  hibernate-multi-tenancy-config.java.j2 — Spring config wiring Hibernate multi-tenancy.
+
+  Variables: pkg_full, hibernate_strategy (e.g. "SCHEMA")
+
+  D-071 (Tier 2.1 Phase 2 — multi-tenancy). Wires the
+  MultiTenantConnectionProvider + TenantIdentifierResolver beans into
+  Hibernate via HibernatePropertiesCustomizer. Single class — no XML,
+  no application.yml intrusion.
+-#}
+package {{ pkg_full }}.infrastructure.config;
+
+import {{ pkg_full }}.infrastructure.security.MultiTenantConnectionProvider;
+import {{ pkg_full }}.infrastructure.security.TenantIdentifierResolver;
+
+import lombok.RequiredArgsConstructor;
+import org.hibernate.cfg.AvailableSettings;
+import org.springframework.boot.autoconfigure.orm.jpa.HibernatePropertiesCustomizer;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.Map;
+
+/**
+ * Wires Hibernate multi-tenancy beans into Spring's JPA auto-config
+ * (D-071). Strategy comes from multi-tenancy.arch.json
+ * isolation_strategies[?id=schema-per-tenant].hibernate_strategy
+ * (D-063).
+ */
+@Configuration
+@RequiredArgsConstructor
+public class HibernateMultiTenancyConfig {
+
+    private final MultiTenantConnectionProvider connectionProvider;
+    private final TenantIdentifierResolver tenantIdentifierResolver;
+
+    @Bean
+    public HibernatePropertiesCustomizer multiTenancyCustomizer() {
+        return (Map<String, Object> hibernateProperties) -> {
+            hibernateProperties.put(AvailableSettings.MULTI_TENANT_CONNECTION_PROVIDER,
+                                    connectionProvider);
+            hibernateProperties.put(AvailableSettings.MULTI_TENANT_IDENTIFIER_RESOLVER,
+                                    tenantIdentifierResolver);
+        };
+    }
+}

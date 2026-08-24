@@ -1,0 +1,27 @@
+{#-
+  application-registry.yml.j2 — extracted from gen_application_yml_registry() in be-module-generator.py.
+  Variables: meta
+-#}
+spring:
+  application:
+    name: {{ meta.service }}
+
+server:
+  port: {{ meta.port }}
+
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+  server:
+    enable-self-preservation: false
+    eviction-interval-timer-in-ms: 5000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: always

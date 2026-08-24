@@ -1,0 +1,23 @@
+/* styles.css — global entry stylesheet (Tailwind v4 CSS-first). D-381.
+ *
+ * Rendered by: /new-project P5 (frontend-skeleton) →
+ *   frontend/apps/cordele-web/src/styles.css
+ * Referenced from the app's build `styles` array (project.json / angular.json).
+ *
+ * Order matters: import Tailwind's engine first, then the design tokens. The
+ * `@theme` block in theme.css feeds Tailwind's utility generation (colors,
+ * spacing, radius, etc.), so utilities like `bg-surface` / `text-ink` /
+ * `rounded-card` resolve to the oklch tokens. See standards/design-system-tokens.md.
+ */
+@import "tailwindcss";
+@import "./theme.css";
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--color-base);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}

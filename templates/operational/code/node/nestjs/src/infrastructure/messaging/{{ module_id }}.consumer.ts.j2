@@ -1,0 +1,100 @@
+{#-
+  {{ module_id }}.consumer.ts.j2 — amqplib consumer with dead-letter queue (D-544).
+
+  Variables: module_id, ModuleId, MODULE_ID, project_name, msg_broker_name
+-#}
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as amqp from 'amqplib';
+
+import { {{ MODULE_ID }}_EXCHANGE } from './{{ module_id }}.producer';
+
+export const {{ MODULE_ID }}_QUEUE = '{{ project_name }}.{{ module_id }}.inbox';
+export const {{ MODULE_ID }}_DLX = '{{ project_name }}.{{ module_id }}.dlx';
+export const {{ MODULE_ID }}_DLQ = '{{ project_name }}.{{ module_id }}.dlq';
+
+/**
+ * Consumes {{ MODULE_ID }} events from {{ msg_broker_name }}.
+ *
+ * Failure policy: a handler that throws nacks the message WITHOUT requeue, so
+ * the broker routes it to the dead-letter exchange instead of hot-looping.
+ * The DLQ is drained by an operator (or a replay job) after the root cause is
+ * fixed — poison messages must never block the main queue.
+ */
+@Injectable()
+export class {{ ModuleId }}Consumer implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger({{ ModuleId }}Consumer.name);
+  private connection?: amqp.ChannelModel;
+  private channel?: amqp.Channel;
+
+  constructor(private readonly config: ConfigService) {}
+
+  async onModuleInit(): Promise<void> {
+    const url = this.config.get<string>('AMQP_URL') ?? 'amqp://localhost:5672';
+    this.connection = await amqp.connect(url);
+    this.channel = await this.connection.createChannel();
+
+    await this.channel.assertExchange({{ MODULE_ID }}_EXCHANGE, 'topic', { durable: true });
+    await this.channel.assertExchange({{ MODULE_ID }}_DLX, 'fanout', { durable: true });
+    await this.channel.assertQueue({{ MODULE_ID }}_DLQ, { durable: true });
+    await this.channel.bindQueue({{ MODULE_ID }}_DLQ, {{ MODULE_ID }}_DLX, '');
+
+    await this.channel.assertQueue({{ MODULE_ID }}_QUEUE, {
+      durable: true,
+      deadLetterExchange: {{ MODULE_ID }}_DLX,
+    });
+    await this.channel.bindQueue({{ MODULE_ID }}_QUEUE, {{ MODULE_ID }}_EXCHANGE, '{{ module_id }}.#');
+
+    await this.channel.prefetch(10);
+    await this.channel.consume({{ MODULE_ID }}_QUEUE, (msg) => void this.dispatch(msg), {
+      noAck: false,
+    });
+
+    this.logger.log('Consumer ready on queue ' + {{ MODULE_ID }}_QUEUE);
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.channel?.close();
+    await this.connection?.close();
+  }
+
+  private async dispatch(msg: amqp.ConsumeMessage | null): Promise<void> {
+    if (!msg || !this.channel) {
+      return;
+    }
+
+    const routingKey = msg.fields.routingKey;
+    try {
+      const envelope = JSON.parse(msg.content.toString('utf-8')) as {
+        eventId: string;
+        eventType: string;
+        data: Record<string, unknown>;
+      };
+      await this.handle(envelope.eventType, envelope.data);
+      this.channel.ack(msg);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Dead-lettering ${routingKey}: ${reason}`);
+      // requeue=false -> the broker routes the message to the DLX.
+      this.channel.nack(msg, false, false);
+    }
+  }
+
+  /**
+   * Event dispatch table for {{ MODULE_ID }}.
+   *
+   * TODO[SCAFFOLD]: replace the log-only branches with the real use cases as
+   * the events contract of this bounded context is filled in.
+   */
+  private async handle(eventType: string, data: Record<string, unknown>): Promise<void> {
+    switch (eventType) {
+      case '{{ module_id }}.created':
+      case '{{ module_id }}.updated':
+      case '{{ module_id }}.deleted':
+        this.logger.debug(`Handled ${eventType}: ${JSON.stringify(data)}`);
+        return;
+      default:
+        this.logger.warn(`Unmapped event type ${eventType}`);
+    }
+  }
+}

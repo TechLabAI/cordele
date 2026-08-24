@@ -1,0 +1,40 @@
+{#-
+  persistence-adapter.java.j2 — JPA adapter implementing outbound port.
+
+  Variables: pkg_full, name (PascalCase aggregate)
+-#}
+package {{ pkg_full }}.infrastructure.persistence.adapter;
+
+import {{ pkg_full }}.application.port.out.{{ name }}RepositoryPort;
+import {{ pkg_full }}.domain.model.{{ name }};
+import {{ pkg_full }}.infrastructure.persistence.repository.{{ name }}JpaRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Component
+@RequiredArgsConstructor
+public class {{ name }}RepositoryAdapter implements {{ name }}RepositoryPort {
+
+    private final {{ name }}JpaRepository repository;
+
+    @Override
+    public {{ name }} save({{ name }} entity) {
+        // TODO[SCAFFOLD]: map domain model → JPA entity → save → map back
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
+    public Optional<{{ name }}> findById(UUID id) {
+        // TODO[SCAFFOLD]: map JPA entity → domain model
+        throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
+    public List<{{ name }}> findByTenantId(String tenantId) {
+        // TODO[SCAFFOLD]: map JPA entities → domain models
+        throw new UnsupportedOperationException("not implemented");
+    }
+}

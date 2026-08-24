@@ -1,0 +1,22 @@
+{
+  "name": "imp",
+  "sourceRoot": "libs/imp/src",
+  "projectType": "library",
+  "prefix": "imp",
+  "tags": ["scope:imp", "type:feature"],
+  "targets": {
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["libs/imp/**/*.ts"]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/libs/imp"],
+      "options": {
+        "jestConfig": "libs/imp/jest.config.ts"
+      }
+    }
+  }
+}

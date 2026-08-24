@@ -1,0 +1,28 @@
+{#-
+  application-service-stub.java.j2 — Application service implementation.
+
+  Variables: pkg_full, svc_name, iface_name, operations (list)
+-#}
+package {{ pkg_full }}.application.service;
+
+import {{ pkg_full }}.application.port.in.{{ iface_name }};
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class {{ svc_name }} implements {{ iface_name }} {
+
+{%- for op in operations %}
+
+    @Override
+    public void {{ op }}() {
+        throw new UnsupportedOperationException("{{ op }} not implemented");
+    }
+{%- endfor %}
+
+}

@@ -1,0 +1,9 @@
+{
+  "name": "shared-empresa-context",
+  "projectType": "library",
+  "sourceRoot": "libs/shared/empresa-context/src",
+  "tags": [
+    "type:domain",
+    "scope:shared"
+  ]
+}

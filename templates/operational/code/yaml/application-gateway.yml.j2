@@ -1,0 +1,38 @@
+{#-
+  application-gateway.yml.j2 — extracted from gen_application_yml_gateway() in be-module-generator.py.
+  Variables: meta
+-#}
+spring:
+  application:
+    name: {{ meta.service }}
+  cloud:
+    gateway:
+      routes: []  # TODO[SCAFFOLD]: definir rotas — ver issue GWY-002+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/{{ project_name }}}
+
+server:
+  port: {{ meta.port }}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URI:http://localhost:8761/eureka}
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}

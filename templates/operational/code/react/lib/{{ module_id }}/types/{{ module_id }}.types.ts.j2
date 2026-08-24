@@ -1,0 +1,65 @@
+{#-
+  react/lib/<module>/types/<module>.types.ts.j2 - module contract types.
+
+  Rendered by: scripts/fe-react-module-generator.py →
+    frontend/src/lib/{module_id}/types/{module_id}.types.ts
+
+  Variables used:
+    - module_id, ModuleId, MODULE_ID, module_name
+    - multi_tenancy_mode, multi_tenancy_term
+
+  D-546/D-547: Zod is the single source of truth - the TypeScript types are
+  inferred from the schemas, so the parse boundary and the compile-time type can
+  never drift. API responses are parsed in the api client, not in components.
+-#}
+{%- set Mod = ModuleId if ModuleId is defined and ModuleId else (module_id | pascal) -%}
+{%- set mod = Mod[0] | lower ~ Mod[1:] -%}
+import { z } from 'zod';
+
+/** Persisted identifier of a {{ module_name if module_name is defined and module_name else Mod }} record. */
+export const {{ mod }}IdSchema = z.string().uuid();
+export type {{ Mod }}Id = z.infer<typeof {{ mod }}IdSchema>;
+
+export const {{ mod }}StatusSchema = z.enum(['draft', 'active', 'archived']);
+export type {{ Mod }}Status = z.infer<typeof {{ mod }}StatusSchema>;
+
+/** Read model returned by the {{ module_id }} API. */
+export const {{ mod }}Schema = z.object({
+  id: {{ mod }}IdSchema,
+  code: z.string().min(1),
+  name: z.string().min(1),
+  status: {{ mod }}StatusSchema,
+{%- if multi_tenancy_mode != 'single' %}
+  // {{ multi_tenancy_term }} scope is echoed back by the API for auditing.
+  tenantId: z.string().min(1),
+{%- endif %}
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+});
+export type {{ Mod }} = z.infer<typeof {{ mod }}Schema>;
+
+/** Write model accepted by create/update. */
+export const {{ mod }}InputSchema = {{ mod }}Schema
+  .pick({ code: true, name: true, status: true })
+  .partial({ status: true });
+export type {{ Mod }}Input = z.infer<typeof {{ mod }}InputSchema>;
+
+/** Query parameters supported by the list endpoint. */
+export const {{ mod }}QuerySchema = z.object({
+  search: z.string().trim().optional(),
+  status: {{ mod }}StatusSchema.optional(),
+  page: z.number().int().min(1).default(1),
+  pageSize: z.number().int().min(1).max(200).default(20),
+  sortBy: z.string().optional(),
+  sortDir: z.enum(['asc', 'desc']).default('asc'),
+});
+export type {{ Mod }}Query = z.infer<typeof {{ mod }}QuerySchema>;
+
+/** Envelope returned by the list endpoint. */
+export const {{ mod }}PageSchema = z.object({
+  items: z.array({{ mod }}Schema),
+  total: z.number().int().nonnegative(),
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1),
+});
+export type {{ Mod }}Page = z.infer<typeof {{ mod }}PageSchema>;

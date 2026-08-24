@@ -1,0 +1,9 @@
+{
+  "name": "shared-error-model",
+  "projectType": "library",
+  "sourceRoot": "libs/shared/error-model/src",
+  "tags": [
+    "type:domain",
+    "scope:shared"
+  ]
+}

@@ -1,0 +1,37 @@
+{#-
+  react/lib/<module>/index.ts.j2 - module public API (barrel).
+
+  Rendered by: scripts/fe-react-module-generator.py →
+    frontend/src/lib/{module_id}/index.ts
+
+  Variables used:
+    - module_id, ModuleId
+
+  Only what the app shell and sibling modules may consume is exported here -
+  the store internals and the raw api client stay module-private (D-546: the
+  dynamic route imports `{ModuleId}ListPage` from this barrel).
+-#}
+{%- set Mod = ModuleId if ModuleId is defined and ModuleId else (module_id | pascal) -%}
+{%- set mod = Mod[0] | lower ~ Mod[1:] -%}
+export { {{ Mod }}ListPage } from './components/{{ module_id }}-list';
+export { {{ Mod }}DetailPage } from './components/{{ module_id }}-detail';
+
+export {
+  use{{ Mod }},
+  use{{ Mod }}List,
+  useCreate{{ Mod }},
+  useUpdate{{ Mod }},
+  useDelete{{ Mod }},
+  {{ mod }}Keys,
+} from './hooks/use-{{ module_id }}';
+
+export { use{{ Mod }}Store } from './store/{{ module_id }}-store';
+
+export type {
+  {{ Mod }},
+  {{ Mod }}Id,
+  {{ Mod }}Input,
+  {{ Mod }}Page,
+  {{ Mod }}Query,
+  {{ Mod }}Status,
+} from './types/{{ module_id }}.types';

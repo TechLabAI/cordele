@@ -1,0 +1,101 @@
+{#-
+  common_steps.py.j2 -- shared pytest-bdd given/when/then steps (D-541).
+
+  Variables: package_name, module_id, ModuleId, MODULE_ID, module_name,
+             multi_tenancy_mode, multi_tenancy_term
+-#}
+"""Common Gherkin steps for the {{ module_name }} module.
+
+Only reusable steps live here; module-specific steps belong to their own step
+module. Step text is written in en-US to match the feature files.
+"""
+
+from __future__ import annotations
+
+import json
+from typing import Any
+
+import pytest
+from pytest_bdd import given, parsers, then, when
+
+from {{ package_name }}.{{ module_id }}.domain.model import Create{{ ModuleId }}Command
+
+BASE_PATH = "/api/v1/{{ module_id }}"
+
+{% if multi_tenancy_mode != "single" %}
+@given(parsers.parse('the {{ multi_tenancy_term }} "{ {{- multi_tenancy_term -}} _id}"'))
+def given_{{ multi_tenancy_term }}(context, {{ multi_tenancy_term }}_id: str) -> None:
+    """Bind the scenario to a specific {{ multi_tenancy_term }}."""
+    context.{{ multi_tenancy_term }}_id = {{ multi_tenancy_term }}_id
+
+{% endif %}
+@given("an empty {{ module_name }} dataset")
+def given_empty_dataset(context) -> None:
+    """Start the scenario from a clean slate."""
+    context.reset()
+
+
+@given(parsers.parse('an existing {{ module_id }} named "{name}"'))
+def given_existing_record(context, {{ module_id }}_factory, name: str) -> None:
+    """Seed one aggregate into the scenario context."""
+    context.entities[name] = {{ module_id }}_factory(name=name)
+
+
+@given(parsers.parse("the request payload:\n{payload}"))
+def given_payload(context, payload: str) -> None:
+    """Load a JSON docstring from the feature file as the request payload."""
+    context.payload = json.loads(payload)
+
+
+@when(parsers.parse('a "{verb}" request is sent to "{path}"'))
+@pytest.mark.asyncio
+async def when_request(context, api_client, auth_headers, verb: str, path: str) -> None:
+    """Issue an HTTP call against the module API."""
+    method = verb.lower()
+    context.response = await api_client.request(
+        method,
+        path,
+        json=context.payload or None,
+        headers=auth_headers,
+    )
+
+
+@when(parsers.parse('a {{ module_id }} named "{name}" is created'))
+@pytest.mark.asyncio
+async def when_created(context, api_client, auth_headers, name: str) -> None:
+    """Create one record through the public API."""
+    command = Create{{ ModuleId }}Command(name=name)
+    context.payload = {"name": command.name, "description": command.description}
+    context.response = await api_client.post(
+        BASE_PATH, json=context.payload, headers=auth_headers
+    )
+
+
+@then(parsers.parse("the response status is {status:d}"))
+def then_status(context, status: int) -> None:
+    """Assert the HTTP status code returned by the last call."""
+    assert context.response is not None, "no request was issued in this scenario"
+    assert context.response.status_code == status, context.response.text
+
+
+@then(parsers.parse('the response field "{field}" equals "{expected}"'))
+def then_field_equals(context, field: str, expected: str) -> None:
+    """Assert one top-level field of the JSON response body."""
+    body: dict[str, Any] = context.response.json()
+    assert str(body.get(field)) == expected, body
+
+
+@then(parsers.parse("the response contains {count:d} items"))
+def then_item_count(context, count: int) -> None:
+    """Assert the size of a paginated list response."""
+    body: dict[str, Any] = context.response.json()
+    assert len(body.get("items", [])) == count, body
+
+
+@then(parsers.parse('the error code is "{code}"'))
+def then_error_code(context, code: str) -> None:
+    """Assert the canonical {{ MODULE_ID }} error code of the error model."""
+    body: dict[str, Any] = context.response.json()
+    assert body.get("code") == code, body
+
+# TODO[SCAFFOLD]: add module-specific steps derived from the BDD scenarios of the backlog.

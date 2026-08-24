@@ -1,0 +1,52 @@
+{#-
+  tsconfig.json.j2 — strict TypeScript config for the Next.js 15 workspace.
+
+  Decisions: D-546 (App Router, `moduleResolution: bundler`, `plugins: [next]`),
+  D-082 mirrored for React (one `paths` entry per module feature library, so a
+  module is imported as `@<scope>/<lib>` instead of a deep relative path).
+
+  Superset of the inline fallback in new-project.py::_frontend_react().
+
+  Variables: frontend_npm_scope, modules, modules_by_frontend_framework.
+-#}
+{%- set npm_scope = (frontend_npm_scope | default('', true)) | replace('@', '') -%}
+{%- set react_modules = (modules_by_frontend_framework | default({}, true)).get('react')
+      or (modules | default([], true)) -%}
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "ES2022"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "preserve",
+    "strict": true,
+    "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "allowJs": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "incremental": true,
+    "plugins": [{ "name": "next" }],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+{%- for m in react_modules %}
+{%- set lib_field = m.frontendLib | default('', true) -%}
+{%- if lib_field -%}
+{%- set lib = lib_field[5:] if lib_field.startswith('libs/') else lib_field -%}
+{%- else -%}
+{%- set lib = (m.prefix | default('', true)) | lower -%}
+{%- endif %}
+{%- if lib %},
+      "{{ ('@' ~ npm_scope ~ '/' ~ lib) if npm_scope else ('@/' ~ lib) }}": ["./src/lib/{{ lib }}/index.ts"]
+{%- endif %}
+{%- endfor %}
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

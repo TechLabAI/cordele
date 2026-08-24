@@ -1,0 +1,7 @@
+{
+  "_schema_version": 1,
+  "version": "1.0.0",
+  "last_changed": "2026-05-25",
+  "scopes": {},
+  "$comment": "Workspace ships with empty scopes (D-103, Gap B). See _examples/eerripe-entity-scope.partial.json for the BOSQ-ERP starting set. Override per project via arch/overrides/entity-scope.partial.json."
+}

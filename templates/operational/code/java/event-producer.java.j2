@@ -1,0 +1,39 @@
+{#-
+  event-producer.java.j2 — JMS or Kafka event producer (conditional on events_broker).
+
+  Variables: pkg_full, class_name, destination
+-#}
+package {{ pkg_full }}.infrastructure.messaging.producer;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+{% if events_broker == "kafka" -%}
+import org.springframework.kafka.core.KafkaTemplate;
+{% else -%}
+import org.springframework.jms.core.JmsTemplate;
+{% endif -%}
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class {{ class_name }} {
+
+    private static final String DESTINATION = "{{ destination }}";
+
+{% if events_broker == "kafka" %}
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
+    public void publish(Object event) {
+        log.info("[Kafka] Publishing {} to topic {}", event.getClass().getSimpleName(), DESTINATION);
+        kafkaTemplate.send(DESTINATION, event);
+    }
+{% else %}
+    private final JmsTemplate jmsTemplate;
+
+    public void publish(Object event) {
+        log.info("[JMS] Publishing {} to {}", event.getClass().getSimpleName(), DESTINATION);
+        jmsTemplate.convertAndSend(DESTINATION, event);
+    }
+{% endif -%}
+}

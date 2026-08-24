@@ -1,0 +1,88 @@
+{#-
+  dependencies.py.j2 -- FastAPI dependency providers (D-541 / D-542).
+
+  Variables: package_name, module_id, ModuleId, MODULE_ID, module_name,
+             multi_tenancy_mode, multi_tenancy_term, tenant_global_schema
+-#}
+"""Request-scoped dependencies for the {{ module_name }} HTTP adapter."""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from dataclasses import dataclass
+
+from fastapi import Depends, HTTPException, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from {{ package_name }}.{{ module_id }}.infrastructure.persistence.session import session_factory
+from {{ package_name }}.{{ module_id }}.infrastructure.security.jwt_middleware import (
+    AuthenticatedPrincipal,
+    require_principal,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class CurrentUser:
+    """Authenticated caller, projected from the validated JWT."""
+
+    subject: str
+    username: str
+    roles: frozenset[str]
+
+    def has_authority(self, authority: str) -> bool:
+        return authority in self.roles
+
+{% if multi_tenancy_mode != "single" %}
+@dataclass(frozen=True, slots=True)
+class {{ multi_tenancy_term|capitalize }}Context:
+    """Resolved {{ multi_tenancy_term }} for the current request."""
+
+    {{ multi_tenancy_term }}_id: str
+    schema: str
+
+{% endif %}
+async def get_db() -> AsyncIterator[AsyncSession]:
+    """Yield an AsyncSession and guarantee rollback on failure."""
+    async with session_factory() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+
+
+async def get_current_user(
+    principal: AuthenticatedPrincipal = Depends(require_principal),
+) -> CurrentUser:
+    """Expose the validated principal as the adapter-level user model."""
+    return CurrentUser(
+        subject=principal.subject,
+        username=principal.username,
+        roles=frozenset(principal.authorities),
+    )
+
+
+{% if multi_tenancy_mode != "single" -%}
+async def get_current_{{ multi_tenancy_term }}(
+    request: Request,
+    principal: AuthenticatedPrincipal = Depends(require_principal),
+) -> {{ multi_tenancy_term|capitalize }}Context:
+    """Resolve the {{ multi_tenancy_term }} from the JWT claim, header as fallback."""
+    {{ multi_tenancy_term }}_id = principal.{{ multi_tenancy_term }}_id or request.headers.get(
+        "X-{{ multi_tenancy_term|capitalize }}-Id"
+    )
+    if not {{ multi_tenancy_term }}_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="{{ MODULE_ID }}_{{ multi_tenancy_term|upper }}_NOT_RESOLVED",
+        )
+    return {{ multi_tenancy_term|capitalize }}Context(
+        {{ multi_tenancy_term }}_id={{ multi_tenancy_term }}_id,
+        schema=f"{{ multi_tenancy_term }}_{ {{- multi_tenancy_term -}} _id}",
+    )
+{%- else -%}
+async def get_current_{{ multi_tenancy_term }}() -> str:
+    """Single-tenant deployment: the {{ multi_tenancy_term }} is always the default one."""
+    return "default"
+{%- endif %}

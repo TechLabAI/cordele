@@ -1,0 +1,24 @@
+{
+  "status": "OK",
+  "gates": {
+    "ears_syntax": "PASS 0 issues / 7 SPECs (be-validate-ears.py)",
+    "ears_coverage": "PASS 49/49 clausulas, 0 gaps, 13 orphans INFO (fe-ears-coverage.py), exit 0"
+  },
+  "artifacts": [
+    "frontend-spec/SPEC-01..07.md (validados, read-only)",
+    "e2e/{upload-manuscrito,revisao-de-estrutura}.feature (verificados)",
+    "adr/ADR-IMP-001 (confirmado sincrono/accepted)"
+  ],
+  "key_decisions": [
+    "Gate EARS sintaxe e cobertura RECONFIRMADOS de forma independente (nao herdados de M3): 0 violacoes, 49/49",
+    "13 orphans investigados um a um: 12 sao deslocamento do algoritmo greedy (a clausula existe, foi absorvida por overlap anterior); 1 (imp-bind-existing) e cenario extra genuino. NENHUM e gap de cobertura.",
+    "Nenhuma SPEC ou feature FE ainda assume polling/parseJobId - a reescrita do ADR pegou tudo",
+    "T03 XOR {projetoTitulo|projetoId} e T04 hidratando do 201 sem GET no happy path: ambos confirmados nas SPECs e nos cenarios"
+  ],
+  "warnings": [
+    "ADDENDUM BE PENDENTE - quando aterrissar exige: (a) clausula EARS p/ POST confirm + status-advance; (b) clausula EARS p/ POST ignore persistente; (c) cenarios BDD p/ ambos; (d) mudar imp-ignore-rollback de 'condicional' p/ 'sempre com rollback se 4xx/5xx'",
+    "Sem endpoint /confirm, o gate imp.confirm depende de handshake com COMP p/ o avanco rascunho->em_composicao - requisito de contrato cruzado a registrar no backlog",
+    "Fixture livro-corrompido.docx precisa existir no seed do scaffold (M5)",
+    "imp-bind-existing: criar clausula WHEN p/ a rota aninhada /imp/projetos/:projetoId/importar em SPEC-01 fecha o coverage formal (nao bloqueante)"
+  ]
+}

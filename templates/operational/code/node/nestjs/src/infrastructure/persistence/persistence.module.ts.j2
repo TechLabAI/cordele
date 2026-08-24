@@ -1,0 +1,21 @@
+{#-
+  persistence.module.ts.j2 - persistence surface for feature modules (D-544).
+
+  Feature modules import THIS, not DatabaseModule: it is the seam that keeps
+  "this bounded context persists things" visible in the module graph.
+-#}
+import { Module } from '@nestjs/common';
+
+import { DatabaseModule } from './database.module';
+
+/**
+ * Re-exports the persistence providers that feature modules may inject.
+ *
+ * Kept separate from DatabaseModule so the global connection concern and the
+ * per-context dependency declaration do not collapse into one module.
+ */
+@Module({
+  imports: [DatabaseModule],
+  exports: [DatabaseModule],
+})
+export class PersistenceModule {}

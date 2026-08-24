@@ -1,0 +1,38 @@
+{#-
+  app.routes.ts.j2 — Angular app root routes (lazy-loaded per feature lib).
+
+  Rendered by: /new-project P5 (frontend-skeleton) →
+    apps/{project_name}-web/src/app/app.routes.ts
+
+  Variables used:
+    - frontend_npm_scope   e.g. "@bosq"
+    - modules              list of module dicts (from project-context.modules.registry)
+      each dict: { prefix, displayName, hasUi, isInfrastructure, frontendLib }
+
+  D-289: Angular TypeScript templates use standalone components + Angular Router lazy loading.
+  One route per business module with hasUi=true and isInfrastructure=false.
+-#}
+import { Routes } from '@angular/router';
+import { AppShellComponent } from './shell/app-shell.component';
+
+export const appRoutes: Routes = [
+  {
+    path: '',
+    component: AppShellComponent,
+    children: [
+{%- for m in modules %}
+{%- if not m.isInfrastructure and m.hasUi %}
+{%- set _lib_raw = m.frontendLib if m.frontendLib else (m.prefix | lower) %}
+{%- set lib = _lib_raw[5:] if _lib_raw[:5] == 'libs/' else _lib_raw %}
+{%- set route_const = (lib | upper | replace('-', '_')) + '_ROUTES' %}
+      {
+        path: '{{ lib }}',
+        loadChildren: () =>
+          import('{{ frontend_npm_scope }}/{{ lib }}').then(r => r.{{ route_const }}),
+      },
+{%- endif %}
+{%- endfor %}
+      { path: '**', redirectTo: '' },
+    ],
+  },
+];

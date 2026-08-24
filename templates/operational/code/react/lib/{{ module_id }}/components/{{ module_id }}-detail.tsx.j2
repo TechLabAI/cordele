@@ -1,0 +1,137 @@
+{#-
+  react/lib/<module>/components/<module>-detail.tsx.j2 - detail + form page.
+
+  Rendered by: scripts/fe-react-module-generator.py →
+    frontend/src/lib/{module_id}/components/{module_id}-detail.tsx
+
+  Variables used:
+    - module_id, ModuleId, module_name
+
+  D-547: create/update through React Query mutations; the form itself is local
+  component state validated by the module's Zod input schema before submit.
+-#}
+{%- set Mod = ModuleId if ModuleId is defined and ModuleId else (module_id | pascal) -%}
+{%- set mod = Mod[0] | lower ~ Mod[1:] -%}
+{%- set title = module_name if module_name is defined and module_name else Mod -%}
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { FormField } from '@/lib/shared/ui/form-field';
+import { PageHeader } from '@/lib/shared/ui/page-header';
+import {
+  use{{ Mod }},
+  useCreate{{ Mod }},
+  useUpdate{{ Mod }},
+} from '../hooks/use-{{ module_id }}';
+import { {{ mod }}InputSchema, type {{ Mod }}Id, type {{ Mod }}Input } from '../types/{{ module_id }}.types';
+
+const EMPTY_FORM: {{ Mod }}Input = { code: '', name: '', status: 'draft' };
+
+export function {{ Mod }}DetailPage({ id }: { id?: {{ Mod }}Id }) {
+  const router = useRouter();
+  const isEdit = Boolean(id);
+
+  const { data, isLoading } = use{{ Mod }}(id);
+  const create{{ Mod }} = useCreate{{ Mod }}();
+  const update{{ Mod }} = useUpdate{{ Mod }}();
+
+  const [form, setForm] = useState<{{ Mod }}Input>(EMPTY_FORM);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (data) {
+      setForm({ code: data.code, name: data.name, status: data.status });
+    }
+  }, [data]);
+
+  const pending = create{{ Mod }}.isPending || update{{ Mod }}.isPending;
+
+  function setField<K extends keyof {{ Mod }}Input>(key: K, value: {{ Mod }}Input[K]) {
+    setForm((previous) => ({ ...previous, [key]: value }));
+  }
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const parsed = {{ mod }}InputSchema.safeParse(form);
+    if (!parsed.success) {
+      const flat = parsed.error.flatten().fieldErrors;
+      setErrors(
+        Object.fromEntries(
+          Object.entries(flat).map(([field, messages]) => [field, messages?.[0] ?? 'Invalid value']),
+        ),
+      );
+      return;
+    }
+    setErrors({});
+
+    if (isEdit && id) {
+      await update{{ Mod }}.mutateAsync({ id, input: parsed.data });
+    } else {
+      const created = await create{{ Mod }}.mutateAsync(parsed.data);
+      router.replace(`/{{ module_id }}/${created.id}`);
+    }
+  }
+
+  if (isEdit && isLoading) {
+    return (
+      <p className="p-6 text-sm text-muted-foreground" role="status">
+        Loading...
+      </p>
+    );
+  }
+
+  return (
+    <section className="space-y-4">
+      <PageHeader
+        title={isEdit ? `{{ title }} - ${form.code || ''}` : 'New {{ title }}'}
+        description="{{ title }} record details."
+      />
+
+      <form onSubmit={onSubmit} className="max-w-lg space-y-4" noValidate>
+        <FormField label="Code" htmlFor="code" error={errors.code}>
+          <Input
+            id="code"
+            value={form.code}
+            onChange={(event) => setField('code', event.target.value)}
+            required
+          />
+        </FormField>
+
+        <FormField label="Name" htmlFor="name" error={errors.name}>
+          <Input
+            id="name"
+            value={form.name}
+            onChange={(event) => setField('name', event.target.value)}
+            required
+          />
+        </FormField>
+
+        <FormField label="Status" htmlFor="status" error={errors.status}>
+          <select
+            id="status"
+            className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+            value={form.status ?? 'draft'}
+            onChange={(event) => setField('status', event.target.value as {{ Mod }}Input['status'])}
+          >
+            <option value="draft">Draft</option>
+            <option value="active">Active</option>
+            <option value="archived">Archived</option>
+          </select>
+        </FormField>
+
+        <div className="flex gap-2">
+          <Button type="submit" disabled={pending}>
+            {pending ? 'Saving...' : 'Save'}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => router.push('/{{ module_id }}')}>
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </section>
+  );
+}

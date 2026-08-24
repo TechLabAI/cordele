@@ -1,0 +1,118 @@
+{#-
+  pyproject.toml.j2 - root uv manifest for a Python backend (D-541..D-543).
+
+  Superset of the inline fallback emitted by
+  scripts/new-project.py::_backend_python(): same [project], [tool.uv.workspace],
+  [tool.ruff], [tool.mypy] and [tool.pytest.ini_options] sections, plus the
+  shared runtime/dev dependency set. Rendering this template replaces the
+  fallback cleanly.
+
+  Variables: project_name, project_description, python_version, package_name,
+             has_ai, has_msg_broker, modules, modules_by_backend_language
+-#}
+{%- set _mbl = modules_by_backend_language | default({}, true) -%}
+{%- set py_modules = _mbl.get('python') or modules | default([], true) -%}
+{%- set services = [] -%}
+{%- for m in py_modules -%}
+{%- set _svc = m.backendService if m.backendService is defined and m.backendService else (m.prefix | default('', true) | lower) ~ '-service' -%}
+{%- if _svc and _svc != '-service' -%}
+{%- set _ = services.append(_svc) -%}
+{%- endif -%}
+{%- endfor -%}
+{%- set py_tag = 'py' ~ python_version | replace('.', '') -%}
+# Root pyproject.toml for {{ project_name }} backend (uv workspace)
+# D-541: FastAPI - D-542: SQLAlchemy 2.x async - D-543: Alembic
+
+[project]
+name = "{{ project_name }}-backend"
+version = "0.1.0"
+description = "{{ project_description | default(project_name ~ ' backend', true) }}"
+requires-python = ">={{ python_version }}"
+dependencies = [
+    # Web framework (D-541)
+    "fastapi>=0.115.0,<0.116.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.6.0",
+    # Persistence (D-542)
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30.0",
+    # Migrations (D-543)
+    "alembic>=1.14.0",
+    # Auth + observability
+    "pyjwt[crypto]>=2.9.0",
+    "structlog>=24.4.0",
+{%- if has_msg_broker %}
+    # Messaging - AMQP client for the project broker
+    "aio-pika>=9.4.0",
+{%- endif %}
+{%- if has_ai %}
+    # techlab-ai HTTP client
+    "httpx>=0.27.0",
+{%- endif %}
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-bdd>=8.1.0",
+    "pytest-cov>=6.0.0",
+    "httpx>=0.27.0",
+    "testcontainers[postgres]>=4.8.0",
+    "ruff>=0.8.0",
+    "mypy>=1.13.0",
+]
+
+[tool.uv.workspace]
+{% if services -%}
+# Service members expected (from project-context.modules.registry).
+# Each is created by /py-architect-scaffold via scripts/py-scaffold.py.
+{% else -%}
+# Service members will be added by /py-architect-scaffold via
+# scripts/py-scaffold.py.
+{% endif -%}
+members = [
+{%- for svc in services %}
+    "services/{{ svc }}",
+{%- endfor %}
+{%- if not services %}
+    # "services/obras-service",
+{%- endif %}
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "{{ py_tag }}"
+src = ["src", "services"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "ASYNC"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["{{ package_name }}"]
+
+[tool.mypy]
+python_version = "{{ python_version }}"
+strict = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["testcontainers.*", "aio_pika.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["services"]
+addopts = "-ra --strict-markers"
+markers = [
+    "integration: tests that require a live container (testcontainers)",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["services"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true

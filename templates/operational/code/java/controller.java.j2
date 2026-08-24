@@ -1,0 +1,50 @@
+{#-
+  controller.java.j2 — REST controller stub.
+
+  Variables: pkg_full, iface_name, controller_name, field_name, base_path, methods_ops
+    methods_ops: list of {annotation, op, permission, audit_action?}
+      - permission: full permission code (e.g. "com.orcamento.criar"); emitted
+        as @PreAuthorize("hasAuthority(...)"). Derived from rbac.arch.json
+        via arch_decisions.resolve_permission() (D-059, Tier 2.1 Phase 2).
+      - audit_action: optional string (e.g. "CREATE_ORCAMENTO") when the op's
+        CRUD action appears in rbac.enforcement.audit_required.
+-#}
+package {{ pkg_full }}.api.controller;
+
+import {{ pkg_full }}.application.port.in.{{ iface_name }};
+import {{ pkg_full }}.shared.audit.AuditAction;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+// Security: @PreAuthorize derived from rbac.arch.json via the module generator.
+// To change which permission gates a method, edit rbac.arch.json and re-run
+// be-module-generator.py; do not patch the annotation by hand.
+@Slf4j
+@RestController
+@RequestMapping("{{ base_path }}")
+@RequiredArgsConstructor
+public class {{ controller_name }} {
+
+    private final {{ iface_name }} {{ field_name }};
+
+{%- for m in methods_ops %}
+
+    {{ m.annotation }}
+{%- if m.permission %}
+    @PreAuthorize("hasAuthority('{{ m.permission }}')")
+{%- else %}
+    // TODO[SCAFFOLD]: add @PreAuthorize (no rbac.arch.json found at generation time)
+{%- endif %}
+{%- if m.audit_action %}
+    @AuditAction("{{ m.audit_action }}")
+{%- endif %}
+    public ResponseEntity<Void> {{ m.op }}() {
+        // TODO[SCAFFOLD]: delegate to {{ iface_name }}
+        throw new UnsupportedOperationException("{{ m.op }} not implemented");
+    }
+{%- endfor %}
+
+}

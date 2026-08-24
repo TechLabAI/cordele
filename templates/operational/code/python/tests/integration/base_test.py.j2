@@ -1,0 +1,62 @@
+{#-
+  base_test.py.j2 -- integration test base class with Testcontainers PostgreSQL (D-542).
+
+  Variables: package_name, module_id, ModuleId, MODULE_ID, module_name,
+             multi_tenancy_mode, multi_tenancy_term
+-#}
+"""Base class for integration tests of the {{ module_name }} module.
+
+Subclasses get a real PostgreSQL (Testcontainers), a live `AsyncSession` and an
+in-process HTTP client. Mocks are only allowed for third-party systems.
+"""
+
+from __future__ import annotations
+
+import pytest
+from httpx import AsyncClient
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from {{ package_name }}.{{ module_id }}.infrastructure.persistence.repositories import (
+    SqlAlchemy{{ ModuleId }}Repository,
+)
+
+pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
+
+
+class Base{{ ModuleId }}IntegrationTest:
+    """Shared wiring for every {{ MODULE_ID }} integration test.
+
+    Fixtures come from `tests/conftest.py`: `db_session` (rolled back after each
+    test) and `api_client` (ASGI transport, no sockets opened).
+    """
+{% if multi_tenancy_mode != "single" %}
+    {{ multi_tenancy_term }}_id: str = "test-{{ multi_tenancy_term }}"
+{% endif %}
+    @pytest.fixture(autouse=True)
+    def _bind(self, db_session: AsyncSession, api_client: AsyncClient) -> None:
+        """Expose the fixtures as attributes so tests read naturally."""
+        self.session = db_session
+        self.client = api_client
+        self.repository = SqlAlchemy{{ ModuleId }}Repository(
+            db_session,
+{%- if multi_tenancy_mode != "single" %}
+            {{ multi_tenancy_term }}_id=self.{{ multi_tenancy_term }}_id,
+{%- endif %}
+        )
+
+    async def truncate(self, *tables: str) -> None:
+        """Clear tables between scenarios that cannot rely on the rollback."""
+        for table in tables:
+            await self.session.execute(text(f"TRUNCATE TABLE {table} CASCADE"))
+        await self.session.flush()
+
+    def auth_headers(self, token: str = "test-token") -> dict[str, str]:
+        """Bearer headers{% if multi_tenancy_mode != "single" %} plus the {{ multi_tenancy_term }} header{% endif %} for authenticated calls."""
+        headers = {"Authorization": f"Bearer {token}"}
+{%- if multi_tenancy_mode != "single" %}
+        headers["X-{{ multi_tenancy_term|capitalize }}-Id"] = self.{{ multi_tenancy_term }}_id
+{%- endif %}
+        return headers
+
+    # TODO[SCAFFOLD]: add module-specific helpers (seed builders, assertion shortcuts).

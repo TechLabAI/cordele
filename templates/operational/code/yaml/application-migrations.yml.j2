@@ -1,0 +1,31 @@
+{#-
+  application-migrations.yml.j2 — Flyway centralized runner (type=migrations).
+  Variables: meta
+-#}
+spring:
+  application:
+    name: {{ meta.service }}
+  main:
+    web-application-type: none
+  flyway:
+    enabled: true
+    url: ${FLYWAY_URL:jdbc:postgresql://localhost:5432/teste_e2e}
+    user: ${FLYWAY_USER:teste_e2e}
+    password: ${FLYWAY_PASSWORD:teste_e2e}
+    schemas: ${FLYWAY_SCHEMAS:teste_e2e}
+    locations: ${FLYWAY_LOCATIONS:classpath:db/migration}
+    validate-on-migrate: ${FLYWAY_VALIDATE_ON_MIGRATE:true}
+    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:false}
+    baseline-version: ${FLYWAY_BASELINE_VERSION:0}
+    out-of-order: false
+    placeholders:
+      schema: ${FLYWAY_SCHEMAS:teste_e2e}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always

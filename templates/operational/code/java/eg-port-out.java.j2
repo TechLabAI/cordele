@@ -1,0 +1,14 @@
+{#- eg-port-out.java.j2 — be-entity-generator outbound port interface.
+    Vars: pkg, cls, methods_str. Pure substitution (D-324). -#}
+package {{ pkg }}.application.port.out;
+
+import {{ pkg }}.domain.model.{{ cls }};
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+public interface {{ cls }}Port {
+
+{{ methods_str }}
+}

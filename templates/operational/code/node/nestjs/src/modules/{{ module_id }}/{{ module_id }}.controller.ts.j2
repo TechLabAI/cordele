@@ -1,0 +1,106 @@
+{#-
+  {{ module_id }}.controller.ts.j2 — REST controller (D-544).
+
+  Variables: module_id, ModuleId, MODULE_ID, module_name,
+             multi_tenancy_mode, multi_tenancy_term
+-#}
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiCreatedResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+
+import {
+  CurrentUser,
+  JwtAuthGuard,
+  type AuthenticatedUser,
+} from '../../infrastructure/auth/jwt-auth.guard';
+import { {{ ModuleId }}Entity } from '../../domain/{{ module_id }}.entity';
+import { Create{{ ModuleId }}Dto } from './dto/create-{{ module_id }}.dto';
+import { Update{{ ModuleId }}Dto } from './dto/update-{{ module_id }}.dto';
+import { {{ ModuleId }}Service } from './{{ module_id }}.service';
+
+/**
+ * HTTP adapter for the {{ MODULE_ID }} ({{ module_name }}) bounded context.
+ *
+ * Controllers stay thin: validate (via the global ValidationPipe + DTOs),
+ * delegate to the application service, and shape the HTTP response. No
+ * business rule lives here.
+ */
+@ApiTags('{{ module_id }}')
+@ApiBearerAuth('bearer')
+@UseGuards(JwtAuthGuard)
+@Controller({ path: '{{ module_id }}', version: '1' })
+export class {{ ModuleId }}Controller {
+  constructor(private readonly {{ module_id }}Service: {{ ModuleId }}Service) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Create a new {{ module_id }} record' })
+  @ApiCreatedResponse({ description: 'The {{ module_id }} record was created.' })
+  create(
+    @Body() dto: Create{{ ModuleId }}Dto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<{{ ModuleId }}Entity> {
+    return this.{{ module_id }}Service.create(dto, user);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'List {{ module_id }} records' })
+  @ApiOkResponse({ description: 'Paginated {{ module_id }} records.' })
+  findAll(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('page') page = 1,
+    @Query('size') size = 20,
+  ): Promise<{ items: {{ ModuleId }}Entity[]; total: number }> {
+    return this.{{ module_id }}Service.findAll(user, { page: Number(page), size: Number(size) });
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a single {{ module_id }} record by id' })
+  @ApiOkResponse({ description: 'The requested {{ module_id }} record.' })
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<{{ ModuleId }}Entity> {
+    return this.{{ module_id }}Service.findOne(id, user);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Partially update a {{ module_id }} record' })
+  @ApiOkResponse({ description: 'The updated {{ module_id }} record.' })
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: Update{{ ModuleId }}Dto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<{{ ModuleId }}Entity> {
+    return this.{{ module_id }}Service.update(id, dto, user);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a {{ module_id }} record' })
+  @ApiNoContentResponse({ description: 'The {{ module_id }} record was deleted.' })
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<void> {
+    return this.{{ module_id }}Service.remove(id, user);
+  }
+}

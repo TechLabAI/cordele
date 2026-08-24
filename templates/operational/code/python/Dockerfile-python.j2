@@ -1,0 +1,52 @@
+{#-
+  Dockerfile-python.j2 - multi-stage image for a FastAPI service (D-541).
+
+  builder : uv resolves and installs the locked dependency set into /app/.venv
+  runtime : python:<version>-slim carrying only the venv + the source tree,
+            running as a non-root user.
+
+  Variables: project_name, python_version, package_name, service (optional),
+             port (optional)
+-#}
+{%- set svc = service | default(project_name ~ '-service', true) -%}
+{%- set svc_port = port | default(8000, true) -%}
+# syntax=docker/dockerfile:1
+# {{ svc }} - FastAPI runtime image (D-541)
+
+FROM ghcr.io/astral-sh/uv:python{{ python_version }}-bookworm-slim AS builder
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PYTHON_DOWNLOADS=never
+WORKDIR /app
+
+# Dependency layer: cached until the manifests change.
+COPY pyproject.toml uv.lock* ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --no-dev || \
+    uv sync --no-install-project --no-dev
+
+# Project layer.
+COPY . .
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev || uv sync --no-dev
+
+FROM python:{{ python_version }}-slim AS runtime
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PATH="/app/.venv/bin:$PATH"
+WORKDIR /app
+
+RUN groupadd --system --gid 1001 app \
+    && useradd --system --uid 1001 --gid app --create-home app
+
+COPY --from=builder --chown=app:app /app/.venv /app/.venv
+COPY --from=builder --chown=app:app /app/src /app/src
+COPY --from=builder --chown=app:app /app/alembic.ini /app/alembic.ini
+
+USER app
+EXPOSE {{ svc_port }}
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:{{ svc_port }}/actuator/health').status == 200 else 1)"
+
+ENTRYPOINT ["uvicorn", "{{ package_name }}.{{ module_id }}.fastapi.main:app", "--host", "0.0.0.0", "--port", "{{ svc_port }}"]

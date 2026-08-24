@@ -1,0 +1,106 @@
+{#-
+  prisma-{{ module_id }}.repository.ts.j2 — Prisma adapter of the repository port (D-545).
+
+  Variables: module_id, ModuleId, MODULE_ID, multi_tenancy_mode, multi_tenancy_term
+-#}
+import { Injectable, Logger } from '@nestjs/common';
+
+import { {{ ModuleId }}Entity } from '../../domain/{{ module_id }}.entity';
+import type {
+  {{ ModuleId }}Page,
+  {{ ModuleId }}RepositoryPort,
+  PageRequest,
+} from '../../domain/{{ module_id }}.repository.interface';
+import { PrismaService } from './prisma.service';
+import { {{ ModuleId }}Mapper } from './{{ module_id }}.mapper';
+
+/**
+ * Prisma-backed adapter for the {{ MODULE_ID }} repository port (D-545).
+ *
+ * `PrismaService` is injected — never instantiate `PrismaClient` here, or the
+ * process ends up with one connection pool per module.
+ */
+@Injectable()
+export class Prisma{{ ModuleId }}Repository implements {{ ModuleId }}RepositoryPort {
+  private readonly logger = new Logger(Prisma{{ ModuleId }}Repository.name);
+
+  constructor(private readonly prisma: PrismaService) {}
+
+  async save(
+    entity: {{ ModuleId }}Entity,
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+    tenantId: string,
+{%- endif %}
+  ): Promise<{{ ModuleId }}Entity> {
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+    if (entity.tenantId !== tenantId) {
+      throw new Error('{{ MODULE_ID }}: cross-{{ multi_tenancy_term }} write rejected');
+    }
+{%- endif %}
+    const model = await this.prisma.{{ module_id }}.upsert({
+      where: { id: entity.id },
+      create: {{ ModuleId }}Mapper.toCreateInput(entity),
+      update: {{ ModuleId }}Mapper.toUpdateInput(entity),
+    });
+    return {{ ModuleId }}Mapper.toDomain(model);
+  }
+
+  async findById(
+    id: string,
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+    tenantId: string,
+{%- endif %}
+  ): Promise<{{ ModuleId }}Entity | null> {
+    const model = await this.prisma.{{ module_id }}.findFirst({
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+      where: { id, tenantId },
+{%- else %}
+      where: { id },
+{%- endif %}
+    });
+    return model ? {{ ModuleId }}Mapper.toDomain(model) : null;
+  }
+
+  async findAll(
+    page: PageRequest,
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+    tenantId: string,
+{%- endif %}
+  ): Promise<{{ ModuleId }}Page> {
+    const size = Math.min(Math.max(page.size, 1), 200);
+    const skip = Math.max(page.page - 1, 0) * size;
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+    const where = { tenantId };
+{%- else %}
+    const where = {};
+{%- endif %}
+
+    const [models, total] = await this.prisma.$transaction([
+      this.prisma.{{ module_id }}.findMany({
+        where,
+        skip,
+        take: size,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.{{ module_id }}.count({ where }),
+    ]);
+
+    return { items: {{ ModuleId }}Mapper.toDomainList(models), total };
+  }
+
+  async deleteById(
+    id: string,
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+    tenantId: string,
+{%- endif %}
+  ): Promise<void> {
+    await this.prisma.{{ module_id }}.deleteMany({
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+      where: { id, tenantId },
+{%- else %}
+      where: { id },
+{%- endif %}
+    });
+    this.logger.debug(`{{ MODULE_ID }} row deleted: ${id}`);
+  }
+}

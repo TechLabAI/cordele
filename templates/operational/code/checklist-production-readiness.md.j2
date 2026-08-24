@@ -1,0 +1,101 @@
+# Production-readiness checklist — {{ project_name }}
+
+> **Decision:** D-193 (Pole Position v2 S8) — opt-in template; apply with `techlab render --production-checklist`
+> **Rendered:** {{ rendered_at | default('_set at render time_') }}
+> **Project version:** {{ project_version | default('_see pyproject.toml_') }}
+> **Architecture lock:** {{ architecture_lock_sha | default('_see architecture.lock_') }}
+
+This checklist is a **pre-deploy gate**, not a CI gate. Each item is a human judgment that infrastructure and code together are production-ready. Status: ✅ green | 🟡 not-yet (with note) | ❌ blocking.
+
+---
+
+## Block 1 — Infrastructure / Secrets
+
+| # | Item | Status | Notes |
+|---|---|---|---|
+| S-01 | All secrets injected via env vars — no plaintext in any `application*.yml` shipping in the image | | |
+| S-02 | `.env.example` in each service; `.env` gitignored | | |
+| S-03 | K8s Secret template in `ops/deploy/k8s/` with `secretKeyRef` references | | |
+| S-04 | Rotation procedure documented in `ops/secrets/secrets-strategy.md` | | |
+| S-05 | Spring Cloud Config Server or equivalent tested for multi-service dev sharing | | |
+
+---
+
+## Block 2 — Observability
+
+| # | Item | Status | Notes |
+|---|---|---|---|
+| O-01 | `/actuator/health/liveness` returns 200 under normal operation | | |
+| O-02 | `/actuator/health/readiness` returns 200 when dependencies are healthy | | |
+| O-03 | `/actuator/prometheus` returns metrics (HTTP counters, JVM, HikariCP) | | |
+| O-04 | Structured JSON logging active in non-local profiles (logback-spring.xml) | | |
+| O-05 | MDC fields populated on every request: `correlationId`, `tenantId`, `userId` | | |
+| O-06 | OpenTelemetry tracing enabled; spans emitted to OTLP endpoint in staging | | |
+| O-07 | K8s probes configured (liveness, readiness, startup) with `initialDelaySeconds` tuned | | |
+
+---
+
+## Block 3 — Deploy
+
+| # | Item | Status | Notes |
+|---|---|---|---|
+| D-01 | `Deployment.yaml` has CPU/memory requests AND limits | | |
+| D-02 | HPA configured (min 2 replicas, CPU threshold ≤80%) | | |
+| D-03 | `kubectl apply --dry-run=client` passes on all manifests | | |
+| D-04 | Image tag pinned to SHA or semver (not `:latest`) in non-dev deploys | | |
+| D-05 | Namespace `{{ project_name | lower }}` declared; no cluster-admin RBAC required | | |
+
+---
+
+## Block 4 — Governance
+
+| # | Item | Status | Notes |
+|---|---|---|---|
+| G-01 | Audit-log enabled (`scripts/audit-log.py` or equivalent) | | |
+| G-02 | SBOM generated and available (`docs/sbom.json` or CycloneDX equivalent) | | |
+| G-03 | AI-ops report executed (`scripts/ai-ops-report.py`) for last 30-day window | | |
+| G-04 | Compliance brief refreshed and signed-off by architect | | |
+| G-05 | Risk register reviewed; no open blocking risks (R-XXX status = open AND blocking) | | |
+
+---
+
+## Block 5 — Data
+
+| # | Item | Status | Notes |
+|---|---|---|---|
+| DA-01 | Flyway migrations applied cleanly against target schema version (or `ddl-auto=validate` green) | | |
+| DA-02 | Backup strategy declared in ops runbook | | |
+| DA-03 | Multi-tenancy isolation validated: tenant A cannot read tenant B data | | |
+| DA-04 | No `ddl-auto=create-drop` or `ddl-auto=update` in production profile | | |
+
+---
+
+## Block 6 — Quality
+
+| # | Item | Status | Notes |
+|---|---|---|---|
+| Q-01 | Test coverage ≥80% in core domain layer (`domain/`, `application/`) | | |
+| Q-02 | ArchUnit tests green (hexagonal layer boundaries enforced) | | |
+| Q-03 | Drift-check green (`techlab drift-check --aspect <all>`) | | |
+| Q-04 | All smokes green (`python tests/run_all_smokes.py` in workspace) | | |
+| Q-05 | No `TODO[lote-*]` stubs remaining in critical path | | |
+
+---
+
+## Summary
+
+| Block | Green | Not-yet | Blocking |
+|---|---|---|---|
+| Secrets | | | |
+| Observability | | | |
+| Deploy | | | |
+| Governance | | | |
+| Data | | | |
+| Quality | | | |
+| **Total** | | | |
+
+**Deploy recommendation:** _fill after completing the table above_
+
+---
+
+_Rendered by `techlab render --production-checklist`. Decisions: D-190 (secrets), D-191 (observability), D-193 (this template). See `docs/techlab-architecture-plan-consolidation-v4.md` §3.98..§3.100._

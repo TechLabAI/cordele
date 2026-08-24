@@ -1,0 +1,98 @@
+{#-
+  {{ module_id }}.producer.ts.j2 — amqplib publisher (D-544).
+
+  Variables: module_id, ModuleId, MODULE_ID, project_name,
+             msg_broker_name, multi_tenancy_mode, multi_tenancy_term
+-#}
+import { randomUUID } from 'node:crypto';
+
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import * as amqp from 'amqplib';
+
+import { {{ ModuleId }}Entity } from '../../domain/{{ module_id }}.entity';
+
+export const {{ MODULE_ID }}_EXCHANGE = '{{ project_name }}.{{ module_id }}';
+
+/**
+ * Publishes {{ MODULE_ID }} integration events to {{ msg_broker_name }}.
+ *
+ * Events are published to a durable topic exchange with persistent delivery
+ * mode; routing keys follow `{{ module_id }}.<past-tense-verb>`. Payloads are
+ * contracts — never leak internal domain fields that consumers cannot rely on.
+ */
+@Injectable()
+export class {{ ModuleId }}Producer implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger({{ ModuleId }}Producer.name);
+  private connection?: amqp.ChannelModel;
+  private channel?: amqp.ConfirmChannel;
+
+  constructor(private readonly config: ConfigService) {}
+
+  async onModuleInit(): Promise<void> {
+    const url = this.config.get<string>('AMQP_URL') ?? 'amqp://localhost:5672';
+    this.connection = await amqp.connect(url);
+    this.channel = await this.connection.createConfirmChannel();
+    await this.channel.assertExchange({{ MODULE_ID }}_EXCHANGE, 'topic', { durable: true });
+    this.logger.log('Producer ready on exchange ' + {{ MODULE_ID }}_EXCHANGE);
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.channel?.close();
+    await this.connection?.close();
+  }
+
+  publishCreated(entity: {{ ModuleId }}Entity): Promise<void> {
+    return this.publish('{{ module_id }}.created', this.toPayload(entity));
+  }
+
+  publishUpdated(entity: {{ ModuleId }}Entity): Promise<void> {
+    return this.publish('{{ module_id }}.updated', this.toPayload(entity));
+  }
+
+  publishDeleted(id: string): Promise<void> {
+    return this.publish('{{ module_id }}.deleted', { id });
+  }
+
+  private async publish(routingKey: string, payload: Record<string, unknown>): Promise<void> {
+    if (!this.channel) {
+      throw new Error('{{ ModuleId }}Producer: channel not initialised');
+    }
+
+    const envelope = {
+      eventId: randomUUID(),
+      eventType: routingKey,
+      occurredAt: new Date().toISOString(),
+      data: payload,
+    };
+
+    await new Promise<void>((resolve, reject) => {
+      this.channel!.publish(
+        {{ MODULE_ID }}_EXCHANGE,
+        routingKey,
+        Buffer.from(JSON.stringify(envelope)),
+        {
+          persistent: true,
+          contentType: 'application/json',
+          messageId: envelope.eventId,
+          type: routingKey,
+        },
+        (err) => (err ? reject(err) : resolve()),
+      );
+    });
+
+    this.logger.debug(`Published ${routingKey} (${envelope.eventId})`);
+  }
+
+  private toPayload(entity: {{ ModuleId }}Entity): Record<string, unknown> {
+    return {
+      id: entity.id,
+      name: entity.name,
+      status: entity.status,
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+      tenantId: entity.tenantId,
+{%- endif %}
+      updatedAt: entity.updatedAt.toISOString(),
+    };
+  }
+}

@@ -1,0 +1,29 @@
+{#-
+  react/app/page.tsx.j2 - root route.
+
+  Rendered by: /new-project P5 (_frontend_react) →
+    frontend/src/app/page.tsx
+
+  Variables used:
+    - project_display_name
+    - modules   list of module dicts (hasUi=true, isInfrastructure=false)
+
+  D-546: server component; the landing route only redirects to the default
+  authenticated module. `redirect()` throws, so nothing below it renders.
+-#}
+{%- set ui_modules = [] -%}
+{%- for m in modules -%}
+{%- if not m.isInfrastructure and m.hasUi -%}
+{%- set _lib_raw = m.frontendLib if m.frontendLib else (m.prefix | lower) -%}
+{%- set _ = ui_modules.append(_lib_raw[5:] if _lib_raw[:5] == 'libs/' else _lib_raw) -%}
+{%- endif -%}
+{%- endfor -%}
+{%- set default_module = ui_modules[0] if ui_modules else 'home' -%}
+import { redirect } from 'next/navigation';
+
+/** Default landing module for an authenticated session. */
+export const DEFAULT_MODULE = '{{ default_module }}';
+
+export default function RootPage() {
+  redirect(`/${DEFAULT_MODULE}`);
+}

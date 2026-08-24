@@ -1,0 +1,59 @@
+{#-
+  {{ module_id }}.mapper.ts.j2 — domain <-> Prisma model mapper (D-545).
+
+  Variables: module_id, ModuleId, MODULE_ID, multi_tenancy_mode, multi_tenancy_term
+-#}
+import type { Prisma, {{ ModuleId }} as {{ ModuleId }}Model } from '@prisma/client';
+
+import { {{ ModuleId }}Entity, {{ ModuleId }}Status } from '../../domain/{{ module_id }}.entity';
+
+/**
+ * Translates between the {{ MODULE_ID }} Prisma model and the domain entity.
+ *
+ * This is the only file allowed to know both shapes. Keeping it explicit
+ * (instead of spreading the Prisma row into the entity) means a schema
+ * rename shows up here as a compile error rather than as a silent
+ * `undefined` deep in the domain.
+ */
+export class {{ ModuleId }}Mapper {
+  static toDomain(model: {{ ModuleId }}Model): {{ ModuleId }}Entity {
+    return new {{ ModuleId }}Entity({
+      id: model.id,
+      name: model.name,
+      description: model.description ?? undefined,
+      status: model.status as {{ ModuleId }}Status,
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+      tenantId: model.tenantId,
+{%- endif %}
+      createdAt: model.createdAt,
+      updatedAt: model.updatedAt,
+    });
+  }
+
+  static toDomainList(models: {{ ModuleId }}Model[]): {{ ModuleId }}Entity[] {
+    return models.map((model) => {{ ModuleId }}Mapper.toDomain(model));
+  }
+
+  static toCreateInput(entity: {{ ModuleId }}Entity): Prisma.{{ ModuleId }}UncheckedCreateInput {
+    return {
+      id: entity.id,
+      name: entity.name,
+      description: entity.description ?? null,
+      status: entity.status,
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+      tenantId: entity.tenantId,
+{%- endif %}
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    };
+  }
+
+  static toUpdateInput(entity: {{ ModuleId }}Entity): Prisma.{{ ModuleId }}UncheckedUpdateInput {
+    return {
+      name: entity.name,
+      description: entity.description ?? null,
+      status: entity.status,
+      updatedAt: entity.updatedAt,
+    };
+  }
+}

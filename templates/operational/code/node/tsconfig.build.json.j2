@@ -1,0 +1,24 @@
+{#-
+  tsconfig.build.json.j2 — production build config (D-544).
+
+  `nest build -p tsconfig.build.json` (see package.json.j2 scripts) compiles
+  only src/, leaving tests and their type-only devDependencies out of dist/.
+  Output is strict JSON: no comments in the body.
+-#}
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test",
+    "**/*.spec.ts",
+    "**/*.e2e-spec.ts",
+    "**/*.mock.ts"
+  ]
+}

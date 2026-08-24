@@ -1,0 +1,21 @@
+{#-
+  init-schema.sql.j2 — extracted from gen_init_schema_sql() in be-module-generator.py.
+  Variables:
+    - meta
+    - persistence_extensions: list[{name, purpose}] from persistence.arch.json
+                              (D-068 Phase 2). Empty list when no aspect pinned.
+-#}
+-- init-schema.sql — executado pelo PostgreSQLContainer antes dos testes
+-- Cria schema de tenant de teste para o serviço {{ meta.service }}
+{% if persistence_extensions %}
+-- Extensions required by the architecture (persistence.arch.json, D-068).
+-- Mirror the production V0001 so tests fail fast when an extension is missing.
+{%- for ext in persistence_extensions %}
+CREATE EXTENSION IF NOT EXISTS "{{ ext.name }}"; -- {{ ext.purpose }}
+{%- endfor %}
+{% endif %}
+CREATE SCHEMA IF NOT EXISTS t_emp_test;
+
+GRANT ALL PRIVILEGES ON SCHEMA t_emp_test TO test;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA t_emp_test TO test;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA t_emp_test TO test;

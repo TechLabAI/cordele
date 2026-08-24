@@ -1,0 +1,14 @@
+{#-
+  domain-service-pojo.java.j2 — Pure POJO domain service (RULE-01: zero Spring imports).
+
+  Variables: pkg_full, aggregate, svc_name (= aggregate + 'DomainService')
+-#}
+package {{ pkg_full }}.domain.service;
+
+import {{ pkg_full }}.domain.model.{{ aggregate }};
+
+// Pure POJO — zero Spring imports (RULE-01). Registered as @Bean in DomainServiceConfig.
+public class {{ svc_name }} {
+
+    // TODO[SCAFFOLD]: implement domain invariants and business rules for {{ aggregate }}
+}

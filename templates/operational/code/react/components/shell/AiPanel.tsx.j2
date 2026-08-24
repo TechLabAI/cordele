@@ -1,0 +1,129 @@
+{#-
+  react/components/shell/AiPanel.tsx.j2 - TechLab AI side panel.
+
+  Rendered by: /new-project P5 (_frontend_react) →
+    frontend/src/components/shell/AiPanel.tsx
+  (only emitted when the project has the AI layer enabled)
+
+  Variables used:
+    - has_ai
+    - project_display_name
+    - techlab_ai_service_port   (only defined when has_ai)
+
+  D-547: panel open/closed state is client state → Zustand; the answer stream is
+  server state → React Query mutation.
+-#}
+{%- if has_ai -%}
+'use client';
+
+import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { Sparkles, X } from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/lib/shared/auth/use-auth';
+
+const AI_BASE_URL = process.env.NEXT_PUBLIC_TECHLAB_AI_URL ?? 'http://localhost:{{ techlab_ai_service_port | default(8090) }}';
+
+interface AiAnswer {
+  answer: string;
+  citations?: Array<{ title: string; uri: string }>;
+}
+
+export function AiPanel() {
+  const [open, setOpen] = useState(false);
+  const [question, setQuestion] = useState('');
+  const { accessToken } = useAuth();
+
+  const ask = useMutation<AiAnswer, Error, string>({
+    mutationFn: async (prompt: string) => {
+      const response = await fetch(`${AI_BASE_URL}/v1/orchestrate/answer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify({ question: prompt }),
+      });
+      if (!response.ok) {
+        throw new Error(`AI request failed (${response.status})`);
+      }
+      return (await response.json()) as AiAnswer;
+    },
+  });
+
+  if (!open) {
+    return (
+      <Button
+        variant="secondary"
+        size="icon"
+        className="fixed bottom-6 right-6 rounded-full shadow-lg"
+        aria-label="Open AI assistant"
+        onClick={() => setOpen(true)}
+      >
+        <Sparkles className="size-4" aria-hidden="true" />
+      </Button>
+    );
+  }
+
+  return (
+    <aside
+      aria-label="AI assistant"
+      className={cn('flex w-96 shrink-0 flex-col border-l bg-card')}
+    >
+      <div className="flex h-14 items-center justify-between border-b px-4">
+        <span className="font-medium">Assistant</span>
+        <Button variant="ghost" size="icon" aria-label="Close AI assistant" onClick={() => setOpen(false)}>
+          <X className="size-4" aria-hidden="true" />
+        </Button>
+      </div>
+
+      <div className="flex-1 space-y-3 overflow-y-auto p-4 text-sm">
+        {ask.isPending ? <p className="text-muted-foreground">Thinking...</p> : null}
+        {ask.isError ? (
+          <p role="alert" className="text-destructive">
+            {ask.error.message}
+          </p>
+        ) : null}
+        {ask.data ? (
+          <div className="space-y-2">
+            <p className="whitespace-pre-wrap">{ask.data.answer}</p>
+            {ask.data.citations?.length ? (
+              <ul className="space-y-1 text-xs text-muted-foreground">
+                {ask.data.citations.map((citation) => (
+                  <li key={citation.uri}>{citation.title}</li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
+      <form
+        className="flex gap-2 border-t p-3"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (question.trim()) {
+            ask.mutate(question.trim());
+          }
+        }}
+      >
+        <Input
+          value={question}
+          onChange={(event) => setQuestion(event.target.value)}
+          placeholder="Ask about {{ project_display_name }}..."
+          aria-label="Question"
+        />
+        <Button type="submit" disabled={ask.isPending}>
+          Ask
+        </Button>
+      </form>
+    </aside>
+  );
+}
+{%- else -%}
+// AI layer disabled for this project (has_ai = false) - no assistant panel.
+export {};
+{%- endif %}

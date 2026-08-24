@@ -1,0 +1,10 @@
+{#-
+  response-record.java.j2 — extracted from gen_response_record() in be-module-generator.py.
+  Variables: pkg_full, name
+-#}
+package {{ pkg_full }}.api.dto;
+
+import java.util.UUID;
+
+// TODO[SCAFFOLD]: define fields from api-contract.md
+public record {{ name }}Response(UUID id, String status /* TODO[SCAFFOLD]: add fields */) {}

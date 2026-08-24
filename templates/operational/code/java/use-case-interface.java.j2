@@ -1,0 +1,19 @@
+{#-
+  use-case-interface.java.j2 — Inbound port (use case interface).
+
+  Variables: pkg_full, iface_name, operations (list of method names)
+-#}
+package {{ pkg_full }}.application.port.in;
+
+/**
+ * Inbound port — {{ iface_name }}.
+ * Generated stub; define parameters and return types before implementing.
+ */
+public interface {{ iface_name }} {
+
+{%- for op in operations %}
+
+    void {{ op }}(); // TODO[SCAFFOLD]: define parameters and return type
+{%- endfor %}
+
+}

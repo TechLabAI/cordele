@@ -1,0 +1,115 @@
+// Mock data — gerado por wireframe-to-react (DESCARTÁVEL)
+// Fonte canônica: mock-data.json (edite lá, não aqui)
+
+export const MOCK_DATA = {
+  "_meta": {
+    "data-mock": true,
+    "conforms-to": "data-model.json"
+  },
+  "nenhum": [],
+  "projetos": [
+    {
+      "id": "proj-001",
+      "nome": "Romance das Cidades",
+      "status": "publicado",
+      "criadoEm": "2026-06-01T09:00:00",
+      "ultimaAtividade": "2026-06-19T16:30:00",
+      "editora": "Editora Aetós"
+    },
+    {
+      "id": "proj-002",
+      "nome": "Poemas do Sertão",
+      "status": "em_composicao",
+      "criadoEm": "2026-06-10T11:00:00",
+      "ultimaAtividade": "2026-06-14T09:15:00",
+      "editora": "Editora Aetós"
+    },
+    {
+      "id": "proj-003",
+      "nome": "Contos Urbanos",
+      "status": "rascunho",
+      "criadoEm": "2026-06-18T14:00:00",
+      "ultimaAtividade": "2026-06-18T14:05:00",
+      "editora": "Editora Aetós"
+    }
+  ],
+  "manuscrito": [
+    {
+      "id": "ms-001",
+      "projetoId": "proj-001",
+      "nomeArquivo": "romance-das-cidades.docx",
+      "formato": "docx",
+      "totalCapitulos": 18,
+      "totalImagens": 3,
+      "trechosNaoParseados": 2,
+      "estrutura": "Capítulo 1 — O Rio\nCapítulo 2 — A Cidade\nCapítulo 3 — O Retorno\nCapítulo 4 — O Mercado\nCapítulo 5 — A Noite"
+    }
+  ],
+  "metadados": [
+    {
+      "id": "meta-001",
+      "projetoId": "proj-001",
+      "titulo": "Romance das Cidades",
+      "autor": "Eliana Moraes",
+      "isbn": "978-65-00123-45-6",
+      "idioma": "pt",
+      "categoria": "Romance contemporâneo",
+      "capaUrl": null,
+      "editoraNome": "Editora Aetós"
+    }
+  ],
+  "publicacao": [
+    {
+      "id": "pub-001",
+      "projetoId": "proj-001",
+      "arquivoUrl": "/exports/romance-das-cidades-v2.epub",
+      "epubcheckStatus": "avisos",
+      "totalErros": 0,
+      "totalAvisos": 2,
+      "erros": null,
+      "criadoEm": "2026-06-19T16:30:00"
+    }
+  ],
+  "publicacoes": [
+    {
+      "id": "pub-001",
+      "projetoId": "proj-001",
+      "arquivoUrl": "/exports/romance-das-cidades-v2.epub",
+      "epubcheckStatus": "avisos",
+      "totalErros": 0,
+      "totalAvisos": 2,
+      "erros": null,
+      "criadoEm": "2026-06-19T16:30:00"
+    },
+    {
+      "id": "pub-000",
+      "projetoId": "proj-001",
+      "arquivoUrl": null,
+      "epubcheckStatus": "erros_criticos",
+      "totalErros": 3,
+      "totalAvisos": 0,
+      "erros": "OPS-001: spine item não encontrado (capítulo 17); META-001: identifier ausente; CSS-001: propriedade border-collapse não suportada em ePub 3",
+      "criadoEm": "2026-06-14T09:15:00"
+    }
+  ],
+  "trechosNaoParseados": [
+    {
+      "id": "trecho-001",
+      "manuscritoId": "ms-001",
+      "pagina": 34,
+      "capitulo": "Capítulo 1 — O Rio",
+      "tipo": "tabela",
+      "descricao": "Tabela de formatação não suportada. Elementos de célula ignorados.",
+      "ignorado": false
+    },
+    {
+      "id": "trecho-002",
+      "manuscritoId": "ms-001",
+      "pagina": 67,
+      "capitulo": "Capítulo 3 — O Retorno",
+      "tipo": "caixa_de_texto",
+      "descricao": "Caixa de texto lateral (text box). Conteúdo não mapeado para ePub.",
+      "ignorado": false
+    }
+  ]
+} as const

@@ -1,0 +1,84 @@
+{#-
+  producer.py.j2 -- aio-pika async publisher (D-541).
+
+  Variables: package_name, module_id, ModuleId, MODULE_ID, module_name,
+             msg_broker_name, events_broker,
+             multi_tenancy_mode, multi_tenancy_term
+-#}
+"""Outbound messaging adapter for the {{ module_name }} module.
+
+Publishes domain events to {{ msg_broker_name }} through aio-pika. Publishing is
+best-effort at the adapter level: retries and the dead-letter policy are owned
+by the broker topology, not by this class.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+from typing import Any
+
+import aio_pika
+from aio_pika.abc import AbstractRobustConnection, AbstractExchange
+
+logger = logging.getLogger(__name__)
+
+EXCHANGE_NAME = "{{ module_id }}.events"
+
+
+class {{ ModuleId }}EventPublisher:
+    """Robust aio-pika publisher bound to the {{ module_id }} topic exchange."""
+
+    def __init__(self, broker_url: str, exchange_name: str = EXCHANGE_NAME) -> None:
+        self._broker_url = broker_url
+        self._exchange_name = exchange_name
+        self._connection: AbstractRobustConnection | None = None
+        self._exchange: AbstractExchange | None = None
+
+    async def connect(self) -> None:
+        """Open a robust connection and declare the durable topic exchange."""
+        self._connection = await aio_pika.connect_robust(self._broker_url)
+        channel = await self._connection.channel(publisher_confirms=True)
+        self._exchange = await channel.declare_exchange(
+            self._exchange_name,
+            aio_pika.ExchangeType.TOPIC,
+            durable=True,
+        )
+        logger.info("connected publisher to exchange %s", self._exchange_name)
+
+    async def close(self) -> None:
+        """Close the connection; safe to call when never connected."""
+        if self._connection is not None and not self._connection.is_closed:
+            await self._connection.close()
+        self._connection = None
+        self._exchange = None
+
+    async def publish(
+        self,
+        routing_key: str,
+        payload: dict[str, Any],
+        *,
+        correlation_id: str | None = None,
+{%- if multi_tenancy_mode != "single" %}
+        {{ multi_tenancy_term }}_id: str | None = None,
+{%- endif %}
+    ) -> None:
+        """Publish one persistent JSON message."""
+        if self._exchange is None:
+            raise RuntimeError("publisher not connected: call connect() first")
+
+        headers: dict[str, Any] = {"module": "{{ MODULE_ID }}"}
+{%- if multi_tenancy_mode != "single" %}
+        if {{ multi_tenancy_term }}_id:
+            headers["{{ multi_tenancy_term }}Id"] = {{ multi_tenancy_term }}_id
+{%- endif %}
+
+        message = aio_pika.Message(
+            body=json.dumps(payload, default=str).encode("utf-8"),
+            content_type="application/json",
+            delivery_mode=aio_pika.DeliveryMode.PERSISTENT,
+            correlation_id=correlation_id,
+            headers=headers,
+        )
+        await self._exchange.publish(message, routing_key=routing_key)
+        logger.debug("published %s to %s", routing_key, self._exchange_name)

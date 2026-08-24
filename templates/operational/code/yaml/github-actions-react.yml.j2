@@ -1,0 +1,153 @@
+{#-
+  github-actions-react.yml.j2 — CI for the Next.js 15 frontend (Thread R3).
+
+  Pipeline: typecheck -> lint -> jest (RTL/MSW) -> playwright e2e -> docker
+  build & push. Decisions: D-546 (Next.js 15 standalone image),
+  D-548 (Tailwind v4 + shadcn), package manager pnpm / Node 22.
+
+  GitHub Actions `${{ ... }}` expressions are wrapped in {% raw %} blocks so
+  Jinja leaves them untouched (R2: no Jinja artifacts, no GHA corruption).
+
+  Variables: project_name, node_version, package_manager,
+  frontend_framework / modules_by_frontend_framework (hybrid path, D-562).
+-#}
+{%- set pm = package_manager | default('pnpm', true) -%}
+{%- set node = node_version | default('22', true) -%}
+{%- set angular_present = (frontend_framework | default('', true)) == 'angular'
+      or ((modules_by_frontend_framework | default({}, true)).get('angular') | default([], true) | length > 0) -%}
+{%- set fe_dir = 'frontend/react' if angular_present else 'frontend' -%}
+{%- set image = project_name ~ '-frontend' -%}
+name: frontend-react-ci
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '{{ fe_dir }}/**'
+      - '.github/workflows/frontend-react-ci.yml'
+  pull_request:
+    paths:
+      - '{{ fe_dir }}/**'
+      - '.github/workflows/frontend-react-ci.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: frontend-react-{% raw %}${{ github.ref }}{% endraw %}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '{{ node }}'
+  WORKING_DIR: {{ fe_dir }}
+  REGISTRY: ghcr.io
+  IMAGE_NAME: {% raw %}${{ github.repository_owner }}{% endraw %}/{{ image }}
+
+defaults:
+  run:
+    working-directory: {{ fe_dir }}
+
+jobs:
+  quality:
+    name: typecheck / lint / unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+{%- if pm == 'pnpm' %}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+{%- endif %}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: {% raw %}${{ env.NODE_VERSION }}{% endraw %}
+          cache: {{ pm }}
+          cache-dependency-path: {{ fe_dir }}/{{ 'pnpm-lock.yaml' if pm == 'pnpm' else ('yarn.lock' if pm == 'yarn' else 'package-lock.json') }}
+      - name: Install dependencies
+{%- if pm == 'pnpm' %}
+        run: pnpm install --frozen-lockfile
+{%- elif pm == 'yarn' %}
+        run: yarn install --frozen-lockfile
+{%- else %}
+        run: npm ci
+{%- endif %}
+      - name: Typecheck
+        run: {{ pm }} run typecheck
+      - name: Lint
+        run: {{ pm }} run lint
+      - name: Unit tests (jest + RTL + MSW)
+        run: {{ pm }} run test:ci
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: {{ fe_dir }}/coverage
+          if-no-files-found: ignore
+          retention-days: 7
+
+  e2e:
+    name: playwright e2e
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+{%- if pm == 'pnpm' %}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+{%- endif %}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: {% raw %}${{ env.NODE_VERSION }}{% endraw %}
+          cache: {{ pm }}
+          cache-dependency-path: {{ fe_dir }}/{{ 'pnpm-lock.yaml' if pm == 'pnpm' else ('yarn.lock' if pm == 'yarn' else 'package-lock.json') }}
+      - name: Install dependencies
+{%- if pm == 'pnpm' %}
+        run: pnpm install --frozen-lockfile
+{%- elif pm == 'yarn' %}
+        run: yarn install --frozen-lockfile
+{%- else %}
+        run: npm ci
+{%- endif %}
+      - name: Install Playwright browsers
+        run: {{ pm }} run e2e:install
+      - name: Build
+        run: {{ pm }} run build
+      - name: Run e2e
+        run: {{ pm }} run e2e
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: {{ fe_dir }}/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
+
+  docker:
+    name: docker build & push
+    runs-on: ubuntu-latest
+    needs: [quality, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to the container registry
+        uses: docker/login-action@v3
+        with:
+          registry: {% raw %}${{ env.REGISTRY }}{% endraw %}
+          username: {% raw %}${{ github.actor }}{% endraw %}
+          password: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: {{ fe_dir }}
+          file: {{ fe_dir }}/Dockerfile
+          push: true
+          tags: |
+            {% raw %}${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}{% endraw %}
+            {% raw %}${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest{% endraw %}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

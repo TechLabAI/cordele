@@ -1,0 +1,22 @@
+{#-
+  messaging.module.ts.j2 - AMQP wiring (D-544).
+
+  Only rendered when the project declares a broker; app.module.ts and the
+  feature modules guard their imports with the same has_msg_broker flag.
+-#}
+import { Global, Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+
+/**
+ * Shared messaging infrastructure.
+ *
+ * Producers and consumers are provided by the feature module that owns the
+ * events, not here - this module only carries the configuration they need, so
+ * a bounded context never publishes another context's events by accident.
+ */
+@Global()
+@Module({
+  imports: [ConfigModule],
+  exports: [ConfigModule],
+})
+export class MessagingModule {}

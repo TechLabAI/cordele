@@ -1,0 +1,131 @@
+{#-
+  model.py.j2 -- domain entities, value objects and errors (D-541).
+
+  Variables: module_id, ModuleId, MODULE_ID, module_name,
+             multi_tenancy_mode, multi_tenancy_term
+-#}
+"""Domain model of the {{ module_name }} module.
+
+Pure Python only: no FastAPI, no SQLAlchemy, no Pydantic imports here
+(hexagonal RULE-01 / RULE-02). Persistence and transport map onto these types.
+"""
+
+from __future__ import annotations
+
+import re
+from dataclasses import dataclass, field, replace
+from datetime import UTC, datetime
+from uuid import UUID, uuid4
+
+
+class DomainError(Exception):
+    """Base class for every business rule violation raised by this module."""
+
+    code: str = "{{ MODULE_ID }}_DOMAIN_ERROR"
+    status_code: int = 422
+
+    def __init__(self, message: str, *, code: str | None = None) -> None:
+        super().__init__(message)
+        if code:
+            self.code = code
+
+
+class {{ ModuleId }}NotFoundError(DomainError):
+    """Raised when the requested aggregate does not exist."""
+
+    code = "{{ MODULE_ID }}_NOT_FOUND"
+    status_code = 404
+
+
+class Invalid{{ ModuleId }}StateError(DomainError):
+    """Raised when a transition is not allowed for the current state."""
+
+    code = "{{ MODULE_ID }}_INVALID_STATE"
+    status_code = 409
+
+
+@dataclass(frozen=True, slots=True)
+class {{ ModuleId }}Code:
+    """Value object: the business identifier of a {{ module_name }} record."""
+
+    value: str
+
+    _PATTERN = re.compile(r"^[A-Z0-9][A-Z0-9_-]{2,31}$")
+
+    def __post_init__(self) -> None:
+        if not self._PATTERN.match(self.value):
+            raise DomainError(
+                f"invalid {{ module_id }} code: {self.value!r}",
+                code="{{ MODULE_ID }}_INVALID_CODE",
+            )
+
+    def __str__(self) -> str:
+        return self.value
+
+
+@dataclass(frozen=True, slots=True)
+class Create{{ ModuleId }}Command:
+    """Intent to create a {{ module_name }} record, expressed in domain terms."""
+
+    name: str
+    description: str | None = None
+    # TODO[SCAFFOLD]: complete fields from domain-model-diagram.puml
+
+
+@dataclass(slots=True)
+class {{ ModuleId }}:
+    """Aggregate root of the {{ module_name }} module."""
+
+    name: str
+{%- if multi_tenancy_mode != "single" %}
+    {{ multi_tenancy_term }}_id: str
+{%- endif %}
+    description: str | None = None
+    id: UUID = field(default_factory=uuid4)
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime | None = None
+    # TODO[SCAFFOLD]: add domain fields and invariants from the data-model contract.
+
+    def __post_init__(self) -> None:
+        self._validate()
+
+    def _validate(self) -> None:
+        if not self.name or not self.name.strip():
+            raise DomainError(
+                "name is required",
+                code="{{ MODULE_ID }}_NAME_REQUIRED",
+            )
+{%- if multi_tenancy_mode != "single" %}
+        if not self.{{ multi_tenancy_term }}_id:
+            raise DomainError(
+                "{{ multi_tenancy_term }}_id is required",
+                code="{{ MODULE_ID }}_{{ multi_tenancy_term|upper }}_REQUIRED",
+            )
+{%- endif %}
+
+    def rename(self, new_name: str) -> None:
+        """Apply a rename, keeping the aggregate invariants."""
+        self.name = new_name
+        self.updated_at = datetime.now(UTC)
+        self._validate()
+
+    @classmethod
+    def create(
+        cls,
+        command: Create{{ ModuleId }}Command,
+{%- if multi_tenancy_mode != "single" %}
+        {{ multi_tenancy_term }}_id: str,
+{%- endif %}
+    ) -> {{ ModuleId }}:
+        """Factory: the only supported way to build a new aggregate."""
+        return cls(
+            name=command.name,
+{%- if multi_tenancy_mode != "single" %}
+            {{ multi_tenancy_term }}_id={{ multi_tenancy_term }}_id,
+{%- endif %}
+            description=command.description,
+        )
+
+    def with_description(self, description: str | None) -> {{ ModuleId }}:
+        """Return a copy carrying a new description (non-mutating variant)."""
+        return replace(self, description=description)

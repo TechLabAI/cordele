@@ -1,0 +1,16 @@
+{#-
+  aggregate-model.java.j2 — extracted from gen_aggregate_model() in be-module-generator.py.
+  Variables: pkg_full, name
+-#}
+package {{ pkg_full }}.domain.model;
+
+import java.util.UUID;
+import java.time.Instant;
+
+// TODO[SCAFFOLD]: complete fields from domain-model-diagram.puml — no Spring/JPA imports (RULE-01, RULE-02)
+public record {{ name }}(
+    UUID id,
+    String tenantId,
+    Instant createdAt
+    // TODO[SCAFFOLD]: add domain fields
+) {}

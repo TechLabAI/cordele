@@ -1,0 +1,49 @@
+{#-
+  nest-cli.json.j2 — Nest CLI project config (D-544).
+
+  builder "tsc" with `webpack: false`: the runtime image (Dockerfile-node.j2)
+  ships node_modules from a pnpm install, so bundling buys nothing and would
+  break Prisma's native engine resolution. Non-TS assets under src/ are copied
+  into dist/ so runtime file lookups keep the same relative paths.
+
+  Output is strict JSON: no comments in the body.
+
+  Variables: module_id (per-module render), package_name, project_name.
+-#}
+{%- set svc = module_id | default(package_name, true) | default(project_name, true) -%}
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "entryFile": "main",
+  "projects": {},
+  "monorepo": false,
+  "compilerOptions": {
+    "builder": "tsc",
+    "webpack": false,
+    "deleteOutDir": true,
+    "tsConfigPath": "tsconfig.build.json",
+    "manualRestart": true,
+    "watchAssets": true,
+    "assets": [
+      { "include": "**/*.sql", "outDir": "dist" },
+      { "include": "**/*.yml", "outDir": "dist" },
+      { "include": "**/*.json", "exclude": "**/tsconfig*.json", "outDir": "dist" }
+    ],
+    "plugins": [
+      {
+        "name": "@nestjs/swagger",
+        "options": {
+          "introspectComments": true,
+          "dtoFileNameSuffix": [".dto.ts", ".entity.ts"],
+          "classValidatorShim": true
+        }
+      }
+    ]
+  },
+  "generateOptions": {
+    "spec": true,
+    "flat": false
+  },
+  "_service": "{{ svc }}-service"
+}

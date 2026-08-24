@@ -1,0 +1,54 @@
+{#-
+  schema.prisma.j2 — Prisma schema for a NestJS service (D-545).
+
+  Lives at backend/services/<service>/prisma/schema.prisma. `prisma generate`
+  emits the client into node_modules/.prisma; `prisma migrate deploy` runs in
+  the release job, never at container start.
+
+  Variables: project_name, module_id / ModuleId / MODULE_ID (per-module render),
+             package_name, multi_tenancy_mode, multi_tenancy_term.
+-#}
+{%- set svc = module_id | default(package_name, true) | default(project_name, true) -%}
+{%- set Entity = ModuleId | default('Resource', true) -%}
+{%- set is_multi_tenant = multi_tenancy_mode is defined and multi_tenancy_mode != "single" -%}
+{%- set tenant_field = (multi_tenancy_term | default('tenant', true)) ~ 'Id' -%}
+// Prisma schema for {{ svc }}-service ({{ project_name }}).
+// D-545: Prisma + PostgreSQL is the Node persistence stack.
+{% if is_multi_tenant %}// Multi-tenancy ({{ multi_tenancy_mode }}): every tenant-scoped table carries a
+// `{{ tenant_field }}` discriminator. It is part of every unique constraint and is
+// the leading index column, so the tenant filter is always index-covered.
+// The application layer must set it from the request context — Prisma has no
+// row-level security, so a missing filter is a data leak, not a slow query.
+{% endif %}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["metrics", "tracing"]
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+/// Reference entity for the {{ MODULE_ID | default(svc | upper, true) }} bounded context.
+/// TODO[thread-N3]: replace with the real aggregates from the module data-model spec.
+model {{ Entity }} {
+  id          String   @id @default(uuid()) @db.Uuid
+{% if is_multi_tenant %}  {{ tenant_field }} String @db.Uuid
+{% endif %}  code        String   @db.VarChar(64)
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  active      Boolean  @default(true)
+  version     Int      @default(0)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  createdBy   String?  @db.VarChar(255)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+  updatedBy   String?  @db.VarChar(255)
+
+{% if is_multi_tenant %}  @@unique([{{ tenant_field }}, code])
+  @@index([{{ tenant_field }}, active])
+{% else %}  @@unique([code])
+  @@index([active])
+{% endif %}  @@map("{{ svc | replace('-', '_') }}_{{ Entity | lower }}")
+}

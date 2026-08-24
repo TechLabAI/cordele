@@ -1,0 +1,17 @@
+{#-
+  jpa-repository.java.j2 — extracted from gen_jpa_repository() in be-module-generator.py.
+  Variables: pkg_full, name
+-#}
+package {{ pkg_full }}.infrastructure.persistence.repository;
+
+import {{ pkg_full }}.infrastructure.persistence.entity.{{ name }}JpaEntity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+import java.util.UUID;
+
+public interface {{ name }}JpaRepository extends JpaRepository<{{ name }}JpaEntity, UUID> {
+
+    List<{{ name }}JpaEntity> findByTenantId(String tenantId);
+
+    // TODO[SCAFFOLD]: add domain-specific query methods
+}

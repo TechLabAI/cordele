@@ -1,0 +1,39 @@
+{#-
+  data-scope.java.j2 — DataScope value record.
+
+  Variables: pkg_full
+
+  Mirrors rbac.arch.json data_scope.types: a `tipo` identifies which kind of
+  restriction applies (VENDEDOR, LOCAL_ESTOQUE, ...) and `valores` holds 1..N
+  ids resolved at JWT-issue time from usuario_empresa.data_scope.
+
+  D-059 (Tier 2.1 Phase 2).
+-#}
+package {{ pkg_full }}.shared.security;
+
+import java.util.List;
+import java.util.UUID;
+
+/**
+ * Carries the current user's data-scope restriction. A {@code tipo} of null
+ * means "no restriction" (e.g. GERENTE seeing all of the {@code empresa}).
+ * Otherwise {@code valores} contains the ids the user is allowed to see for
+ * that tipo.
+ *
+ * <p>Resolved from {@code usuario_empresa.data_scope} at access-decision time
+ * and bound to the request via {@code AccessContextHolder}.
+ */
+public record DataScope(String tipo, List<String> valores) {
+
+    public static DataScope unrestricted() {
+        return new DataScope(null, List.of());
+    }
+
+    public boolean isUnrestricted() {
+        return tipo == null;
+    }
+
+    public List<UUID> valoresUuid() {
+        return valores.stream().map(UUID::fromString).toList();
+    }
+}

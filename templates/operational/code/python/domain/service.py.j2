@@ -1,0 +1,90 @@
+{#-
+  service.py.j2 -- domain service with Protocol ports injected (D-541).
+
+  Variables: package_name, module_id, ModuleId, MODULE_ID, module_name,
+             multi_tenancy_mode, multi_tenancy_term
+-#}
+"""Domain service of the {{ module_name }} module.
+
+Holds business rules that do not belong to a single aggregate. Collaborators
+arrive as `Protocol` ports so the domain stays framework-free (RULE-01).
+"""
+
+from __future__ import annotations
+
+from typing import Protocol, runtime_checkable
+from uuid import UUID
+
+from ..model import (
+    Create{{ ModuleId }}Command,
+    DomainError,
+    Invalid{{ ModuleId }}StateError,
+    {{ ModuleId }},
+    {{ ModuleId }}NotFoundError,
+)
+
+
+@runtime_checkable
+class {{ ModuleId }}Lookup(Protocol):
+    """Read-only port the domain needs to enforce cross-aggregate rules."""
+
+    async def find_by_id(self, item_id: UUID) -> {{ ModuleId }} | None: ...
+
+    async def exists_by_name(self, name: str) -> bool: ...
+
+
+@runtime_checkable
+class Clock(Protocol):
+    """Time port -- injected so rules stay deterministic under test."""
+
+    def now_epoch_millis(self) -> int: ...
+
+
+class {{ ModuleId }}DomainService:
+    """Business rules that span more than one {{ module_name }} aggregate."""
+
+    def __init__(self, lookup: {{ ModuleId }}Lookup, clock: Clock | None = None) -> None:
+        self._lookup = lookup
+        self._clock = clock
+
+    async def create(
+        self,
+        command: Create{{ ModuleId }}Command,
+{%- if multi_tenancy_mode != "single" %}
+        {{ multi_tenancy_term }}_id: str,
+{%- endif %}
+    ) -> {{ ModuleId }}:
+        """Enforce creation rules and build the aggregate."""
+        if await self._lookup.exists_by_name(command.name):
+            raise DomainError(
+                f"a {{ module_id }} named {command.name!r} already exists",
+                code="{{ MODULE_ID }}_DUPLICATE_NAME",
+            )
+        return {{ ModuleId }}.create(
+            command,
+{%- if multi_tenancy_mode != "single" %}
+            {{ multi_tenancy_term }}_id={{ multi_tenancy_term }}_id,
+{%- endif %}
+        )
+
+    async def require(self, item_id: UUID) -> {{ ModuleId }}:
+        """Load an aggregate or fail with the canonical not-found error."""
+        found = await self._lookup.find_by_id(item_id)
+        if found is None:
+            raise {{ ModuleId }}NotFoundError(f"{{ module_id }} {item_id} not found")
+        return found
+
+    async def rename(self, item_id: UUID, new_name: str) -> {{ ModuleId }}:
+        """Rename an aggregate, rejecting duplicates."""
+        aggregate = await self.require(item_id)
+        if aggregate.name == new_name:
+            raise Invalid{{ ModuleId }}StateError("new name equals the current name")
+        if await self._lookup.exists_by_name(new_name):
+            raise DomainError(
+                f"a {{ module_id }} named {new_name!r} already exists",
+                code="{{ MODULE_ID }}_DUPLICATE_NAME",
+            )
+        aggregate.rename(new_name)
+        return aggregate
+
+    # TODO[SCAFFOLD]: add the remaining invariants described in the module service-spec.

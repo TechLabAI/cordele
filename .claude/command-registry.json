@@ -1,0 +1,165 @@
+{
+  "version": 2,
+  "generatedFrom": "command-registry.json (execution commands only, D-403)",
+  "note": "This registry is shipped to generated client projects. It contains only execution commands (scope=project). Architect commands (scope=workspace) live in the techlab-architecture workspace and are not copied to client projects.",
+  "commands": {
+    "be-autopilot": {
+      "scope": "project",
+      "scripts": [
+        "autopilot-state.py",
+        "pipeline-guard.py",
+        "validator-decide.py"
+      ],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash",
+        "Agent"
+      ],
+      "auto_safe": false,
+      "writes": []
+    },
+    "be-implement": {
+      "scope": "project",
+      "scripts": [
+        "pipeline-guard.py"
+      ],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "auto_safe": false,
+      "writes": []
+    },
+    "be-planner": {
+      "scope": "project",
+      "scripts": [
+        "doc-scaffold.py",
+        "pipeline-guard.py",
+        "plan-state-extractor.py",
+        "pole-position-split.py",
+        "render.py"
+      ],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "auto_safe": false,
+      "writes": []
+    },
+    "be-spec-drift": {
+      "scope": "project",
+      "scripts": [
+        "be-spec-drift.py",
+        "pipeline-guard.py"
+      ],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "auto_safe": true,
+      "writes": []
+    },
+    "be-validator": {
+      "scope": "project",
+      "scripts": [
+        "arch-conformance.py",
+        "doc-scaffold.py",
+        "gates-run.py",
+        "pipeline-guard.py",
+        "render.py",
+        "validator-decide.py",
+        "validator-score.py"
+      ],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "auto_safe": false,
+      "writes": []
+    },
+    "fe-autopilot": {
+      "scope": "project",
+      "scripts": [
+        "validator-decide.py"
+      ],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "auto_safe": false,
+      "writes": []
+    },
+    "fe-implement": {
+      "scope": "project",
+      "scripts": [
+        "gates-run.py"
+      ],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "auto_safe": false,
+      "writes": []
+    },
+    "fe-planner": {
+      "scope": "project",
+      "scripts": [
+        "doc-scaffold.py",
+        "plan-state-extractor.py",
+        "pole-position-split.py",
+        "render.py"
+      ],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Edit",
+        "Write",
+        "Bash"
+      ],
+      "auto_safe": false,
+      "writes": []
+    },
+    "fe-validator": {
+      "scope": "project",
+      "scripts": [
+        "arch-conformance.py",
+        "gates-run.py",
+        "validator-decide.py",
+        "validator-score.py"
+      ],
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "auto_safe": false,
+      "writes": []
+    }
+  }
+}

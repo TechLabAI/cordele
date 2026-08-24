@@ -1,0 +1,168 @@
+{#-
+  react/lib/shared/ui/data-table.tsx.j2 - generic table with sorting + paging.
+
+  Rendered by: /new-project P5 (_frontend_react) →
+    frontend/src/lib/shared/ui/data-table.tsx
+
+  Variables used: (none - fully generic)
+
+  D-548: shadcn/ui `Table` primitives + `cn()`. Sorting and pagination are
+  CONTROLLED: the component renders what it is told and reports intent upward,
+  so the module's Zustand slice stays the single source of truth (D-547).
+-#}
+'use client';
+
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
+export interface DataTableColumn<T> {
+  id: string;
+  header: string;
+  cell: (row: T) => React.ReactNode;
+  sortable?: boolean;
+  className?: string;
+}
+
+export interface DataTableProps<T> {
+  columns: DataTableColumn<T>[];
+  rows: T[];
+  rowKey: (row: T) => string;
+  loading?: boolean;
+  emptyMessage?: string;
+  sortBy?: string;
+  sortDir?: 'asc' | 'desc';
+  onSortChange?: (sortBy: string, sortDir: 'asc' | 'desc') => void;
+  page?: number;
+  pageSize?: number;
+  total?: number;
+  onPageChange?: (page: number) => void;
+  onRowClick?: (row: T) => void;
+}
+
+export function DataTable<T>({
+  columns,
+  rows,
+  rowKey,
+  loading = false,
+  emptyMessage = 'No records found.',
+  sortBy,
+  sortDir = 'asc',
+  onSortChange,
+  page = 1,
+  pageSize = 20,
+  total = 0,
+  onPageChange,
+  onRowClick,
+}: DataTableProps<T>) {
+  const pageCount = Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
+  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const to = Math.min(page * pageSize, total);
+
+  function toggleSort(columnId: string) {
+    if (!onSortChange) {
+      return;
+    }
+    const nextDir = sortBy === columnId && sortDir === 'asc' ? 'desc' : 'asc';
+    onSortChange(columnId, nextDir);
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {columns.map((column) => {
+                const active = sortBy === column.id;
+                return (
+                  <TableHead
+                    key={column.id}
+                    className={column.className}
+                    aria-sort={active ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                  >
+                    {column.sortable && onSortChange ? (
+                      <button
+                        type="button"
+                        className={cn('inline-flex items-center gap-1', active && 'font-semibold')}
+                        onClick={() => toggleSort(column.id)}
+                      >
+                        {column.header}
+                        <span aria-hidden="true">{active ? (sortDir === 'asc' ? '^' : 'v') : ''}</span>
+                      </button>
+                    ) : (
+                      column.header
+                    )}
+                  </TableHead>
+                );
+              })}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="py-8 text-center text-muted-foreground">
+                  Loading...
+                </TableCell>
+              </TableRow>
+            ) : rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="py-8 text-center text-muted-foreground">
+                  {emptyMessage}
+                </TableCell>
+              </TableRow>
+            ) : (
+              rows.map((row) => (
+                <TableRow
+                  key={rowKey(row)}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  className={cn(onRowClick && 'cursor-pointer')}
+                >
+                  {columns.map((column) => (
+                    <TableCell key={column.id} className={column.className}>
+                      {column.cell(row)}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <span aria-live="polite">
+          {from}-{to} of {total}
+        </span>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page <= 1 || !onPageChange}
+            onClick={() => onPageChange?.(page - 1)}
+          >
+            Previous
+          </Button>
+          <span>
+            Page {page} of {pageCount}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= pageCount || !onPageChange}
+            onClick={() => onPageChange?.(page + 1)}
+          >
+            Next
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}

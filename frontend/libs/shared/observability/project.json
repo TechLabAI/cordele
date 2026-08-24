@@ -1,0 +1,9 @@
+{
+  "name": "shared-observability",
+  "projectType": "library",
+  "sourceRoot": "libs/shared/observability/src",
+  "tags": [
+    "type:data-access",
+    "scope:shared"
+  ]
+}

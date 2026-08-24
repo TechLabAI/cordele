@@ -1,0 +1,99 @@
+{#-
+  {{ module_id }}.entity.ts.j2 — pure domain entity (D-544).
+
+  No ORM decorators, no framework imports: this file must stay compilable
+  with zero runtime dependencies.
+
+  Variables: module_id, ModuleId, MODULE_ID, module_name,
+             multi_tenancy_mode, multi_tenancy_term
+-#}
+/**
+ * Lifecycle status of a {{ MODULE_ID }} aggregate.
+ */
+export enum {{ ModuleId }}Status {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  ARCHIVED = 'ARCHIVED',
+}
+
+export interface {{ ModuleId }}Props {
+  readonly id: string;
+  readonly name: string;
+  readonly description?: string;
+  readonly status: {{ ModuleId }}Status;
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+  readonly tenantId: string;
+{%- endif %}
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+}
+
+/**
+ * {{ MODULE_ID }} aggregate root — {{ module_name }}.
+ *
+ * Pure domain object: it knows its invariants and nothing about HTTP,
+ * Prisma or Nest. Infrastructure converts to and from this shape through
+ * the module mapper.
+ */
+export class {{ ModuleId }}Entity {
+  readonly id: string;
+  readonly name: string;
+  readonly description?: string;
+  readonly status: {{ ModuleId }}Status;
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+  /** Owning {{ multi_tenancy_term }}; every query must be scoped by it. */
+  readonly tenantId: string;
+{%- endif %}
+  readonly createdAt: Date;
+  readonly updatedAt: Date;
+
+  constructor(props: {{ ModuleId }}Props) {
+    {{ ModuleId }}Entity.assertInvariants(props);
+    this.id = props.id;
+    this.name = props.name;
+    this.description = props.description;
+    this.status = props.status;
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+    this.tenantId = props.tenantId;
+{%- endif %}
+    this.createdAt = props.createdAt;
+    this.updatedAt = props.updatedAt;
+  }
+
+  /** Returns a copy with the given changes applied and `updatedAt` refreshed. */
+  with(changes: Partial<Omit<{{ ModuleId }}Props, 'id' | 'createdAt'>>): {{ ModuleId }}Entity {
+    return new {{ ModuleId }}Entity({
+      id: this.id,
+      name: changes.name ?? this.name,
+      description: changes.description ?? this.description,
+      status: changes.status ?? this.status,
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+      tenantId: this.tenantId,
+{%- endif %}
+      createdAt: this.createdAt,
+      updatedAt: new Date(),
+    });
+  }
+
+  isActive(): boolean {
+    return this.status === {{ ModuleId }}Status.ACTIVE;
+  }
+
+  archive(): {{ ModuleId }}Entity {
+    return this.with({ status: {{ ModuleId }}Status.ARCHIVED });
+  }
+
+  private static assertInvariants(props: {{ ModuleId }}Props): void {
+    if (!props.id) {
+      throw new Error('{{ ModuleId }}Entity: id is required');
+    }
+    if (!props.name || props.name.trim().length < 2) {
+      throw new Error('{{ ModuleId }}Entity: name must have at least 2 characters');
+    }
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+    if (!props.tenantId) {
+      throw new Error('{{ ModuleId }}Entity: {{ multi_tenancy_term }} is required');
+    }
+{%- endif %}
+  }
+}

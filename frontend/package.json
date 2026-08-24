@@ -1,0 +1,48 @@
+{
+  "name": "cordele-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "nx serve cordele-web",
+    "build": "nx build cordele-web",
+    "test": "nx run-many --target=test --all",
+    "lint": "nx run-many --target=lint --all"
+  },
+  "dependencies": {
+    "@angular/animations": "^21.0.0",
+    "@angular/cdk": "^21.0.0",
+    "@angular/common": "^21.0.0",
+    "@angular/compiler": "^21.0.0",
+    "@angular/core": "^21.0.0",
+    "@angular/forms": "^21.0.0",
+    "@angular/platform-browser": "^21.0.0",
+    "@angular/platform-browser-dynamic": "^21.0.0",
+    "@angular/router": "^21.0.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.8.0",
+    "zone.js": "~0.15.0",
+    "tailwindcss": "^4.0.0",
+    "postcss": "^8.4.0"
+  },
+  "devDependencies": {
+    "@angular/cli": "^21.0.0",
+    "@angular/compiler-cli": "^21.0.0",
+    "@nx/angular": "^22.0.0",
+    "@nx/eslint": "^22.0.0",
+    "@nx/jest": "^22.0.0",
+    "@nx/playwright": "^22.0.0",
+    "@playwright/test": "^1.60.0",
+    "@tailwindcss/postcss": "^4.0.0",
+    "nx": "^22.0.0",
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "~5.9.0"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
+  }
+}

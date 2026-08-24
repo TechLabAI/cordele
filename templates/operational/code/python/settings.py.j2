@@ -1,0 +1,75 @@
+{#-
+  settings.py -- pydantic-settings configuration for one FastAPI module (D-541).
+
+  Rendered by py-module-generator.py to
+  src/<package_name>/<module_id>/settings.py. Imported by fastapi/main.py
+  (get_settings) and by infrastructure/persistence/session.py (init_engine).
+
+  Field names mirror operational/code/yaml/application-python.yml.j2.
+-#}
+"""Runtime configuration for the {{ module_name }} module ({{ MODULE_ID }})."""
+
+from __future__ import annotations
+
+from functools import lru_cache
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    """Environment-backed settings. Instantiated once via get_settings()."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+    )
+
+    # ── Identity ──────────────────────────────────────────────────────────────
+    service_name: str = "{{ backend_service | default(module_id, true) }}"
+    environment: str = Field(default="local")
+    log_level: str = Field(default="INFO")
+
+    # ── Persistence (D-542) ───────────────────────────────────────────────────
+    database_url: str = Field(
+        default="postgresql+asyncpg://postgres:postgres@localhost:5432/{{ package_name }}",
+        description="SQLAlchemy async DSN. postgresql:// is normalized to +asyncpg.",
+    )
+    db_pool_size: int = 10
+    db_max_overflow: int = 20
+    db_echo: bool = False
+{% if has_msg_broker %}
+    # ── Messaging ─────────────────────────────────────────────────────────────
+    amqp_url: str = Field(default="amqp://guest:guest@localhost:5672/")
+    amqp_exchange: str = Field(default="{{ project_name }}.events")
+{% endif %}
+    # ── Security ──────────────────────────────────────────────────────────────
+    jwt_issuer_uri: str = Field(default="")
+    jwt_jwks_uri: str = Field(default="")
+    jwt_audience: str = Field(default="{{ project_name }}")
+{% if multi_tenancy_mode != "single" %}
+    # ── Multi-tenancy ({{ multi_tenancy_mode }}) ──────────────────────────────
+    tenant_header: str = Field(default="X-{{ multi_tenancy_term | title }}-Id")
+    tenant_claim: str = Field(default="{{ multi_tenancy_term }}_id")
+    global_schema: str = Field(default="{{ tenant_global_schema }}")
+{% endif %}
+    # ── HTTP ──────────────────────────────────────────────────────────────────
+    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+{% if has_ai %}
+    techlab_ai_url: str = Field(default="http://localhost:{{ techlab_ai_service_port }}")
+{% endif %}
+
+    @property
+    def async_database_url(self) -> str:
+        """Force the asyncpg driver -- plain postgresql:// breaks AsyncEngine."""
+        if self.database_url.startswith("postgresql://"):
+            return self.database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return self.database_url
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    """Process-wide singleton. Cache-cleared in tests via get_settings.cache_clear()."""
+    return Settings()

@@ -1,0 +1,78 @@
+{#-
+  package.json.j2 — Next.js 15 App Router workspace manifest (Thread R3).
+
+  Decisions: D-546 (Next.js 15 App Router, React 19), D-547 (Zustand for client
+  state + TanStack React Query for server state), D-548 (Tailwind CSS v4 +
+  shadcn/ui). Package manager defaults to pnpm, Node 22.
+
+  Rendered by scripts/new-project.py::_frontend_react() into
+  <target>/frontend/package.json (or frontend/react/package.json on a hybrid
+  Angular+React project, D-562).
+
+  Variables: project_name, react_version, next_version, node_version,
+  package_manager, has_ai.
+-#}
+{%- set pm = package_manager | default('pnpm', true) -%}
+{
+  "name": "{{ project_name }}-frontend",
+  "version": "0.1.0",
+  "private": true,
+{%- if pm == 'pnpm' %}
+  "packageManager": "pnpm@9.15.0",
+{%- endif %}
+  "engines": {
+    "node": ">={{ node_version | default('22', true) }}"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch",
+    "test:ci": "jest --ci --passWithNoTests --coverage",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:install": "playwright install --with-deps chromium"
+  },
+  "dependencies": {
+    "next": "^{{ next_version | default('15', true) }}.0.0",
+    "react": "^{{ react_version | default('19', true) }}.0.0",
+    "react-dom": "^{{ react_version | default('19', true) }}.0.0",
+    "zustand": "^5.0.0",
+    "@tanstack/react-query": "^5.62.0",
+    "zod": "^3.24.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.6.0",
+    "lucide-react": "^0.468.0",
+    "next-themes": "^0.4.4",
+    "@radix-ui/react-slot": "^1.1.1",
+    "@radix-ui/react-dialog": "^1.1.4",
+    "@radix-ui/react-dropdown-menu": "^2.1.4",
+    "@radix-ui/react-label": "^2.1.1",
+    "@radix-ui/react-toast": "^1.2.4"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.0",
+    "@types/node": "^{{ node_version | default('22', true) }}.0.0",
+    "@types/react": "^{{ react_version | default('19', true) }}.0.0",
+    "@types/react-dom": "^{{ react_version | default('19', true) }}.0.0",
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/postcss": "^4.0.0",
+    "postcss": "^8.5.0",
+    "tailwindcss-animate": "^1.0.7",
+    "eslint": "^9.17.0",
+    "eslint-config-next": "^{{ next_version | default('15', true) }}.0.0",
+    "@tanstack/react-query-devtools": "^5.62.0",
+    "@playwright/test": "^1.60.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "@types/jest": "^29.5.14",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/user-event": "^14.5.2",
+    "msw": "^2.7.0"
+  }
+}

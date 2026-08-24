@@ -1,0 +1,15 @@
+{#-
+  feign-client-stub.java.j2 — Feign client stub for cross-service calls.
+
+  Variables: pkg_full, name (FQN suffix), service (Feign service name), url_prop (Spring property)
+-#}
+package {{ pkg_full }}.infrastructure.clients;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.*;
+
+@FeignClient(name = "{{ service }}", url = "${ {{- url_prop -}} }")
+public interface {{ name }} {
+
+    // TODO[SCAFFOLD]: add methods from techlab-ai-integration.md
+}

@@ -1,0 +1,66 @@
+{#-
+  react/lib/shared/ui/form-field.tsx.j2 - label + hint + error wrapper.
+
+  Rendered by: /new-project P5 (_frontend_react) →
+    frontend/src/lib/shared/ui/form-field.tsx
+
+  Variables used: (none - fully generic)
+
+  Accessibility contract: the control passed as `children` must carry the `id`
+  given in `htmlFor`, so the label, the hint and the error message are wired to
+  it via `aria-describedby` / `aria-invalid`.
+-#}
+'use client';
+
+import { cn } from '@/lib/utils';
+import { Label } from '@/components/ui/label';
+
+export interface FormFieldProps {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+  hint?: string;
+  error?: string;
+  required?: boolean;
+  className?: string;
+}
+
+export function FormField({
+  label,
+  htmlFor,
+  children,
+  hint,
+  error,
+  required = false,
+  className,
+}: FormFieldProps) {
+  const hintId = hint ? `${htmlFor}-hint` : undefined;
+  const errorId = error ? `${htmlFor}-error` : undefined;
+
+  return (
+    <div className={cn('space-y-1.5', className)}>
+      <Label htmlFor={htmlFor}>
+        {label}
+        {required ? (
+          <span aria-hidden="true" className="ml-0.5 text-destructive">
+            *
+          </span>
+        ) : null}
+      </Label>
+
+      <div aria-describedby={cn(hintId, errorId) || undefined}>{children}</div>
+
+      {hint && !error ? (
+        <p id={hintId} className="text-xs text-muted-foreground">
+          {hint}
+        </p>
+      ) : null}
+
+      {error ? (
+        <p id={errorId} role="alert" className="text-xs text-destructive">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}

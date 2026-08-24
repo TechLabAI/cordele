@@ -1,0 +1,11 @@
+{
+  "//": "Tailwind v4 (CSS-first) PostCSS pipeline. D-381; nome de ficheiro por D-588.",
+  "//1": "Rendered by /new-project P5 (frontend-skeleton) -> frontend/.postcssrc.json.",
+  "//2": "O builder @angular/build (Angular >=17) descobre APENAS .postcssrc.json.",
+  "//3": "Um postcss.config.js e ignorado em silencio: o Tailwind nao corre, @theme e",
+  "//4": "@tailwind saem crus no bundle e a app renderiza sem CSS com build VERDE (D-588).",
+  "//5": "Nao ha tailwind.config.js -- os tokens vivem no @theme de theme.css.",
+  "plugins": {
+    "@tailwindcss/postcss": {}
+  }
+}

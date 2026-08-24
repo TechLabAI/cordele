@@ -1,0 +1,64 @@
+{#-
+  access-context-holder.java.j2 — ThreadLocal holder for the current request's
+  AccessDecision (permissions + dataScope).
+
+  Variables: pkg_full
+
+  Mirrors the existing TenantContextHolder (templates/operational/code/java/
+  tenant-context-holder.java.j2) but for access-control state rather than
+  tenant identity. Populated by the security filter chain on every request.
+
+  D-059 (Tier 2.1 Phase 2).
+-#}
+package {{ pkg_full }}.shared.security;
+
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Holds the access state of the current request (permissions + data-scope).
+ *
+ * <p>Bound by the security filter chain after {@code JwtAuthenticationFilter}
+ * has produced an {@code AccessDecision}; cleared in a {@code finally} block
+ * to avoid leaking across requests reused by the servlet container.
+ */
+public final class AccessContextHolder {
+
+    private static final ThreadLocal<List<String>> PERMISSIONS = new ThreadLocal<>();
+    private static final ThreadLocal<DataScope> DATA_SCOPE = new ThreadLocal<>();
+
+    private AccessContextHolder() {
+    }
+
+    public static void bind(List<String> permissions, DataScope dataScope) {
+        PERMISSIONS.set(permissions == null ? Collections.emptyList() : List.copyOf(permissions));
+        DATA_SCOPE.set(dataScope == null ? DataScope.unrestricted() : dataScope);
+    }
+
+    public static void clear() {
+        PERMISSIONS.remove();
+        DATA_SCOPE.remove();
+    }
+
+    public static List<String> permissions() {
+        List<String> p = PERMISSIONS.get();
+        return p == null ? Collections.emptyList() : p;
+    }
+
+    public static DataScope dataScope() {
+        DataScope ds = DATA_SCOPE.get();
+        return ds == null ? DataScope.unrestricted() : ds;
+    }
+
+    public static DataScope requireDataScope() {
+        return dataScope();
+    }
+
+    public static boolean scopeIncludes(String id, String tipo) {
+        DataScope ds = dataScope();
+        if (ds.isUnrestricted()) {
+            return true;
+        }
+        return tipo.equals(ds.tipo()) && ds.valores().contains(id);
+    }
+}

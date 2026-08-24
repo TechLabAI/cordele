@@ -1,0 +1,13 @@
+{#- eg-repository.java.j2 — be-entity-generator Spring Data repository.
+    Vars: pkg, cls, list_import, methods_block. Pure substitution (D-324). -#}
+package {{ pkg }}.infrastructure.persistence.repository;
+
+import {{ pkg }}.infrastructure.persistence.entity.{{ cls }}Entity;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+{{ list_import }}import java.util.UUID;
+
+@Repository
+public interface {{ cls }}Repository extends JpaRepository<{{ cls }}Entity, UUID> {
+{{ methods_block }}
+}

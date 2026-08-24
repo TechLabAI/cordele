@@ -1,0 +1,64 @@
+{#-
+  mdc-context-restorer.java.j2 — extracted from gen_mdc_context_restorer() in be-module-generator.py.
+  Variables: pkg_full (events_broker auto-injected by render_code_template).
+  D-490: conditional on events_broker — Kafka uses ConsumerRecord headers; JMS uses Message properties.
+-#}
+package {{ pkg_full }}.infrastructure.messaging;
+
+import {{ pkg_full }}.infrastructure.security.TenantContextHolder;
+{% if events_broker == "kafka" -%}
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.Header;
+{% else -%}
+import jakarta.jms.JMSException;
+import jakarta.jms.Message;
+{% endif -%}
+import org.slf4j.MDC;
+
+/**
+ * Restores MDC (correlationId) and TenantContextHolder (tenantId) on the consumer
+ * thread from message headers. Async listeners MUST call restore() at start
+ * and clear() in finally — RULE-07 (CLAUDE.md).
+{% if events_broker == "kafka" %}
+ * Kafka flavour: reads from ConsumerRecord headers.
+{% else %}
+ * JMS/Artemis flavour: reads from JMS message properties.
+{% endif %}
+ */
+public final class MdcContextRestorer {
+
+    public static final String CORRELATION_HEADER = "correlationId";
+    public static final String TENANT_HEADER = "tenantId";
+    public static final String MDC_CORRELATION_KEY = "correlationId";
+
+    private MdcContextRestorer() {}
+
+{% if events_broker == "kafka" %}
+    public static void restore(ConsumerRecord<?, ?> record) {
+        Header corrHeader = record.headers().lastHeader(CORRELATION_HEADER);
+        if (corrHeader != null) {
+            MDC.put(MDC_CORRELATION_KEY, new String(corrHeader.value()));
+        }
+        Header tenantHeader = record.headers().lastHeader(TENANT_HEADER);
+        if (tenantHeader != null) {
+            TenantContextHolder.set(new String(tenantHeader.value()));
+        }
+    }
+{% else %}
+    public static void restore(Message message) throws JMSException {
+        String correlationId = message.getStringProperty(CORRELATION_HEADER);
+        if (correlationId != null && !correlationId.isBlank()) {
+            MDC.put(MDC_CORRELATION_KEY, correlationId);
+        }
+        String tenantId = message.getStringProperty(TENANT_HEADER);
+        if (tenantId != null && !tenantId.isBlank()) {
+            TenantContextHolder.set(tenantId);
+        }
+    }
+{% endif %}
+
+    public static void clear() {
+        MDC.remove(MDC_CORRELATION_KEY);
+        TenantContextHolder.clear();
+    }
+}

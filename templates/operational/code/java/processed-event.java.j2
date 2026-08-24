@@ -1,0 +1,66 @@
+{#-
+  processed-event.java.j2 — JPA entity for the idempotency tracking table.
+
+  Variables:
+    pkg_full
+    table_name (default: processed_events from events.idempotency.table)
+    key_field  (default: event_id from events.idempotency.key_field)
+
+  D-070 (Tier 2.1 Phase 2 — events). Used by Consumers to skip already-
+  processed events on JMS redeliveries.
+-#}
+package {{ pkg_full }}.infrastructure.persistence.entity;
+
+import jakarta.persistence.*;
+
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+/**
+ * Idempotency tracking row — one per processed event id. Generated from
+ * events.idempotency (D-065). Consumers persist this row in the same
+ * transaction as their side effects.
+ *
+ * <pre>
+ *   if (processedEventRepo.existsById(envelope.eventId())) {
+ *       return;  // already processed — JMS redelivery, no-op
+ *   }
+ *   // ... domain side effects ...
+ *   processedEventRepo.save(new ProcessedEvent(envelope.eventId(), envelope.eventType()));
+ * </pre>
+ */
+@Entity
+@Table(name = "{{ table_name }}")
+public class ProcessedEvent {
+
+    @Id
+    @Column(name = "{{ key_field }}", nullable = false, updatable = false)
+    private UUID {{ key_field | replace('_', '') }};
+
+    @Column(name = "event_type", nullable = false, length = 100)
+    private String eventType;
+
+    @Column(name = "processed_at", nullable = false)
+    private OffsetDateTime processedAt;
+
+    public ProcessedEvent() {
+    }
+
+    public ProcessedEvent(UUID id, String eventType) {
+        this.{{ key_field | replace('_', '') }} = id;
+        this.eventType = eventType;
+        this.processedAt = OffsetDateTime.now();
+    }
+
+    public UUID id() {
+        return {{ key_field | replace('_', '') }};
+    }
+
+    public String eventType() {
+        return eventType;
+    }
+
+    public OffsetDateTime processedAt() {
+        return processedAt;
+    }
+}

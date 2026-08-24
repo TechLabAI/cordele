@@ -1,0 +1,110 @@
+{#-
+  react/lib/<module>/hooks/use-<module>.ts.j2 - React Query data hooks.
+
+  Rendered by: scripts/fe-react-module-generator.py →
+    frontend/src/lib/{module_id}/hooks/use-{module_id}.ts
+
+  Variables used:
+    - module_id, ModuleId, MODULE_ID
+    - multi_tenancy_mode
+
+  D-547: server state = React Query. Query keys are built by a single factory so
+  invalidation after a mutation can never miss a cached list.
+-#}
+{%- set Mod = ModuleId if ModuleId is defined and ModuleId else (module_id | pascal) -%}
+{%- set mod = Mod[0] | lower ~ Mod[1:] -%}
+'use client';
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { useAuth } from '@/lib/shared/auth/use-auth';
+import { {{ mod }}Api, type RequestContext } from '../api/{{ module_id }}-api';
+import { use{{ Mod }}Store, select{{ Mod }}Query } from '../store/{{ module_id }}-store';
+import type {
+  {{ Mod }},
+  {{ Mod }}Id,
+  {{ Mod }}Input,
+  {{ Mod }}Page,
+  {{ Mod }}Query,
+} from '../types/{{ module_id }}.types';
+
+export const {{ mod }}Keys = {
+  all: ['{{ module_id }}'] as const,
+  lists: () => [...{{ mod }}Keys.all, 'list'] as const,
+  list: (query: Partial<{{ Mod }}Query>) => [...{{ mod }}Keys.lists(), query] as const,
+  details: () => [...{{ mod }}Keys.all, 'detail'] as const,
+  detail: (id: {{ Mod }}Id) => [...{{ mod }}Keys.details(), id] as const,
+};
+
+/** Request context assembled from the current session (token{% if multi_tenancy_mode != 'single' %} + tenant{% endif %}). */
+function useRequestContext(): RequestContext {
+  const { accessToken{% if multi_tenancy_mode != 'single' %}, user{% endif %} } = useAuth();
+{%- if multi_tenancy_mode != 'single' %}
+  return { accessToken, tenantId: user?.tenant ?? null };
+{%- else %}
+  return { accessToken };
+{%- endif %}
+}
+
+/** Paginated list driven by the module's Zustand filter slice. */
+export function use{{ Mod }}List(override?: Partial<{{ Mod }}Query>) {
+  const ctx = useRequestContext();
+  const storeQuery = use{{ Mod }}Store(select{{ Mod }}Query);
+  const query = { ...storeQuery, ...override };
+
+  return useQuery<{{ Mod }}Page>({
+    queryKey: {{ mod }}Keys.list(query),
+    queryFn: ({ signal }) => {{ mod }}Api.list(query, { ...ctx, signal }),
+    placeholderData: (previous) => previous,
+  });
+}
+
+/** Single record. Disabled until an id is available. */
+export function use{{ Mod }}(id: {{ Mod }}Id | null | undefined) {
+  const ctx = useRequestContext();
+
+  return useQuery<{{ Mod }}>({
+    queryKey: {{ mod }}Keys.detail(id as {{ Mod }}Id),
+    queryFn: ({ signal }) => {{ mod }}Api.getById(id as {{ Mod }}Id, { ...ctx, signal }),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCreate{{ Mod }}() {
+  const ctx = useRequestContext();
+  const queryClient = useQueryClient();
+
+  return useMutation<{{ Mod }}, Error, {{ Mod }}Input>({
+    mutationFn: (input) => {{ mod }}Api.create(input, ctx),
+    onSuccess: (created) => {
+      queryClient.setQueryData({{ mod }}Keys.detail(created.id), created);
+      void queryClient.invalidateQueries({ queryKey: {{ mod }}Keys.lists() });
+    },
+  });
+}
+
+export function useUpdate{{ Mod }}() {
+  const ctx = useRequestContext();
+  const queryClient = useQueryClient();
+
+  return useMutation<{{ Mod }}, Error, { id: {{ Mod }}Id; input: {{ Mod }}Input }>({
+    mutationFn: ({ id, input }) => {{ mod }}Api.update(id, input, ctx),
+    onSuccess: (updated) => {
+      queryClient.setQueryData({{ mod }}Keys.detail(updated.id), updated);
+      void queryClient.invalidateQueries({ queryKey: {{ mod }}Keys.lists() });
+    },
+  });
+}
+
+export function useDelete{{ Mod }}() {
+  const ctx = useRequestContext();
+  const queryClient = useQueryClient();
+
+  return useMutation<void, Error, {{ Mod }}Id>({
+    mutationFn: (id) => {{ mod }}Api.remove(id, ctx),
+    onSuccess: (_void, id) => {
+      queryClient.removeQueries({ queryKey: {{ mod }}Keys.detail(id) });
+      void queryClient.invalidateQueries({ queryKey: {{ mod }}Keys.lists() });
+    },
+  });
+}

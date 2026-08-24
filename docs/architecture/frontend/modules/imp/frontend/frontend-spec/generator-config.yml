@@ -1,0 +1,102 @@
+# generator-config.yml — IMP (Importação) — Cordelê frontend
+# Consumed by the promote/scaffold phase (prototype-first, D-493): the promoted prototype screens
+# UploadComponent (T03) and RevisaoDeEstruturaComponent (T04) are wired to the facades below.
+# Schema reference: libs/internal-nx-plugin/src/generator-config.schema.json (canonical field set).
+# Project conventions: scope @cordele, Nx module entry as library @cordele/imp (ADR-006),
+# signals-first, no NgRx.
+
+service: imp
+issue_prefix: IMP
+shell_route: /imp
+npm_scope: "@cordele"
+app_name: cordele-web
+module_entry: "@cordele/imp"          # libs/imp/shell-entry (importPath), ADR-006
+prototype_first: true                  # D-493 — promote prototype screens, do not re-invent UI
+
+features:
+  - name: upload
+    routes:
+      - /imp/upload
+      - /imp/projetos/:projetoId/importar
+    components:
+      - UploadComponent                # promoted from prototype screens/upload
+    facade: ImportFacade
+    prototype_source: apps/cordele-web/src/app/screens/upload/upload.component.ts
+  - name: review
+    routes:
+      - /imp/manuscritos/:manuscritoId/revisao
+    components:
+      - RevisaoDeEstruturaComponent    # promoted from prototype screens/revisao-de-estrutura
+    facade: ReviewFacade
+    prototype_source: apps/cordele-web/src/app/screens/revisao-de-estrutura/revisao-de-estrutura.component.ts
+
+data_access:
+  - resource: Manuscrito
+    base_path: /api/imp/manuscripts
+    operations: [create, get]          # create = POST (synchronous parse, ADR-IMP-001); get = reload/deep-link
+    upload: true                       # multipart/form-data (file + projetoTitulo | projetoId), synchronous 201
+    poll: false                        # NO parseJobId, NO polling (api-contract §0 D-A)
+  - resource: ContentTree
+    base_path: /api/imp/manuscripts/{manuscritoId}/estrutura
+    operations: [get]
+  - resource: ManuscritoHistory
+    base_path: /api/imp/projetos/{projetoId}/manuscritos
+    operations: [list]
+
+backend_contract: ../../../../backend/services/imp-service/contracts/api-contract.md
+
+state_management: signals
+
+guards:
+  - authGuard
+  - empresaGuard
+  - accessGuard('imp.import')
+  - accessGuard('imp.review')
+  - impProjetoGuard
+
+permissions:
+  - imp.import
+  - imp.review
+  - imp.confirm
+
+feature_flags:
+  - name: imp.reimport
+    default: on
+  - name: imp.ignoreFragment
+    default: on
+  - name: imp.existingProject
+    default: on
+
+ui_libs_used:
+  - "@cordele/shared/ui-layout"
+  - "@cordele/shared/ui-feedback"
+  - "@cordele/shared/ui-theme"
+  - "@cordele/shared/access-http-base"
+  - "@cordele/shared/access-decision"
+  - "@cordele/shared/empresa-context"
+  - "@cordele/shared/auth-session"
+
+libs:
+  - path: libs/imp/shell-entry
+    tags: [scope:imp, type:app]
+  - path: libs/imp/access
+    tags: [scope:imp, type:domain]
+  - path: libs/imp/data-access
+    tags: [scope:imp, type:data-access]
+  - path: libs/imp/feature-upload
+    tags: [scope:imp, type:feature]
+  - path: libs/imp/feature-review
+    tags: [scope:imp, type:feature]
+  - path: libs/imp/integration
+    tags: [scope:imp, type:domain]
+  - path: libs/imp/navigation
+    tags: [scope:imp, type:domain]
+  - path: libs/imp/ui
+    tags: [scope:imp, type:ui]
+
+extra_dependencies: []
+
+e2e:
+  runner: playwright
+  project: apps/imp-e2e
+  features_path: docs/architecture/frontend/modules/imp/frontend/e2e/

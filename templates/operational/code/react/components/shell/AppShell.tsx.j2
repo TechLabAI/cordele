@@ -1,0 +1,51 @@
+{#-
+  react/components/shell/AppShell.tsx.j2 - application chrome.
+
+  Rendered by: /new-project P5 (_frontend_react) →
+    frontend/src/components/shell/AppShell.tsx
+
+  Variables used:
+    - project_display_name
+    - has_ai
+
+  D-546: mounted from the root layout, so it must skip its own chrome on the
+  `(auth)` routes - those render bare (login, password reset).
+  D-548: layout built with Tailwind utilities; `cn()` merges conditional classes.
+-#}
+'use client';
+
+import { usePathname } from 'next/navigation';
+
+import { Sidebar } from '@/components/shell/Sidebar';
+import { Topbar } from '@/components/shell/Topbar';
+{%- if has_ai %}
+import { AiPanel } from '@/components/shell/AiPanel';
+{%- endif %}
+import { cn } from '@/lib/utils';
+
+/** Routes rendered without the application chrome. */
+const BARE_ROUTES = ['/login', '/forgot-password', '/reset-password'];
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isBare = BARE_ROUTES.some((route) => pathname?.startsWith(route));
+
+  if (isBare) {
+    return <>{children}</>;
+  }
+
+  return (
+    <div className={cn('flex min-h-screen w-full bg-background')}>
+      <Sidebar />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Topbar />
+        <main id="main-content" className="min-w-0 flex-1 overflow-y-auto p-6">
+          {children}
+        </main>
+      </div>
+{%- if has_ai %}
+      <AiPanel />
+{%- endif %}
+    </div>
+  );
+}

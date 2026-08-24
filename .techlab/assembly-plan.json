@@ -1,0 +1,2846 @@
+{
+  "plan_id": "plan_20260824130648_dcac4e94",
+  "intent_id": "intent_20260824130641_9edd0947",
+  "project_id": "cordele",
+  "created_at": "2026-08-24T13:06:48.719405+00:00",
+  "resolver_version": "1.0",
+  "selected_assets": [
+    {
+      "asset_id": "ai-ops-report",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "arch-conformance",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "audit-log",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "autopilot-state",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "backlog-gen",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "be-bdd-generator",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "be-check-orphans",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "be-file-guard",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "be-file-guard-hook",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "be-gates-replay",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "be-infra-generator",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "be-migrate-arch-deps",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "be-migration-generator",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "be-module-generator",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "be-pre-commit-check",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "be-scaffold",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "be-smoke-scaffold",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "be-spec-drift",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "be-spec-to-bdd",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "be-validate-ears",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "be_context_helper",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "checklist",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "cli_utils",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "context",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "doc-scaffold",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "fe-ears-coverage",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "fe-module-generator",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "gates-run",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "install-hooks",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "issue_state",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "journal",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "knowledge-index",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "lockfile",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "master-plan",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "memory",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "pipeline-guard",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "plan-state-extractor",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "pole-position-split",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "preflight",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-be-architect-backlog",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-be-architect-discovery",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-be-architect-drift-check",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-be-architect-scaffold",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-be-architect-specs",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-be-architect-specs-validate",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-be-architect-upgrade",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-be-architect-vision",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-be-architecture-autopilot",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-be-autopilot",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-be-implement",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-be-planner",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-be-spec-drift",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-be-validator",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-fe-architect-backlog",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-fe-architect-scaffold",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-fe-architect-specs",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-fe-architect-specs-validate",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-fe-architect-vision",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-fe-architecture-autopilot",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-fe-autopilot",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-fe-feature-architect-backlog",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-fe-feature-architect-discover",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-fe-feature-architect-scaffold",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-fe-feature-architect-spec-delta",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-fe-implement",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-fe-planner",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-fe-validator",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-gr-architect-admin-module",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-gr-architect-adoption",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-gr-architect-content",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-gr-architect-discovery",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-gr-architect-funnel",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-gr-architect-metrics",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "project-gr-autopilot",
+      "asset_type": "command",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "render-compliance-brief",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "sbom-generator",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "spec-delta-apply",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "spec-delta-diff",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-adr-adr-001-hexagonal-architecture.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-adr-adr-001-hexagonal-node.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-adr-adr-001-hexagonal-python.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-adr-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-issues-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-plans-architecture-master-plan.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-plans-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-services-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-standards-api-mock-convention.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-standards-ears-notation.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-standards-hexagonal-patterns.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-standards-java-conventions.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-standards-node-conventions.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-standards-node-hexagonal-patterns.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-standards-node-testing-conventions.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-standards-platform-patterns.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-standards-python-conventions.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-standards-python-hexagonal-patterns.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-standards-python-testing-conventions.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-standards-service-spec-authoring.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-standards-services-catalog.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-standards-snippets.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-backend-standards-testing-conventions.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-constitution.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-adr-adr-006-module-entry-as-library.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-adr-adr-006-react-app-shell.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-adr-adr-007-state-management.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-adr-adr-008-styling-strategy.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-adr-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-plans-architecture-master-plan.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-standards-access-layer-contracts.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-standards-asset-driven-ui.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-standards-bootstrap-flow.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-standards-data-model-driven-ui.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-standards-design-system-tokens.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-standards-ears-notation.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-standards-feature-architect-workflow.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-standards-module-pattern.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-standards-nx-boundaries.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-standards-react-access-layer-contracts.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-standards-react-conventions.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-standards-react-module-pattern.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-standards-react-nx-boundaries.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-frontend-standards-react-testing-conventions.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-blueprint-core.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-contratos-error-model.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-contratos-event-catalog.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-contratos-openapi-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-contratos-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-distributed-architecture.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-etl-legado-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-etl-legado-status-por-entidade.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-modelo-dados-empresa.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-modelo-dados-global-schema.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-modelo-dados-persistence-conventions.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-modelo-dados-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-modelo-dados-relacionamentos.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-multi-empresa.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-rbac-approval-workflow.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-rbac-data-scope.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-rbac-enforcement.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-rbac-modelo.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-rbac-papeis.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-rbac-permissoes.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-rbac-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-rbac-session-policy.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-architecture-shared-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-knowledge-_includes-artifact-identity.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-knowledge-_meta-template-contract.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-knowledge-charter-operating-rules.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-knowledge-charter-purpose.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-knowledge-charter-structure.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-knowledge-knowledge-note.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-knowledge-playbook.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-agents-fe-implementer-agent.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-agents-fe-planner-agent.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-agents-fe-validator-agent.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-agents-implementer-agent.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-agents-planner-agent.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-agents-validator-agent.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-be-architect-backlog.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-be-architect-discovery.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-be-architect-drift-check.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-be-architect-scaffold.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-be-architect-specs-validate.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-be-architect-specs.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-be-architect-upgrade.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-be-architect-vision.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-be-architecture-autopilot.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-be-autopilot.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-be-implement.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-be-planner.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-be-spec-drift.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-be-validator.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-fe-architect-backlog.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-fe-architect-scaffold.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-fe-architect-specs-validate.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-fe-architect-specs.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-fe-architect-vision.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-fe-architecture-autopilot.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-fe-autopilot.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-fe-feature-architect-backlog.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-fe-feature-architect-discover.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-fe-feature-architect-scaffold.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-fe-feature-architect-spec-delta.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-fe-implement.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-fe-planner.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-fe-validator.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-gr-architect-admin-module.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-gr-architect-adoption.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-gr-architect-content.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-gr-architect-discovery.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-gr-architect-funnel.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-gr-architect-metrics.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-claude-folder-commands-gr-autopilot.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-checklist-production-readiness.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-docker-dockerfile",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-markdown-service-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-dockerfile-node",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nest-cli.json",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-app.module.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-domain----module_id---.domain-service.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-domain----module_id---.entity.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-domain----module_id---.repository.interface.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-infrastructure-auth-auth.module.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-infrastructure-auth-jwt-auth.guard.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-infrastructure-auth-jwt.strategy.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-infrastructure-health-health.controller.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-infrastructure-health-health.module.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-infrastructure-messaging----module_id---.consumer.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-infrastructure-messaging----module_id---.producer.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-infrastructure-messaging-messaging.module.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-infrastructure-persistence----module_id---.mapper.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-infrastructure-persistence-database.module.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-infrastructure-persistence-persistence.module.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-infrastructure-persistence-prisma----module_id---.repository.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-infrastructure-persistence-prisma.service.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-main.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-modules----module_id-------module_id---.controller.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-modules----module_id-------module_id---.module.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-modules----module_id-------module_id---.service.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-modules----module_id----dto-create----module_id---.dto.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-src-modules----module_id----dto-update----module_id---.dto.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-test----module_id---.e2e-spec.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-nestjs-test-jest-e2e.json",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-package.json",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-prisma-schema.prisma",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-tsconfig.build.json",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-node-tsconfig.json",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-alembic-env.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-alembic-script.py.mako",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-alembic.ini",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-application-ports-in_.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-application-ports-out_.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-application-service.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-dockerfile-python",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-domain-model.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-domain-service.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-env.example",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-fastapi-dependencies.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-fastapi-main.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-fastapi-router.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-fastapi-schemas.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-infrastructure-messaging-consumer.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-infrastructure-messaging-producer.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-infrastructure-persistence-model.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-infrastructure-persistence-repository.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-infrastructure-persistence-session.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-infrastructure-security-jwt_middleware.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-pyproject.toml",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-settings.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-tests-bdd-conftest.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-tests-bdd-steps-common_steps.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-tests-conftest.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-python-tests-integration-base_test.py",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-app--auth--login-page.tsx",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-app--module--page.tsx",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-app-layout.tsx",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-app-page.tsx",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-components-providers.tsx",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-components-shell-aipanel.tsx",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-components-shell-appshell.tsx",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-components-shell-sidebar.tsx",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-components-shell-topbar.tsx",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-components.json",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-dockerfile-react",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-e2e-fixtures-auth.fixture.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-e2e-playwright.config.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-lib----module_id----api----module_id----api.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-lib----module_id----components----module_id----detail.tsx",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-lib----module_id----components----module_id----list.tsx",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-lib----module_id----hooks-use----module_id---.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-lib----module_id----index.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-lib----module_id----readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-lib----module_id----store----module_id----store.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-lib----module_id----types----module_id---.types.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-lib-shared-auth-auth-context.tsx",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-lib-shared-auth-use-auth.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-lib-shared-ui-data-table.tsx",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-lib-shared-ui-form-field.tsx",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-lib-shared-ui-page-header.tsx",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-lib-utils.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-next.config.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-package.json",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-tailwind.config.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-react-tsconfig.json",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-spec-drift-report.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-typescript-app.routes.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-typescript-feature-lib-index.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-typescript-feature-lib-lib.routes.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-typescript-shell-ai-panel.component.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-typescript-shell-app-shell.component.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-typescript-shell-sidebar.component.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-typescript-shell-topbar.component.ts",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched stack: ['angular']",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-yaml-application-default.yml",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-yaml-application-gateway.yml",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-yaml-application-local.yml",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-yaml-application-migrations.yml",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-yaml-application-python.yml",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-yaml-application-registry.yml",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-yaml-application-standard.yml",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-yaml-application-test.yml",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-yaml-docker-compose.yml",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-yaml-github-actions-node.yml",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-yaml-github-actions-python.yml",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-code-yaml-github-actions-react.yml",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-compliance-brief-compliance-brief.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-_includes-funnel-stage.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-_includes-metrics-table.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-admin-module-service-spec.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-docs-01-growth-discovery.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-docs-02-customer-profile.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-docs-03-problem-solution-fit.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-docs-04-funnel-map.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-docs-05-value-ladder.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-docs-06-offer-architecture.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-docs-07-integration-entry-strategy.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-docs-08-adoption-journey.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-docs-09-rag-transition-strategy.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-docs-10-admin-growth-module.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-docs-11-metrics-plan.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-docs-12-expansion-plan.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-docs-13-objections-faq.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-docs-14-landing-page-copy.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-growth-docs-15-email-sequence.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-infra-.postcssrc.json",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-infra-compose-elastic.yml",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-infra-fonts.html",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-infra-frontend-nx.json",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-infra-frontend-package.json",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-infra-kafka-compose-kafka.yml",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-infra-kafka-connectors-es-sink.json",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-infra-kafka-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-infra-logstash-config-logstash.yml",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-infra-logstash-pipeline-pipeline.conf",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-integrations-elastic-stack-data-contract.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-integrations-elastic-stack-design-es-troubleshooting-playbook.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-integrations-elastic-stack-design-index-design.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-integrations-elastic-stack-design-kibana-dashboard-spec.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-integrations-elastic-stack-design-query-capability-design.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-integrations-elastic-stack-design-rag-workflow-design.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-integrations-elastic-stack-docker-compose-elastic.yml",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-integrations-elastic-stack-integration-contract.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-integrations-elastic-stack-kibana-dashboards-spec.json",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-integrations-elastic-stack-kibana-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-integrations-techlab-ai-integration-contract.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-issues-issue-template.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-plans-plan-template.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-operational-root-claude.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-01-architectural-vision.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-02-architecture-blueprint.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-03-initial-domain-framing.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-04-backend-architecture-direction-node.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-04-backend-architecture-direction-python.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-04-backend-architecture-direction.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-05-persistence-model.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-06-risks-gaps-assumptions.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-_brief.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-adr-adr-template.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-adr-readme.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-contracts-api-contract.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-contracts-data-model.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-contracts-event-contracts.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-contracts-integration-contracts.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-contracts-techlab-ai-integration.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-events-event-catalog.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-service-spec.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "tpl-sdd-service-spec-setup-local.md",
+      "asset_type": "template",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "validator-decide",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    },
+    {
+      "asset_id": "validator-score",
+      "asset_type": "script",
+      "version": "1.0",
+      "reason": "matched by query",
+      "source": "local"
+    }
+  ],
+  "rejected_assets": [
+    {
+      "asset_id": "add-growth",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "arch_decisions",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "asset-bootstrap",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "asset-indexer",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "asset-ranker",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "asset_resolution",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "be-arch-bump",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "be-arch-migration",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "be-architect-backlog",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "be-architect-discovery",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "be-architect-drift-check",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "be-architect-drift-check-script",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "be-architect-impact",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "be-architect-scaffold",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "be-architect-specs",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "be-architect-upgrade",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "be-architect-upgrade-script",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "be-architect-vision",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "be-architecture-autopilot",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "be-discover-scan",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "code_inventory",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "command-registry",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "discovery",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "fe-architect-backlog",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "fe-architect-scaffold",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "fe-architect-specs",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "fe-architect-specs-validate",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "fe-architect-vision",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "fe-architecture-autopilot",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "fe-discover-scan",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "fe-feature-architect-backlog",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "fe-feature-architect-discover",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "fe-feature-architect-scaffold",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "fe-feature-architect-spec-delta",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "gate-f4-measure",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "gate-f5-measure",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "gate-f7-measure",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "gate-f8-verify",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "generator-config-gen",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "gr-architect-admin-module",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "gr-architect-adoption",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "gr-architect-content",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "gr-architect-discovery",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "gr-architect-funnel",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "gr-architect-metrics",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "gr-autopilot",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "growth-generator",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "impact_analysis",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "ingest_discovery",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "new-project",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "new-project-script",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "new-project-template",
+      "reason_rejected": "sensitive asset excluded from non-internal assembly"
+    },
+    {
+      "asset_id": "next-phase",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "promotion-review",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "render",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "sync-architecture",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "sync-prototype",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "sync-techlab-ai",
+      "reason_rejected": "export_policy=never_export"
+    },
+    {
+      "asset_id": "techlab",
+      "reason_rejected": "export_policy=never_export"
+    }
+  ],
+  "warnings": [],
+  "status": "draft"
+}

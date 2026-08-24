@@ -1,0 +1,48 @@
+{#-
+  app.module.ts.j2 — root module (D-544).
+
+  Variables: project_name, modules, has_msg_broker, has_ai, multi_tenancy_mode
+-#}
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+
+import { DatabaseModule } from './infrastructure/persistence/database.module';
+import { AuthModule } from './infrastructure/auth/auth.module';
+import { HealthModule } from './infrastructure/health/health.module';
+{%- if has_msg_broker %}
+import { MessagingModule } from './infrastructure/messaging/messaging.module';
+{%- endif %}
+{%- for m in modules %}
+import { {{ m.prefix | lower | capitalize }}Module } from './modules/{{ m.prefix | lower }}/{{ m.prefix | lower }}.module';
+{%- endfor %}
+
+/**
+ * Root composition module for {{ project_name }}.
+ *
+ * Feature modules map one-to-one to bounded contexts; they must never import
+ * each other's providers directly — cross-context communication goes through
+ * published contracts (HTTP or the message broker).
+ */
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      cache: true,
+      envFilePath: ['.env.local', '.env'],
+    }),
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
+    HealthModule,
+    DatabaseModule,
+    AuthModule,
+{%- if has_msg_broker %}
+    MessagingModule,
+{%- endif %}
+{%- for m in modules %}
+    {{ m.prefix | lower | capitalize }}Module,
+{%- endfor %}
+  ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+})
+export class AppModule {}

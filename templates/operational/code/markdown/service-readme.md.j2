@@ -1,0 +1,50 @@
+{#-
+  service-readme.md.j2 — README per backend service.
+
+  Variables (passed):
+    - meta: ToolMeta
+    - tool_name: derived from meta.docs_dir.name
+    - spec_rel: relative path to service spec
+  Variables (auto-injected): migrations_service
+-#}
+# {{ meta.service }}
+
+{{ meta.description }}
+
+## Stack
+
+- Java 21 (eclipse-temurin:21)
+- Spring Boot 3.5.11 + Gradle 8.x
+- PostgreSQL 15+ (schema-per-tenant: `t_<tenantId>`, migrations em {{ migrations_service }})
+- ActiveMQ Artemis
+- Spring Cloud {{ meta.issue_prefix }} (Eureka + OpenFeign + Resilience4j)
+
+## Como buildar
+
+```bash
+./gradlew :{{ meta.service }}:build
+./gradlew :{{ meta.service }}:architectureCheck  # bloqueante — rodar antes de commit
+```
+
+## Como testar
+
+```bash
+./gradlew :{{ meta.service }}:test              # unitários (sem Docker)
+./gradlew :{{ meta.service }}:integrationTest   # integração (requer Docker)
+```
+
+## Como rodar localmente
+
+```bash
+docker compose up -d
+./gradlew :{{ meta.service }}:bootRun --args='--spring.profiles.active=local'
+```
+
+Disponível em: `http://localhost:{{ meta.port }}`
+
+## Referências
+
+- [Setup Local](../../docs/architecture/tools/{{ tool_name }}/setup-local.md)
+- [Service Spec](../../{{ spec_rel }})
+- [ADRs](../../docs/architecture/tools/{{ tool_name }}/adr/README.md)
+- [CLAUDE.md](../../CLAUDE.md)

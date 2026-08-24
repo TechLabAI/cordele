@@ -1,0 +1,56 @@
+{#-
+  application-python.yml.j2 - runtime configuration for a FastAPI service (D-541).
+
+  Consumed by pydantic-settings: every key here matches a field of the Settings
+  model (lower_snake_case) and can be overridden by the environment variable of
+  the same name in upper case. Values use ${VAR:-default} so the file is also
+  readable by docker compose / envsubst.
+
+  Variables: project_name, package_name, has_ai, has_msg_broker, msg_broker_name,
+             multi_tenancy_mode, multi_tenancy_term, service (optional), port (optional)
+-#}
+{%- set svc = service | default(project_name ~ '-service', true) -%}
+{%- set svc_port = port | default(8000, true) -%}
+# {{ svc }} - application settings (D-541)
+# Field -> environment variable: database_url -> DATABASE_URL, and so on.
+
+app_name: {{ svc }}
+app_env: ${APP_ENV:-local}
+host: ${HOST:-0.0.0.0}
+port: ${PORT:-{{ svc_port }}}
+
+# LOG_LEVEL - one of DEBUG, INFO, WARNING, ERROR.
+log_level: ${LOG_LEVEL:-INFO}
+
+# DATABASE_URL - SQLAlchemy 2.x async URL, asyncpg driver (D-542).
+database_url: ${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@localhost:5432/{{ package_name }}}
+database_pool_size: ${DATABASE_POOL_SIZE:-10}
+database_echo: ${DATABASE_ECHO:-false}
+
+# JWT_SECRET - HS256 signing secret. Never commit a real value.
+jwt_secret: ${JWT_SECRET:-change-me-in-every-environment}
+jwt_algorithm: ${JWT_ALGORITHM:-HS256}
+jwt_expires_minutes: ${JWT_EXPIRES_MINUTES:-60}
+
+# TENANT_HEADER - request header carrying the {{ multi_tenancy_term | default('tenant', true) }} id.
+# Multi-tenancy mode: {{ multi_tenancy_mode | default('single', true) }} (D-543).
+tenant_header: ${TENANT_HEADER:-X-Tenant-Id}
+{%- if multi_tenancy_mode in ("multi-tenant", "multi-empresa") %}
+tenant_required: ${TENANT_REQUIRED:-true}
+{%- else %}
+tenant_required: ${TENANT_REQUIRED:-false}
+{%- endif %}
+
+# AMQP_URL - broker connection string ({{ msg_broker_name | default('none', true) }}).
+{%- if has_msg_broker %}
+amqp_url: ${AMQP_URL:-amqp://guest:guest@localhost:5672/}
+amqp_prefetch_count: ${AMQP_PREFETCH_COUNT:-16}
+{%- else %}
+amqp_url: ${AMQP_URL:-}
+{%- endif %}
+{%- if has_ai %}
+
+# techlab-ai orchestration service.
+techlab_ai_url: ${TECHLAB_AI_URL:-http://localhost:8090}
+techlab_ai_timeout_seconds: ${TECHLAB_AI_TIMEOUT_SECONDS:-30}
+{%- endif %}

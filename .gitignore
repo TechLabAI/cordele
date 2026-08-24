@@ -1,0 +1,41 @@
+# Build artifacts
+build/
+out/
+.gradle/
+target/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.local
+
+# Python (for scripts/)
+__pycache__/
+*.pyc
+.venv/
+
+# Frontend
+node_modules/
+# Nx build output — scoped to frontend/dist/ so it does NOT match a
+# frontend module named `dist` (e.g. libs/dist/, a source library).
+frontend/dist/
+.nx/
+
+# Autopilot checkpoints (ephemeral runtime state — F-CKPT, D-326)
+tmp/be-architecture-autopilot/
+tmp/fe-architecture-autopilot/
+
+# Ephemeral runtime/observability state — trace context (F2, D-423),
+# runtime learning signals + token-usage JSONL (techlab-runtime).
+# Surgical: other .techlab/ artifacts (e.g. assembly-*.json) stay tracked.
+.techlab/trace-context.json
+.techlab/learning/
+.techlab/token-usage/

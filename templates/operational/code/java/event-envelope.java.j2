@@ -1,0 +1,37 @@
+{#-
+  event-envelope.java.j2 — canonical JMS payload shape from envelope.payload_fields.
+
+  Variables:
+    pkg_full
+    fields: list[{java_name, java_type, required, jsonb_type?, description}]
+            pre-computed from be-module-generator (java_name is camelCase of
+            the catalogue's field name; java_type resolves the catalogue's
+            semantic type to a concrete Java type).
+
+  D-070 (Tier 2.1 Phase 2 — events): every Producer publishes one of these;
+  every Consumer deserialises into one. Single record across the codebase
+  keeps the envelope drift-free.
+-#}
+package {{ pkg_full }}.shared.messaging;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+
+import java.time.OffsetDateTime;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Canonical JMS event envelope (events.arch.json §envelope.payload_fields,
+ * D-065). Producers wrap their {@code data} payload in one of these; the
+ * Jackson MessageConverter (ArtemisConfig) serialises to JSON.
+ *
+ * <p>{@code data} is intentionally {@code Map<String, Object>} for Phase 2
+ * Fase 1 — a typed payload-per-event upgrade is future work.
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record EventEnvelope(
+{%- for f in fields %}
+        {{ f.java_type }} {{ f.java_name }}{% if not loop.last %},{% endif %}  // {{ "required" if f.required else "optional" }}{% if f.description %} — {{ f.description }}{% endif %}
+{%- endfor %}
+) {
+}

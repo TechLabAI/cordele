@@ -1,0 +1,14 @@
+{#-
+  Dockerfile.j2 — extracted from gen_dockerfile() in be-module-generator.py.
+  Variables: service, port
+-#}
+FROM eclipse-temurin:21-jdk AS builder
+WORKDIR /workspace
+COPY . /workspace
+RUN ./gradlew bootJar -x test
+
+FROM eclipse-temurin:21-jre-jammy
+WORKDIR /app
+COPY --from=builder /workspace/build/libs/*.jar app.jar
+EXPOSE {{ port }}
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]

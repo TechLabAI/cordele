@@ -1,0 +1,372 @@
+{
+  "version": "v1.0",
+  "generatedBy": "techlab-architecture /new-project (ingest_discovery, D-073)",
+  "generatedAt": "2026-08-24T13:04:44Z",
+  "lastUpdatedAt": "2026-08-24T14:31:46Z",
+  "locale": {
+    "primary": "pt-BR",
+    "technicalDocs": "en-US",
+    "humanFacingDocs": "pt-BR"
+  },
+  "project": {
+    "name": "cordele",
+    "displayName": "Cordelê",
+    "description": "O Cordelê é uma plataforma SaaS B2B para transformar manuscritos, textos e arquivos Markdown em publicações digitais ePub válidas, sem necessidade de diagramação manual ou ferramentas técnicas especializadas.",
+    "codeName": "cordele",
+    "segment": "saas-generic",
+    "rigorLevel": "complete-bosq",
+    "issuePrefix": "CORD",
+    "archetype": "code-monorepo"
+  },
+  "stack": {
+    "backend": {
+      "language": "node",
+      "version": "22",
+      "framework": "nestjs",
+      "frameworkVersion": "11.x",
+      "buildTool": "pnpm",
+      "ormTool": "prisma",
+      "migrationTool": "prisma-migrate",
+      "packageBase": "@cordele"
+    },
+    "frontend": {
+      "framework": "angular",
+      "monorepoTool": "nx",
+      "enabled": true,
+      "npmScope": "@cordele",
+      "version": "21",
+      "designSystem": "custom",
+      "appName": "cordele-web",
+      "prototypePath": "frontend/design-reference"
+    },
+    "database": {
+      "engine": "postgresql",
+      "version": "16+",
+      "migrationTool": "prisma-migrate",
+      "migrationsLocation": "per-service"
+    },
+    "messaging": {
+      "enabled": false
+    },
+    "serviceDiscovery": {
+      "enabled": false
+    },
+    "apiGateway": {
+      "enabled": false
+    },
+    "elastic": {
+      "enabled": false
+    }
+  },
+  "multiTenancy": {
+    "mode": "multi-empresa",
+    "term": "empresa",
+    "termPlural": "empresas",
+    "isolationStrategy": "schema-per-tenant",
+    "contextPropagation": {
+      "syncMechanism": "EmpresaContext (NestJS AsyncLocalStorage)",
+      "asyncMechanism": "message-header",
+      "rule": "RULE-07"
+    },
+    "globalSchema": "cordele_global",
+    "tenantSchemas": [
+      {
+        "schema": "emp_aetos",
+        "displayName": "Editora Aetós"
+      }
+    ]
+  },
+  "_extensions": {
+    "compliance": {
+      "lgpd": true
+    },
+    "wireframe": {
+      "path": "D:\\01_Trabalho\\Cybersoft\\TechLab IA\\techlab-ba\\projects\\cordele\\design\\wireframe.md"
+    },
+    "module_candidates": [
+      {
+        "displayName": "Importação"
+      },
+      {
+        "displayName": "Composição"
+      },
+      {
+        "displayName": "Publicação"
+      },
+      {
+        "displayName": "Projetos"
+      }
+    ],
+    "data_model": {
+      "status": "draft (BA)",
+      "version": "0.1.0",
+      "entityCount": 6,
+      "entities": [
+        {
+          "name": "ProjetoEditorial",
+          "description": "Projeto editorial — agrupa manuscrito, metadados e publicações",
+          "fieldCount": 6,
+          "pk": "id",
+          "enums": {
+            "status": [
+              "rascunho",
+              "em_composicao",
+              "publicado",
+              "com_erros"
+            ]
+          },
+          "refs": {
+            "editora": "Editora"
+          }
+        },
+        {
+          "name": "Manuscrito",
+          "description": "Arquivo original parseado — imutável após import",
+          "fieldCount": 8,
+          "pk": "id",
+          "enums": {
+            "formato": [
+              "docx",
+              "markdown"
+            ]
+          },
+          "refs": {
+            "projetoId": "ProjetoEditorial"
+          }
+        },
+        {
+          "name": "Metadados",
+          "description": "Metadados editoriais configurados pelo editor",
+          "fieldCount": 9,
+          "pk": "id",
+          "enums": {
+            "idioma": [
+              "pt",
+              "en",
+              "es",
+              "fr"
+            ]
+          },
+          "refs": {
+            "projetoId": "ProjetoEditorial"
+          }
+        },
+        {
+          "name": "ConfiguracaoLayout",
+          "description": "Ajustes de estilo do editor",
+          "fieldCount": 9,
+          "pk": "id",
+          "enums": {
+            "fonteCorpoFamilia": [
+              "serif",
+              "sans-serif"
+            ]
+          },
+          "refs": {
+            "projetoId": "ProjetoEditorial"
+          }
+        },
+        {
+          "name": "Publicacao",
+          "description": "Registro de cada exportação de ePub",
+          "fieldCount": 8,
+          "pk": "id",
+          "enums": {
+            "epubcheckStatus": [
+              "valido",
+              "avisos",
+              "erros_criticos",
+              "pendente"
+            ]
+          },
+          "refs": {
+            "projetoId": "ProjetoEditorial"
+          }
+        },
+        {
+          "name": "Editora",
+          "description": "Conta da editora (tenant simplificado para POC)",
+          "fieldCount": 3,
+          "pk": "id",
+          "enums": {},
+          "refs": {}
+        }
+      ],
+      "entityNames": [
+        "ProjetoEditorial",
+        "Manuscrito",
+        "Metadados",
+        "ConfiguracaoLayout",
+        "Publicacao",
+        "Editora"
+      ],
+      "screenBindingCount": 8,
+      "mock": {
+        "nenhum": 0,
+        "projetos": 3,
+        "manuscrito": 1,
+        "metadados": 1,
+        "publicacao": 1,
+        "publicacoes": 2,
+        "trechosNaoParseados": 2
+      }
+    },
+    "stakeholder_roles": [
+      "Sponsor executivo",
+      "Tech approver",
+      "BA",
+      "Cliente piloto",
+      "Security gate",
+      "Time interno de desenvolvimento"
+    ],
+    "lbc_personas": [
+      {
+        "role_code": "COORDENADORA_EDITORIAL",
+        "role_name": "Coordenador(a) Editorial",
+        "description": "Marina, coordenadora editorial em editora independente com 20-80 títulos/ano."
+      }
+    ],
+    "frontend_reference": {
+      "path": "D:\\01_Trabalho\\Cybersoft\\TechLab IA\\techlab-ba\\projects\\cordele\\design",
+      "kind": "angular-prototype",
+      "component_count": 18,
+      "build_plans": [
+        "biblioteca-de-projetos",
+        "configuracoes",
+        "download-e-historico",
+        "editor-de-layout-preview",
+        "entrada",
+        "exportacao-e-validacao",
+        "revisao-de-estrutura",
+        "upload"
+      ],
+      "has_design_system": true,
+      "has_theme": true
+    }
+  },
+  "modules": {
+    "registry": [
+      {
+        "prefix": "IMP",
+        "displayName": "Importação",
+        "description": "Parsing e estruturação de manuscritos DOCX e Markdown",
+        "backendService": "imp-service",
+        "frontendLib": "libs/imp",
+        "hasUi": true,
+        "isInfrastructure": false,
+        "status": "declared"
+      },
+      {
+        "prefix": "COMP",
+        "displayName": "Composição",
+        "description": "Configuração de metadados e ajuste de layout editorial",
+        "backendService": "comp-service",
+        "frontendLib": "libs/comp",
+        "hasUi": true,
+        "isInfrastructure": false,
+        "status": "declared"
+      },
+      {
+        "prefix": "PUB",
+        "displayName": "Publicação",
+        "description": "Geração, validação (epubcheck) e download do ePub 3",
+        "backendService": "pub-service",
+        "frontendLib": "libs/pub",
+        "hasUi": true,
+        "isInfrastructure": false,
+        "status": "declared"
+      },
+      {
+        "prefix": "PROJ",
+        "displayName": "Projetos",
+        "description": "Gestão do ciclo de vida de projetos editoriais e histórico de publicações",
+        "backendService": "proj-service",
+        "frontendLib": "libs/proj",
+        "hasUi": true,
+        "isInfrastructure": false,
+        "status": "declared"
+      }
+    ],
+    "prefixPattern": "^[A-Z]{3,5}$"
+  },
+  "growth": {
+    "enabled": false
+  },
+  "setup": {
+    "phases": [
+      {
+        "id": "P0-bootstrap",
+        "name": "Repository bootstrap (minimal structure + git init)",
+        "status": "done",
+        "command": "new-project.py bootstrap",
+        "completedAt": "2026-08-24T13:04:45Z",
+        "startedAt": "2026-08-24T13:04:45Z"
+      },
+      {
+        "id": "P1-claude-folder",
+        "name": "Copy .claude/ + generated CLAUDE.md",
+        "status": "done",
+        "command": "new-project.py claude-folder",
+        "completedAt": "2026-08-24T14:31:46Z",
+        "startedAt": "2026-08-24T13:06:07Z"
+      },
+      {
+        "id": "P2-docs-skeleton",
+        "name": "Create docs/architecture/ per rigor level",
+        "status": "done",
+        "rigorAffected": true,
+        "command": "new-project.py docs-skeleton --rigor complete-bosq",
+        "completedAt": "2026-08-24T13:06:34Z",
+        "startedAt": "2026-08-24T13:06:34Z"
+      },
+      {
+        "id": "P3-techlab-ai-sync",
+        "name": "Sync TechLab AI docs snapshot (docs-only) and populate integration contract",
+        "status": "skipped",
+        "conditional": "ai.hasAi == true",
+        "command": "sync-techlab-ai.py --target-sha <pinned>"
+      },
+      {
+        "id": "P3b-elastic-stack-overlay",
+        "name": "Generate elastic-stack overlay (compose + integration contract + Java ports/adapters)",
+        "status": "skipped",
+        "conditional": "stack.elastic.enabled == true",
+        "command": "new-project.py backend-skeleton (elastic-stack overlay triggered automatically)"
+      },
+      {
+        "id": "P4-backend-skeleton",
+        "name": "backend/ Gradle root + empty settings.gradle.kts",
+        "status": "done",
+        "command": "new-project.py backend-skeleton",
+        "completedAt": "2026-08-24T13:06:41Z",
+        "startedAt": "2026-08-24T13:06:41Z"
+      },
+      {
+        "id": "P5-frontend-skeleton",
+        "name": "frontend/ empty Nx workspace",
+        "status": "done",
+        "conditional": "stack.frontend.enabled == true",
+        "command": "new-project.py frontend-skeleton",
+        "completedAt": "2026-08-24T13:06:54Z",
+        "startedAt": "2026-08-24T13:06:54Z"
+      },
+      {
+        "id": "Pg-growth-skeleton",
+        "name": "Growth skeleton (docs/growth/ scaffold + admin-module service-spec)",
+        "status": "skipped",
+        "conditional": "growth.enabled == true",
+        "command": "new-project.py growth-skeleton"
+      },
+      {
+        "id": "P6-handoff",
+        "name": "Handoff message: setup done, next step is /be-architect-vision <MODULE>",
+        "status": "done",
+        "completedAt": "2026-08-24T13:10:09Z",
+        "startedAt": "2026-08-24T13:10:09Z"
+      }
+    ]
+  },
+  "ai": {
+    "hasAi": false
+  }
+}

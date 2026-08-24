@@ -1,0 +1,46 @@
+{#- eg-adapter.java.j2 — be-entity-generator JPA adapter (implements port).
+    Vars: pkg, cls, extra, pk_getter. Pure substitution (D-324). -#}
+package {{ pkg }}.infrastructure.persistence.adapter;
+
+import {{ pkg }}.application.port.out.{{ cls }}Port;
+import {{ pkg }}.domain.model.{{ cls }};
+import {{ pkg }}.infrastructure.persistence.entity.{{ cls }}Entity;
+import {{ pkg }}.infrastructure.persistence.repository.{{ cls }}Repository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+@Component
+@RequiredArgsConstructor
+public class {{ cls }}JpaAdapter implements {{ cls }}Port {
+
+    private final {{ cls }}Repository repository;
+
+    @Override
+    public {{ cls }} save({{ cls }} domain) {
+        return toDomain(repository.save(toEntity(domain)));
+    }
+
+    @Override
+    public Optional<{{ cls }}> findById(UUID id) {
+        return repository.findById(id).map(this::toDomain);
+    }
+{{ extra }}
+    @Override
+    public void deleteById(UUID id) {
+        repository.deleteById(id);
+    }
+
+    private {{ cls }} toDomain({{ cls }}Entity e) {
+        // TODO[SCAFFOLD]: implement — return new {{ cls }}(e.get{{ pk_getter }}(), ...)
+        throw new UnsupportedOperationException("Not implemented — see 02b-be-logic");
+    }
+
+    private {{ cls }}Entity toEntity({{ cls }} d) {
+        // TODO[SCAFFOLD]: implement — set each field from domain record
+        throw new UnsupportedOperationException("Not implemented — see 02b-be-logic");
+    }
+}

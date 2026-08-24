@@ -1,0 +1,8 @@
+{#-
+  request-record.java.j2 — extracted from gen_request_record() in be-module-generator.py.
+  Variables: pkg_full, name
+-#}
+package {{ pkg_full }}.api.dto;
+
+// TODO[SCAFFOLD]: define fields from api-contract.md
+public record {{ name }}Request(String tenantId /* TODO[SCAFFOLD]: add fields */) {}

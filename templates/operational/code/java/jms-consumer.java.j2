@@ -1,0 +1,37 @@
+{#-
+  jms-consumer.java.j2 — JMS or Kafka event consumer (conditional on events_broker).
+
+  Variables: pkg_full, cls (class name), dest (destination/topic), event (event short name)
+-#}
+package {{ pkg_full }}.infrastructure.messaging.consumer;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+{% if events_broker == "kafka" -%}
+import org.springframework.kafka.annotation.KafkaListener;
+{% else -%}
+import org.springframework.jms.annotation.JmsListener;
+{% endif -%}
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class {{ cls }} {
+
+{% if events_broker == "kafka" %}
+    @KafkaListener(topics = "{{ dest }}", groupId = "{{ project_name }}-consumer")
+    public void handle(String payload) {
+        // TODO[SCAFFOLD]: deserialize {{ event }} event and apply domain logic
+        log.info("[Kafka] {{ event }} received");
+        throw new UnsupportedOperationException("not implemented");
+    }
+{% else %}
+    @JmsListener(destination = "{{ dest }}", containerFactory = "jmsListenerContainerFactory")
+    public void handle(String payload) {
+        // TODO[SCAFFOLD]: deserialize {{ event }} event and apply domain logic
+        log.info("[JMS] {{ event }} received");
+        throw new UnsupportedOperationException("not implemented");
+    }
+{% endif -%}
+}

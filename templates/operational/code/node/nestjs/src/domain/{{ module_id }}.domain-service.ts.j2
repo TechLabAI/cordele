@@ -1,0 +1,75 @@
+{#-
+  {{ module_id }}.domain-service.ts.j2 — domain service (D-544).
+
+  Variables: module_id, ModuleId, MODULE_ID, module_name,
+             multi_tenancy_mode, multi_tenancy_term
+-#}
+import { randomUUID } from 'node:crypto';
+
+import { Injectable } from '@nestjs/common';
+
+import { {{ ModuleId }}Entity, {{ ModuleId }}Status } from './{{ module_id }}.entity';
+
+export interface Create{{ ModuleId }}Command {
+  readonly name: string;
+  readonly description?: string;
+  readonly status?: {{ ModuleId }}Status;
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+  readonly tenantId: string;
+{%- endif %}
+}
+
+export interface Change{{ ModuleId }}Command {
+  readonly name?: string;
+  readonly description?: string;
+  readonly status?: {{ ModuleId }}Status;
+}
+
+/**
+ * Domain service for {{ MODULE_ID }} ({{ module_name }}).
+ *
+ * Holds the business rules that do not belong to a single entity instance:
+ * construction policies, cross-field validation and state transitions. It is
+ * `@Injectable` for convenience but stays free of infrastructure imports.
+ */
+@Injectable()
+export class {{ ModuleId }}DomainService {
+  /** Materializes a brand new aggregate from a validated command. */
+  createFrom(command: Create{{ ModuleId }}Command): {{ ModuleId }}Entity {
+    const now = new Date();
+    return new {{ ModuleId }}Entity({
+      id: randomUUID(),
+      name: command.name.trim(),
+      description: command.description?.trim(),
+      status: command.status ?? {{ ModuleId }}Status.ACTIVE,
+{%- if multi_tenancy_mode and multi_tenancy_mode != 'none' %}
+      tenantId: command.tenantId,
+{%- endif %}
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  /** Applies a partial change set, enforcing the allowed status transitions. */
+  applyChanges(current: {{ ModuleId }}Entity, command: Change{{ ModuleId }}Command): {{ ModuleId }}Entity {
+    if (command.status && !this.canTransition(current.status, command.status)) {
+      throw new Error(
+        `{{ ModuleId }}DomainService: illegal transition ${current.status} -> ${command.status}`,
+      );
+    }
+
+    return current.with({
+      name: command.name?.trim(),
+      description: command.description?.trim(),
+      status: command.status,
+    });
+  }
+
+  /** ARCHIVED is terminal; ACTIVE and INACTIVE toggle freely. */
+  canTransition(from: {{ ModuleId }}Status, to: {{ ModuleId }}Status): boolean {
+    if (from === to) {
+      return true;
+    }
+    return from !== {{ ModuleId }}Status.ARCHIVED;
+  }
+}

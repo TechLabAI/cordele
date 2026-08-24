@@ -1,0 +1,54 @@
+{#-
+  react/e2e/playwright.config.ts.j2 - Playwright configuration.
+
+  Rendered by: /new-project P5 (_frontend_react) →
+    frontend/playwright.config.ts
+
+  Variables used:
+    - project_name, project_display_name
+    - frontend_package_manager
+
+  D-546: the webServer runs `next build && next start` in CI (the dev server is
+  too slow to be a reliable gate) and reuses a running dev server locally.
+-#}
+{%- set pm = frontend_package_manager if frontend_package_manager is defined and frontend_package_manager else 'pnpm' -%}
+import { defineConfig, devices } from '@playwright/test';
+
+const PORT = Number(process.env.PORT ?? 3000);
+const BASE_URL = process.env.E2E_BASE_URL ?? `http://localhost:${PORT}`;
+const IS_CI = Boolean(process.env.CI);
+
+export default defineConfig({
+  testDir: './e2e',
+  outputDir: './e2e/.output',
+  fullyParallel: true,
+  forbidOnly: IS_CI,
+  retries: IS_CI ? 2 : 0,
+  workers: IS_CI ? 1 : undefined,
+  timeout: 30_000,
+  expect: { timeout: 5_000 },
+
+  reporter: IS_CI
+    ? [['list'], ['junit', { outputFile: 'e2e/.output/junit.xml' }], ['html', { open: 'never' }]]
+    : [['list'], ['html', { open: 'never' }]],
+
+  use: {
+    baseURL: BASE_URL,
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    testIdAttribute: 'data-testid',
+  },
+
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+  ],
+
+  webServer: {
+    command: IS_CI ? '{{ pm }} run build && {{ pm }} run start' : '{{ pm }} run dev',
+    url: BASE_URL,
+    reuseExistingServer: !IS_CI,
+    timeout: 180_000,
+  },
+});

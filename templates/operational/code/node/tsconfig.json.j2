@@ -1,0 +1,57 @@
+{#-
+  tsconfig.json.j2 — per-service TypeScript config (D-544).
+
+  Extends backend/tsconfig.base.json, which is emitted inline by
+  scripts/new-project.py::_backend_node (target ES2023, module commonjs,
+  strict, experimentalDecorators + emitDecoratorMetadata). The settings below
+  are either restatements kept for standalone readability (`tsc -p .` on the
+  service alone must behave identically) or per-service additions: outDir,
+  baseUrl and the path aliases.
+
+  Output is strict JSON, so every remark lives in this Jinja comment header
+  and never in the body — json.loads would reject a JSONC comment.
+
+  Variables: node_version.
+-#}
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "lib": ["ES2023"],
+    "types": ["node", "jest"],
+    "strict": true,
+    "strictNullChecks": true,
+    "strictBindCallApply": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": false,
+    "noImplicitAny": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "forceConsistentCasingInFileNames": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "declaration": true,
+    "sourceMap": true,
+    "removeComments": true,
+    "incremental": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "paths": {
+      "src/*": ["src/*"],
+      "@app/*": ["src/*"],
+      "@domain/*": ["src/domain/*"],
+      "@infrastructure/*": ["src/infrastructure/*"],
+      "@modules/*": ["src/modules/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

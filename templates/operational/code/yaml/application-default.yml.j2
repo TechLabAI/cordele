@@ -1,0 +1,39 @@
+{#-
+  application-default.yml.j2 — Profile 'default' for CI / local dev without external infra.
+
+  Variables:
+    - service_type: "standard" | "gateway" | "registry"
+-#}
+{% if service_type in ("gateway", "registry") -%}
+# Profile 'default' — CI e dev local sem infraestrutura externa.
+# Eureka client desabilitado (sem registro durante CI).
+eureka:
+  client:
+    enabled: false
+{% else -%}
+# Profile 'default' — CI e dev local sem infraestrutura externa.
+# H2 in-memory substitui PostgreSQL. Eureka e Artemis desabilitados.
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: false
+  {% if events_broker != "kafka" -%}
+  artemis:
+    mode: embedded
+  {%- endif %}
+
+eureka:
+  client:
+    enabled: false
+{%- endif %}

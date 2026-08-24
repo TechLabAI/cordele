@@ -1,0 +1,64 @@
+{#-
+  next.config.ts.j2 — Next.js 15 configuration (Thread R3).
+
+  Decisions: D-546 — App Router + `output: 'standalone'` so the Docker runtime
+  stage ships only `.next/standalone` + `.next/static` (see Dockerfile-react.j2).
+
+  Rewrites proxy browser calls to the backend gateway (and to techlab-ai when
+  the project has an AI layer), so the browser never needs a CORS pre-flight and
+  the backend URL stays a server-side env var.
+
+  Variables: project_name, project_display_name, has_ai.
+-#}
+import type { NextConfig } from 'next';
+
+/**
+ * {{ project_display_name | default(project_name, true) }} — Next.js configuration.
+ *
+ * `output: 'standalone'` (D-546) emits a self-contained server bundle in
+ * `.next/standalone`, which the runtime image copies verbatim.
+ */
+const API_URL = process.env.BACKEND_API_URL ?? 'http://localhost:8080';
+{%- if has_ai %}
+const AI_URL = process.env.TECHLAB_AI_URL ?? 'http://localhost:8090';
+{%- endif %}
+
+const nextConfig: NextConfig = {
+  output: 'standalone',
+  reactStrictMode: true,
+  poweredByHeader: false,
+
+  // Exposed to the browser bundle. Never put secrets here.
+  env: {
+    NEXT_PUBLIC_APP_NAME: '{{ project_display_name | default(project_name, true) }}',
+    NEXT_PUBLIC_API_BASE_PATH: '/api',
+  },
+
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: '**.{{ project_name }}.com' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+    ],
+  },
+
+  eslint: {
+    dirs: ['src'],
+  },
+
+  async rewrites() {
+    return [
+      {
+        source: '/api/backend/:path*',
+        destination: `${API_URL}/:path*`,
+      },
+{%- if has_ai %}
+      {
+        source: '/api/ai/:path*',
+        destination: `${AI_URL}/v1/:path*`,
+      },
+{%- endif %}
+    ];
+  },
+};
+
+export default nextConfig;

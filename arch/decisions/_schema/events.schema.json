@@ -1,0 +1,322 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://techlab/arch/decisions/events.schema.json",
+  "title": "Events architecture decision",
+  "description": "Cross-project decisions for JMS event-driven integration: broker, naming convention, envelope (headers + payload fields), delivery semantics (retries / DLQ / idempotency / outbox), destination type rule (queue vs topic), and the per-module catalogue of events. Source of truth for the rendered event-catalog.md and (in future phases) for producer/consumer code generation. D-065.",
+  "type": "object",
+  "required": [
+    "_schema_version",
+    "version",
+    "broker",
+    "naming_convention",
+    "envelope",
+    "delivery",
+    "idempotency",
+    "modules"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$comment": {
+      "type": "string",
+      "description": "Free-text note for maintainers; not consumed by any generator."
+    },
+    "_schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "last_changed": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "broker": {
+      "description": "Message broker. project-context.json:stack.messaging.broker must match (cross-validated).",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "artemis",
+            "kafka",
+            "rabbitmq",
+            "none"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^\\{\\{.*\\}\\}$",
+          "description": "Jinja placeholder resolved against project vars at apply time."
+        }
+      ]
+    },
+    "naming_convention": {
+      "type": "object",
+      "required": [
+        "pattern",
+        "verb_form"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "pattern": {
+          "type": "string",
+          "description": "Destination naming pattern using <token> placeholders (e.g. '{{ project_name }}.<module>.<entity>.<action>')."
+        },
+        "versioning_suffix": {
+          "type": "string",
+          "description": "Optional suffix appended on breaking change (e.g. '.v2')."
+        },
+        "verb_form": {
+          "type": "string",
+          "enum": [
+            "past_participle",
+            "infinitive",
+            "imperative"
+          ],
+          "description": "Verb form used in the <action> token. past_participle = events describe facts (criado/confirmada)."
+        },
+        "verb_form_description": {
+          "type": "string"
+        }
+      }
+    },
+    "envelope": {
+      "type": "object",
+      "required": [
+        "headers",
+        "payload_fields"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "headers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "required",
+              "type"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "type": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "payload_fields": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "required",
+              "type"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "type": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "delivery": {
+      "type": "object",
+      "required": [
+        "retries",
+        "backoff_seconds",
+        "dlq_prefix"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "retries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "backoff_seconds": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 1
+        },
+        "dlq_prefix": {
+          "type": "string"
+        },
+        "replay_endpoint": {
+          "type": "string"
+        },
+        "replay_permission": {
+          "type": "string",
+          "description": "Permission code required for the replay endpoint. SHOULD exist in permission-catalogue.arch.json (cross-validated softly)."
+        },
+        "alert_channel": {
+          "type": "string"
+        }
+      }
+    },
+    "idempotency": {
+      "type": "object",
+      "required": [
+        "table",
+        "key_field"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "table": {
+          "type": "string"
+        },
+        "key_field": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "outbox": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "required_for": {
+          "type": "string"
+        },
+        "table": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "destination_type_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "single_consumer": {
+          "type": "string",
+          "enum": [
+            "queue",
+            "topic"
+          ]
+        },
+        "multi_consumer": {
+          "type": "string",
+          "enum": [
+            "queue",
+            "topic"
+          ]
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "modules": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "required": [
+          "prefix",
+          "name",
+          "module_path",
+          "events"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "prefix": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*$",
+            "description": "Short module identifier (same as permission-catalogue prefix). Used for organisation only."
+          },
+          "module_path": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$",
+            "description": "Module token used in event names (e.g. 'cadastro' for prefix 'cad', 'fiscal' for prefix 'fis'). Event names MUST be '<project_name>.<module_path>.<entity>.<action>'."
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "is_global": {
+            "type": "boolean",
+            "default": false,
+            "description": "True when {{ multi_tenancy_term }}Id header may be null for events in this module (e.g. IAM session events apply cross-tenant)."
+          },
+          "events": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "producer",
+                "consumers"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Full event/destination name. MUST start with '{{ project_name }}.<module_path>.' (validated structurally; project_name resolved at interpolation time)."
+                },
+                "producer": {
+                  "type": "string",
+                  "description": "Service that emits the event."
+                },
+                "consumers": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Services that subscribe. Empty list means no current consumer (event reserved for future use); use a literal '*' entry for wildcard catch-all (e.g. audit service)."
+                },
+                "payload_data": {
+                  "type": "string",
+                  "description": "Informal description of the `data` payload (e.g. '{clienteId, doc, nome, tipo}'). Phase 1 keeps this as a string; Phase 2 may upgrade to a real JSON Schema reference."
+                },
+                "destination_type": {
+                  "type": "string",
+                  "enum": [
+                    "queue",
+                    "topic"
+                  ],
+                  "description": "Override of destination_type_rule. Optional; default derives from consumer cardinality."
+                }
+              }
+            }
+          }
+        }
+      },
+      "description": "Ships EMPTY in the source of truth (D-103 Gap B); projects fill it via arch/overrides/<aspect>.partial.json (D-074 deep-merge)."
+    }
+  }
+}

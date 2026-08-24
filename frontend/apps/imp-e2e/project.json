@@ -1,0 +1,21 @@
+{
+  "name": "imp-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/imp-e2e/src",
+  "projectType": "application",
+  "tags": [
+    "scope:imp",
+    "type:e2e"
+  ],
+  "implicitDependencies": [
+    "imp"
+  ],
+  "targets": {
+    "e2e": {
+      "executor": "@nx/playwright:playwright",
+      "options": {
+        "config": "apps/imp-e2e/playwright.config.ts"
+      }
+    }
+  }
+}

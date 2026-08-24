@@ -1,0 +1,22 @@
+{#-
+  processed-event-repository.java.j2 — Spring Data JPA repository for idempotency.
+
+  Variables: pkg_full
+
+  D-070 (Tier 2.1 Phase 2 — events).
+-#}
+package {{ pkg_full }}.infrastructure.persistence.repository;
+
+import {{ pkg_full }}.infrastructure.persistence.entity.ProcessedEvent;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.UUID;
+
+/**
+ * Spring Data repository for the idempotency tracking table (D-070).
+ * Consumers call {@link #existsById(Object)} before processing.
+ */
+@Repository
+public interface ProcessedEventRepository extends JpaRepository<ProcessedEvent, UUID> {
+}

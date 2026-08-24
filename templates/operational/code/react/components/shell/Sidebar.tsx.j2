@@ -1,0 +1,83 @@
+{#-
+  react/components/shell/Sidebar.tsx.j2 - primary navigation.
+
+  Rendered by: /new-project P5 (_frontend_react) →
+    frontend/src/components/shell/Sidebar.tsx
+
+  Variables used:
+    - project_display_name
+    - modules   list of module dicts (hasUi=true, isInfrastructure=false)
+    - multi_tenancy_mode, multi_tenancy_term
+
+  D-546: nav items are materialized from modules.registry at generation time, so
+  the client bundle carries a static list (no runtime module discovery).
+  D-548: active state via `usePathname()` + `cn()`.
+-#}
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+import { cn } from '@/lib/utils';
+{%- if multi_tenancy_mode != 'single' %}
+import { useAuth } from '@/lib/shared/auth/use-auth';
+{%- endif %}
+
+interface NavItem {
+  href: string;
+  label: string;
+}
+
+export const NAV_ITEMS: NavItem[] = [
+{%- for m in modules %}
+{%- if not m.isInfrastructure and m.hasUi %}
+{%- set _lib_raw = m.frontendLib if m.frontendLib else (m.prefix | lower) %}
+{%- set lib = _lib_raw[5:] if _lib_raw[:5] == 'libs/' else _lib_raw %}
+  { href: '/{{ lib }}', label: '{{ m.displayName if m.displayName else m.name }}' },
+{%- endif %}
+{%- endfor %}
+];
+
+export function Sidebar() {
+  const pathname = usePathname();
+{%- if multi_tenancy_mode != 'single' %}
+  const { user } = useAuth();
+{%- endif %}
+
+  return (
+    <aside className="hidden w-60 shrink-0 flex-col border-r bg-card md:flex">
+      <div className="flex h-14 items-center border-b px-4 font-semibold">
+        {{ project_display_name }}
+      </div>
+{%- if multi_tenancy_mode != 'single' %}
+      <div className="border-b px-4 py-2 text-xs text-muted-foreground">
+        <span className="uppercase tracking-wide">{{ multi_tenancy_term }}</span>
+        <span className="ml-2 font-medium text-foreground">
+          {user?.tenant ?? '-'}
+        </span>
+      </div>
+{%- endif %}
+      <nav aria-label="Main" className="flex-1 overflow-y-auto p-2">
+        <ul className="space-y-1">
+          {NAV_ITEMS.map((item) => {
+            const active = pathname === item.href || pathname?.startsWith(`${item.href}/`);
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'block rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                    active && 'bg-accent font-medium text-accent-foreground',
+                  )}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    </aside>
+  );
+}

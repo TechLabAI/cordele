@@ -1,0 +1,89 @@
+{#-
+  react/lib/<module>/store/<module>-store.ts.j2 - Zustand slice.
+
+  Rendered by: scripts/fe-react-module-generator.py →
+    frontend/src/lib/{module_id}/store/{module_id}-store.ts
+
+  Variables used:
+    - module_id, ModuleId, MODULE_ID
+
+  D-547: this store holds CLIENT state only (filters, selection, panel state).
+  Server data lives in React Query - never mirror fetched entities in here, or
+  the two caches will disagree.
+-#}
+{%- set Mod = ModuleId if ModuleId is defined and ModuleId else (module_id | pascal) -%}
+{%- set mod = Mod[0] | lower ~ Mod[1:] -%}
+import { create } from 'zustand';
+import { devtools } from 'zustand/middleware';
+
+import type { {{ Mod }}Id, {{ Mod }}Query } from '../types/{{ module_id }}.types';
+
+export interface {{ Mod }}State {
+  /** Filters applied to the list view (drive the React Query key). */
+  query: {{ Mod }}Query;
+  /** Row currently open in the detail pane, if any. */
+  selectedId: {{ Mod }}Id | null;
+  /** Detail drawer visibility. */
+  detailOpen: boolean;
+}
+
+export interface {{ Mod }}Actions {
+  setSearch: (search: string) => void;
+  setStatus: (status: {{ Mod }}Query['status']) => void;
+  setPage: (page: number) => void;
+  setPageSize: (pageSize: number) => void;
+  setSort: (sortBy: string, sortDir: 'asc' | 'desc') => void;
+  select: (id: {{ Mod }}Id | null) => void;
+  openDetail: (id: {{ Mod }}Id | null) => void;
+  closeDetail: () => void;
+  reset: () => void;
+}
+
+const INITIAL_QUERY: {{ Mod }}Query = {
+  search: undefined,
+  status: undefined,
+  page: 1,
+  pageSize: 20,
+  sortBy: undefined,
+  sortDir: 'asc',
+};
+
+const INITIAL_STATE: {{ Mod }}State = {
+  query: INITIAL_QUERY,
+  selectedId: null,
+  detailOpen: false,
+};
+
+export const use{{ Mod }}Store = create<{{ Mod }}State & {{ Mod }}Actions>()(
+  devtools(
+    (set) => ({
+      ...INITIAL_STATE,
+
+      // Any filter change resets pagination - page 3 of the old filter is
+      // meaningless under the new one.
+      setSearch: (search) =>
+        set((state) => ({ query: { ...state.query, search, page: 1 } }), false, '{{ module_id }}/setSearch'),
+      setStatus: (status) =>
+        set((state) => ({ query: { ...state.query, status, page: 1 } }), false, '{{ module_id }}/setStatus'),
+      setPage: (page) =>
+        set((state) => ({ query: { ...state.query, page } }), false, '{{ module_id }}/setPage'),
+      setPageSize: (pageSize) =>
+        set((state) => ({ query: { ...state.query, pageSize, page: 1 } }), false, '{{ module_id }}/setPageSize'),
+      setSort: (sortBy, sortDir) =>
+        set((state) => ({ query: { ...state.query, sortBy, sortDir } }), false, '{{ module_id }}/setSort'),
+
+      select: (id) => set({ selectedId: id }, false, '{{ module_id }}/select'),
+      openDetail: (id) => set({ selectedId: id, detailOpen: true }, false, '{{ module_id }}/openDetail'),
+      closeDetail: () => set({ detailOpen: false }, false, '{{ module_id }}/closeDetail'),
+      reset: () => set(INITIAL_STATE, false, '{{ module_id }}/reset'),
+    }),
+    { name: '{{ module_id }}-store' },
+  ),
+);
+
+// -- Selectors ----------------------------------------------------------------
+// Subscribe through these so a component only re-renders on the slice it reads.
+
+export const select{{ Mod }}Query = (state: {{ Mod }}State) => state.query;
+export const select{{ Mod }}SelectedId = (state: {{ Mod }}State) => state.selectedId;
+export const select{{ Mod }}DetailOpen = (state: {{ Mod }}State) => state.detailOpen;

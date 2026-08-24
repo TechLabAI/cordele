@@ -1,0 +1,51 @@
+# {{ module_id }}
+
+{{ module_description or (module_name ~ " feature module.") }}
+React feature module of **{{ project_display_name }}** (D-546..D-548).
+
+## Layout
+
+```
+{{ module_id }}/
+├── api/           typed fetch client -- the only place that talks HTTP
+├── hooks/         use{{ ModuleId }}List · use{{ ModuleId }}Detail · use{{ ModuleId }}Mutations
+├── store/         Zustand store: UI state only, never server state
+├── types/         types + Zod schemas ({{ module_id }}.types.ts)
+├── components/    {{ module_id }}-list · {{ module_id }}-detail
+└── index.ts       barrel -- import from '@/lib/{{ module_id }}', never deeper
+```
+
+## The one rule that matters
+
+Server state belongs to React Query (`hooks/`); the Zustand store holds **UI**
+state — filters, selection, open dialogs. Mirroring fetched rows into the store
+is the failure this split exists to prevent: two copies, one stale.
+
+## Import boundary
+
+```ts
+import { {{ ModuleId }}List, use{{ ModuleId }}List } from '@/lib/{{ module_id }}';
+```
+
+Reaching past the barrel (`@/lib/{{ module_id }}/components/...`) couples callers
+to the internal layout and is rejected by the Nx boundary tags
+(`docs/architecture/frontend/standards/react-nx-boundaries.md`).
+
+## Server vs Client components
+
+`components/` are Client Components (`'use client'`) because they hold state and
+handlers. Pages under `app/` stay Server Components and pass data down; see
+`docs/architecture/frontend/standards/react-conventions.md`.
+{%- if has_ai %}
+
+## AI
+
+AI-assisted flows for this module go through the shared AI panel, not through a
+module-local provider — one session, one transcript.
+{%- endif %}
+
+## API contract
+
+`api/{{ module_id }}-api.ts` is generated against the module's api-contract in
+`docs/architecture/backend/services/`. Regenerate rather than hand-editing when
+the contract moves.

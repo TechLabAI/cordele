@@ -1,0 +1,107 @@
+{#-
+  consumer.py.j2 -- aio-pika consumer with DLQ handling (D-541).
+
+  Variables: package_name, module_id, ModuleId, MODULE_ID, module_name,
+             msg_broker_name, multi_tenancy_mode, multi_tenancy_term
+-#}
+"""Inbound messaging adapter for the {{ module_name }} module.
+
+Consumes {{ msg_broker_name }} messages and drives the inbound port. Poison
+messages are rejected without requeue so the broker routes them to the DLQ.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+from collections.abc import Awaitable, Callable
+from typing import Any
+
+import aio_pika
+from aio_pika.abc import AbstractIncomingMessage, AbstractRobustConnection
+
+from {{ package_name }}.{{ module_id }}.domain.model import DomainError
+
+logger = logging.getLogger(__name__)
+
+EXCHANGE_NAME = "{{ module_id }}.events"
+QUEUE_NAME = "{{ module_id }}.inbound"
+DLX_NAME = "{{ module_id }}.events.dlx"
+DLQ_NAME = "{{ module_id }}.inbound.dlq"
+
+Handler = Callable[[str, dict[str, Any]], Awaitable[None]]
+
+
+class {{ ModuleId }}EventConsumer:
+    """Robust aio-pika consumer with an explicit dead-letter topology."""
+
+    def __init__(
+        self,
+        broker_url: str,
+        handler: Handler,
+        *,
+        routing_keys: tuple[str, ...] = ("{{ module_id }}.#",),
+        prefetch: int = 16,
+    ) -> None:
+        self._broker_url = broker_url
+        self._handler = handler
+        self._routing_keys = routing_keys
+        self._prefetch = prefetch
+        self._connection: AbstractRobustConnection | None = None
+        self._stopped = asyncio.Event()
+
+    async def start(self) -> None:
+        """Declare the topology and begin consuming."""
+        self._connection = await aio_pika.connect_robust(self._broker_url)
+        channel = await self._connection.channel()
+        await channel.set_qos(prefetch_count=self._prefetch)
+
+        dlx = await channel.declare_exchange(
+            DLX_NAME, aio_pika.ExchangeType.FANOUT, durable=True
+        )
+        dlq = await channel.declare_queue(DLQ_NAME, durable=True)
+        await dlq.bind(dlx)
+
+        exchange = await channel.declare_exchange(
+            EXCHANGE_NAME, aio_pika.ExchangeType.TOPIC, durable=True
+        )
+        queue = await channel.declare_queue(
+            QUEUE_NAME,
+            durable=True,
+            arguments={"x-dead-letter-exchange": DLX_NAME},
+        )
+        for routing_key in self._routing_keys:
+            await queue.bind(exchange, routing_key=routing_key)
+
+        await queue.consume(self._on_message)
+        logger.info("consuming %s bound to %s", QUEUE_NAME, self._routing_keys)
+
+    async def stop(self) -> None:
+        """Close the connection and release the consumer."""
+        self._stopped.set()
+        if self._connection is not None and not self._connection.is_closed:
+            await self._connection.close()
+        self._connection = None
+
+    async def _on_message(self, message: AbstractIncomingMessage) -> None:
+        """Ack on success, DLQ on poison payloads, requeue on transient errors."""
+        async with message.process(requeue=False, ignore_processed=True):
+            routing_key = message.routing_key or ""
+            try:
+                payload = json.loads(message.body.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                logger.error("undecodable message on %s -> DLQ", routing_key)
+                await message.reject(requeue=False)
+                return
+
+            try:
+                await self._handler(routing_key, payload)
+            except DomainError:
+                # Business rejection: replaying will not help -- send to the DLQ.
+                logger.warning("domain rejection for %s -> DLQ", routing_key)
+                await message.reject(requeue=False)
+            except Exception:
+                # Transient failure (database, network): let the broker retry once.
+                logger.exception("transient failure for %s -> requeue", routing_key)
+                await message.nack(requeue=True)

@@ -1,0 +1,29 @@
+{#-
+  react/lib/shared/auth/use-auth.ts.j2 - session hook.
+
+  Rendered by: /new-project P5 (_frontend_react) →
+    frontend/src/lib/shared/auth/use-auth.ts
+
+  Variables used: (none beyond the shared context)
+
+  Kept in its own file so components import the hook without pulling the
+  provider module's JSX into their dependency graph.
+-#}
+'use client';
+
+import { useContext } from 'react';
+
+import { AuthContext, type AuthContextValue } from './auth-context';
+
+/**
+ * Access the current session.
+ * Throws when used outside `<AuthProvider>` - a missing provider is a wiring
+ * bug, not a runtime condition to branch on.
+ */
+export function useAuth(): AuthContextValue {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within <AuthProvider>.');
+  }
+  return context;
+}

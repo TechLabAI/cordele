@@ -1,0 +1,11 @@
+{#-
+  enum-class.java.j2 — Domain enum class.
+
+  Variables: pkg_full, enum_name, values (list of string)
+-#}
+package {{ pkg_full }}.domain.model;
+
+public enum {{ enum_name }} {
+    {% for v in values %}{{ v }}{% if not loop.last %},
+    {% endif %}{% endfor %}
+}

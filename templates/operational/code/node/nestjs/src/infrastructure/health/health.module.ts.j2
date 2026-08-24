@@ -1,0 +1,13 @@
+{#-
+  health.module.ts.j2 - Terminus wiring (D-544).
+-#}
+import { Module } from '@nestjs/common';
+import { TerminusModule } from '@nestjs/terminus';
+
+import { HealthController } from './health.controller';
+
+@Module({
+  imports: [TerminusModule],
+  controllers: [HealthController],
+})
+export class HealthModule {}

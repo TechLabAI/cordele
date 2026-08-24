@@ -1,0 +1,47 @@
+{#-
+  react/components/providers.tsx.j2 - client provider composition.
+
+  Rendered by: /new-project P5 (_frontend_react) →
+    frontend/src/components/providers.tsx
+
+  Variables used:
+    - project_name
+
+  Why this file exists: `app/layout.tsx` must stay a server component (it
+  exports `metadata`), but ThemeProvider / QueryClientProvider / AuthProvider
+  all need the client boundary. This is the single `'use client'` seam.
+
+  D-547: one QueryClient per browser session, created lazily in state so it is
+  never shared across requests during SSR.
+  D-548: dark mode via the `class` strategy (Tailwind `darkMode: 'class'`).
+-#}
+'use client';
+
+import { useState } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from 'next-themes';
+
+import { AuthProvider } from '@/lib/shared/auth/auth-context';
+
+export function AppProviders({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 30_000,
+            refetchOnWindowFocus: false,
+            retry: 1,
+          },
+        },
+      }),
+  );
+
+  return (
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>{children}</AuthProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  );
+}

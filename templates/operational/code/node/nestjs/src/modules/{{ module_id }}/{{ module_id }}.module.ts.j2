@@ -1,0 +1,45 @@
+{#-
+  {{ module_id }}.module.ts.j2 — feature module (D-544).
+
+  Variables: module_id, ModuleId, MODULE_ID, module_name, has_msg_broker
+-#}
+import { Module } from '@nestjs/common';
+
+import { PersistenceModule } from '../../infrastructure/persistence/persistence.module';
+import { {{ ModuleId }}DomainService } from '../../domain/{{ module_id }}.domain-service';
+import { {{ ModuleId }}RepositoryPort } from '../../domain/{{ module_id }}.repository.interface';
+import { Prisma{{ ModuleId }}Repository } from '../../infrastructure/persistence/prisma-{{ module_id }}.repository';
+{%- if has_msg_broker %}
+import { MessagingModule } from '../../infrastructure/messaging/messaging.module';
+import { {{ ModuleId }}Producer } from '../../infrastructure/messaging/{{ module_id }}.producer';
+import { {{ ModuleId }}Consumer } from '../../infrastructure/messaging/{{ module_id }}.consumer';
+{%- endif %}
+import { {{ ModuleId }}Controller } from './{{ module_id }}.controller';
+import { {{ ModuleId }}Service } from './{{ module_id }}.service';
+
+/**
+ * {{ MODULE_ID }} — {{ module_name }}.
+ *
+ * Bounded context module. The repository port is bound to its Prisma adapter
+ * here, which is the only place in the module that knows persistence exists.
+ */
+@Module({
+  imports: [
+    PersistenceModule,
+{%- if has_msg_broker %}
+    MessagingModule,
+{%- endif %}
+  ],
+  controllers: [{{ ModuleId }}Controller],
+  providers: [
+    {{ ModuleId }}Service,
+    {{ ModuleId }}DomainService,
+    { provide: {{ ModuleId }}RepositoryPort, useClass: Prisma{{ ModuleId }}Repository },
+{%- if has_msg_broker %}
+    {{ ModuleId }}Producer,
+    {{ ModuleId }}Consumer,
+{%- endif %}
+  ],
+  exports: [{{ ModuleId }}Service],
+})
+export class {{ ModuleId }}Module {}

@@ -1,0 +1,57 @@
+{#-
+  application-test.yml.j2 — Profile 'test' for Testcontainers + Artemis/Kafka embedded.
+
+  Variables:
+    - service_type: "standard" | "gateway" | "registry"
+    - events_broker: "kafka" | "artemis" (default: "artemis")
+
+  D-490: added security.oauth2.resourceserver.jwt.jwk-set-uri override to prevent
+  Spring Security from triggering OIDC well-known discovery at startup (which fails
+  in test — no Keycloak running). Using jwk-set-uri makes JWT validation lazy.
+  The placeholder URI http://localhost:9999/.well-known/jwks.json is never called
+  in dry-run BDD tests; swap for a real stub (WireMock) when implementing JWT tests.
+-#}
+{% if service_type in ("gateway", "registry") -%}
+# Profile 'test' — sem datasource/messaging (serviço de infra, não persiste estado).
+eureka:
+  client:
+    enabled: false
+{% else -%}
+{% if events_broker == "kafka" -%}
+# Profile 'test' — @EmbeddedKafka + real Postgres (or Testcontainers via @DynamicPropertySource).
+# bootstrap-servers placeholder is overridden by @EmbeddedKafka(bootstrapServersProperty=...).
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+  kafka:
+    bootstrap-servers: localhost:29092
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:9999/.well-known/jwks.json
+{% else -%}
+# Profile 'test' — Testcontainers (PostgreSQL) + Artemis embedded.
+# DataSource sobrescrito via @DynamicPropertySource em BaseIntegrationTest.
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+  artemis:
+    mode: embedded
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:9999/.well-known/jwks.json
+{% endif -%}
+
+eureka:
+  client:
+    enabled: false
+{%- endif %}

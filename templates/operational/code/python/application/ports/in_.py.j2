@@ -1,0 +1,44 @@
+{#-
+  in_.py.j2 -- inbound port (use case interface) as a Protocol (D-541).
+
+  Variables: package_name, module_id, ModuleId, module_name
+-#}
+"""Inbound ports of the {{ module_name }} module.
+
+Driving adapters (HTTP router, message consumers, CLI) depend on these
+Protocols -- never on the concrete application service.
+"""
+
+from __future__ import annotations
+
+from typing import Protocol, runtime_checkable
+from uuid import UUID
+
+from {{ package_name }}.{{ module_id }}.domain.model import Create{{ ModuleId }}Command, {{ ModuleId }}
+
+
+@runtime_checkable
+class Manage{{ ModuleId }}UseCase(Protocol):
+    """Primary use case exposed by the {{ module_name }} module."""
+
+    async def create(self, command: Create{{ ModuleId }}Command) -> {{ ModuleId }}:
+        """Create a new {{ module_name }} record."""
+        ...
+
+    async def get(self, item_id: UUID) -> {{ ModuleId }}:
+        """Return one record or raise `{{ ModuleId }}NotFoundError`."""
+        ...
+
+    async def list(self, page: int = 0, size: int = 20) -> tuple[list[{{ ModuleId }}], int]:
+        """Return one page of records plus the total count."""
+        ...
+
+    async def rename(self, item_id: UUID, new_name: str) -> {{ ModuleId }}:
+        """Rename an existing record."""
+        ...
+
+    async def delete(self, item_id: UUID) -> None:
+        """Delete an existing record."""
+        ...
+
+    # TODO[SCAFFOLD]: add one method per use case listed in the module backlog.

@@ -1,0 +1,30 @@
+{#-
+  spring-application.java.j2 — Spring Boot main class.
+
+  Variables:
+    - pkg_full: full Java package (e.g. com.bosq.obr)
+    - app_class: main class name (e.g. ObrasApplication)
+    - service_type: "standard" | "gateway" | "registry"
+-#}
+package {{ pkg_full }};
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+{%- if service_type == "registry" %}
+import org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;
+{%- elif service_type == "standard" %}
+import org.springframework.cloud.openfeign.EnableFeignClients;
+{%- endif %}
+
+{% if service_type == "registry" -%}
+@EnableEurekaServer
+{% elif service_type == "standard" -%}
+@EnableFeignClients
+{% endif -%}
+@SpringBootApplication
+public class {{ app_class }} {
+
+    public static void main(String[] args) {
+        SpringApplication.run({{ app_class }}.class, args);
+    }
+}

@@ -1,0 +1,22 @@
+{#-
+  repository-port.java.j2 — Outbound port for aggregate repository.
+
+  Variables: pkg_full, aggregate, port_name, model_import
+-#}
+package {{ pkg_full }}.application.port.out;
+
+import {{ model_import }};
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+public interface {{ port_name }} {
+
+    {{ aggregate }} save({{ aggregate }} entity);
+
+    Optional<{{ aggregate }}> findById(UUID id);
+
+    List<{{ aggregate }}> findByTenantId(String tenantId);
+
+    // TODO[SCAFFOLD]: add domain-specific query methods
+}
