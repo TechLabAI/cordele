@@ -1,0 +1,7 @@
+# The BA prototype under design-reference/ is a COMPLETE Nx workspace of its own
+# (it has its own nx.json and an apps/cordele-web with the same project name as
+# production). Without this, Nx finds two projects called `cordele-web` and
+# refuses to build the project graph at all — every nx command fails, not just
+# e2e. The prototype is a read-only visual reference (D-484/D-493): screens are
+# promoted OUT of it into libs/<module>/, it is never built by this workspace.
+design-reference/
