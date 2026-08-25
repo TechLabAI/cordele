@@ -1,0 +1,24 @@
+name: cordele
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: cordele-postgres
+    environment:
+      POSTGRES_DB: cordele_dev
+      POSTGRES_USER: cordele
+      POSTGRES_PASSWORD: cordele
+    ports:
+      # 5432 e 5433 ja estao ocupadas por outros projetos nesta maquina
+      - "5434:5432"
+    volumes:
+      - cordele-pgdata:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cordele -d cordele_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  cordele-pgdata:
