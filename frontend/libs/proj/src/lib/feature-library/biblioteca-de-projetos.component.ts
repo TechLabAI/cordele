@@ -19,7 +19,7 @@ import {
   inject,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { LibraryFacade, LibraryStatus } from '../library.facade';
+import { LibraryFacade } from '../library.facade';
 import { ProjetoCardVM } from '../models/proj.models';
 
 @Component({
