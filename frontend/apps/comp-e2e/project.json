@@ -1,0 +1,21 @@
+{
+  "name": "comp-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/comp-e2e/src",
+  "projectType": "application",
+  "tags": [
+    "scope:comp",
+    "type:e2e"
+  ],
+  "implicitDependencies": [
+    "comp"
+  ],
+  "targets": {
+    "e2e": {
+      "executor": "@nx/playwright:playwright",
+      "options": {
+        "config": "apps/comp-e2e/playwright.config.ts"
+      }
+    }
+  }
+}

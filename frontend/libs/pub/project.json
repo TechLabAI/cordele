@@ -1,0 +1,43 @@
+{
+  "name": "pub",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/pub/src",
+  "prefix": "pub",
+  "projectType": "library",
+  "tags": [
+    "scope:pub",
+    "type:feature"
+  ],
+  "targets": {
+    "build": {
+      "executor": "@nx/angular:ng-packagr-lite",
+      "outputs": [
+        "{workspaceRoot}/dist/{projectRoot}"
+      ],
+      "options": {
+        "project": "libs/pub/ng-package.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "libs/pub/tsconfig.lib.prod.json"
+        },
+        "development": {
+          "tsConfig": "libs/pub/tsconfig.lib.json"
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "test": {
+      "executor": "@nx/vitest:test",
+      "outputs": [
+        "{options.reportsDirectory}"
+      ],
+      "options": {
+        "reportsDirectory": "coverage/libs/pub"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

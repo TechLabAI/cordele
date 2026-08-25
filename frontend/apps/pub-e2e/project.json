@@ -1,0 +1,21 @@
+{
+  "name": "pub-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/pub-e2e/src",
+  "projectType": "application",
+  "tags": [
+    "scope:pub",
+    "type:e2e"
+  ],
+  "implicitDependencies": [
+    "pub"
+  ],
+  "targets": {
+    "e2e": {
+      "executor": "@nx/playwright:playwright",
+      "options": {
+        "config": "apps/pub-e2e/playwright.config.ts"
+      }
+    }
+  }
+}

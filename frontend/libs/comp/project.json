@@ -1,0 +1,43 @@
+{
+  "name": "comp",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/comp/src",
+  "prefix": "comp",
+  "projectType": "library",
+  "tags": [
+    "scope:comp",
+    "type:feature"
+  ],
+  "targets": {
+    "build": {
+      "executor": "@nx/angular:ng-packagr-lite",
+      "outputs": [
+        "{workspaceRoot}/dist/{projectRoot}"
+      ],
+      "options": {
+        "project": "libs/comp/ng-package.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "libs/comp/tsconfig.lib.prod.json"
+        },
+        "development": {
+          "tsConfig": "libs/comp/tsconfig.lib.json"
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "test": {
+      "executor": "@nx/vitest:test",
+      "outputs": [
+        "{options.reportsDirectory}"
+      ],
+      "options": {
+        "reportsDirectory": "coverage/libs/comp"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}
