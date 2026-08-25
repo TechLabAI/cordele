@@ -45,6 +45,7 @@ try:
         atomic_write,
         consolidate,
         find_root,
+        issue_bases,
         parse_checklist,
         resolve_issue,
     )
@@ -56,6 +57,7 @@ except ImportError:  # pragma: no cover
         atomic_write,
         consolidate,
         find_root,
+        issue_bases,
         parse_checklist,
         resolve_issue,
     )
@@ -234,7 +236,7 @@ def cmd_checklist(args) -> int:
     if not items:
         print(f"error: issue sem checklist parseavel: {issue_file}", file=sys.stderr)
         return 2
-    checklist = consolidate(items, root)
+    checklist = consolidate(items, root, issue_bases(args.issue, layer, root))
     public = {k: v for k, v in checklist.items() if not k.startswith("_")}
     _emit(args, {"issue": args.issue, "layer": layer, "checklist": public},
           issue_file, default_suffix="checklist")
@@ -249,7 +251,7 @@ def cmd_score(args) -> int:
         print(f"error: issue sem checklist parseavel: {issue_file}", file=sys.stderr)
         return 2
 
-    checklist = consolidate(items, root)
+    checklist = consolidate(items, root, issue_bases(args.issue, layer, root))
     gates = normalize_gates(collect_gates(args), layer)
     score = compute_score(checklist, gates)
 

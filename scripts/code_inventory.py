@@ -76,18 +76,34 @@ def is_stub(path: Path) -> bool:
 
 # ── Presence scan ────────────────────────────────────────────────────────────
 
-def scan_presence(paths, root: Path) -> dict:
+def scan_presence(paths, root: Path, bases=None) -> dict:
     """Report existence / size / stub for each path (relative to root or absolute).
+
+    Issue checklists cite paths relative to the unit that owns them -- a service
+    root such as ``backend/services/proj-service/`` -- not to the repo root, so
+    ``bases`` supplies the extra prefixes to try before declaring a file absent.
 
     Returns ``{path_str: {"exists": bool, "size": int, "isStub": bool}}``.
     Read-only: never touches the filesystem beyond ``stat``/``read``.
     """
     root = Path(root)
+    candidates = [root] + [root / b if not Path(b).is_absolute() else Path(b)
+                           for b in (bases or [])]
+    # Issues abbreviate sibling files: `dir/a.ts`, `b.ts`, `c.ts` -- the bare
+    # names belong to the directory named by the first fully-qualified path.
+    siblings = [Path(q).parent for q in paths if "/" in str(q)]
     result: dict[str, dict] = {}
     for raw in paths:
         p = Path(raw)
-        full = p if p.is_absolute() else (root / p)
-        if full.is_file():
+        full = None
+        if p.is_absolute():
+            full = p if p.is_file() else None
+        else:
+            tries = [c / p for c in candidates]
+            if "/" not in str(raw):
+                tries += [c / s / p for c in candidates for s in siblings]
+            full = next((f for f in tries if f.is_file()), None)
+        if full is not None:
             result[str(raw)] = {
                 "exists": True,
                 "size": full.stat().st_size,

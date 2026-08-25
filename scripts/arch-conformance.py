@@ -76,8 +76,22 @@ _TS_FRAMEWORK_IMPORT = re.compile(r"""(?:from|require\()\s*['"]@(?:nestjs|prisma
 _TS_INFRA_IMPORT = re.compile(r"""(?:from|require\()\s*['"][^'"]*\binfrastructure\b[^'"]*['"]""")
 
 
+# Vendored and generated trees are not authored source: scanning them produces
+# violations nobody can fix (e.g. console.log inside node_modules/rxjs JSDoc).
+_VENDOR_DIRS = frozenset({
+    "node_modules", "dist", "build", "out", "coverage", "target",
+    ".git", ".next", ".nx", ".angular", ".venv", "venv",
+    "__pycache__", ".mypy_cache", ".pytest_cache", "generated",
+})
+
+
 def _iter_files(target: Path, suffixes: tuple[str, ...]) -> list[Path]:
-    return [p for p in target.rglob("*") if p.is_file() and p.name.endswith(suffixes)]
+    return [
+        p for p in target.rglob("*")
+        if p.is_file()
+        and p.name.endswith(suffixes)
+        and not _VENDOR_DIRS.intersection(part.lower() for part in p.relative_to(target).parts[:-1])
+    ]
 
 
 def _dir_parts(path: Path, target: Path) -> set[str]:

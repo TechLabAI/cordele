@@ -122,12 +122,12 @@ def parse_checklist(text: str) -> list[dict]:
     return items
 
 
-def _classify_item(it: dict, root: Path) -> tuple[str, str]:
+def _classify_item(it: dict, root: Path, bases=None) -> tuple[str, str]:
     if it["blocked"]:
         return "BLOCKED", "item marcado BLOCKED"
     paths = it["paths"]
     if paths:
-        presence = scan_presence(paths, root)
+        presence = scan_presence(paths, root, bases)
         existing = [p for p, v in presence.items() if v["exists"]]
         stubs = [p for p, v in presence.items() if v["exists"] and v["isStub"]]
         if not existing:
@@ -144,16 +144,51 @@ def _classify_item(it: dict, root: Path) -> tuple[str, str]:
     return "MISSING", "desmarcado (sem arquivo verificavel)"
 
 
-def consolidate(items: list[dict], root: Path) -> dict:
-    """Reduce checklist items to DONE/PARTIAL/MISSING/BLOCKED with evidence."""
+
+def issue_bases(issue_id: str, layer: str | None, root: Path) -> list[str]:
+    """Path prefixes a checklist's cited files may be relative to.
+
+    Checklists cite paths owned by the module's unit (``src/modules/proj/...``),
+    while ``root`` is the repo root -- without the unit prefix every cited file
+    reads as absent. Derived from ``modules.registry`` in project-context.json.
+    """
+    import json as _json
+    prefix = re.split(r"[-_]", issue_id, maxsplit=1)[0].upper()
+    try:
+        ctx = _json.loads((root / "project-context.json").read_text(
+            encoding="utf-8", errors="replace"))
+    except (OSError, ValueError):
+        return []
+    registry = ctx.get("modules", {})
+    if isinstance(registry, dict):
+        registry = registry.get("registry", [])
+    entry = next((m for m in registry
+                  if str(m.get("prefix", "")).upper() == prefix), None)
+    if not entry:
+        return []
+    bases: list[str] = []
+    svc, lib = entry.get("backendService"), entry.get("frontendLib")
+    if layer != "fe" and svc:
+        bases.append(f"backend/services/{svc}")
+    if layer != "be" and lib:
+        bases.append(f"frontend/{lib}")
+    return bases
+
+
+def consolidate(items: list[dict], root: Path, bases=None) -> dict:
+    """Reduce checklist items to DONE/PARTIAL/MISSING/BLOCKED with evidence.
+
+    ``bases`` are extra path prefixes (relative to ``root``) tried when a cited
+    file is not found at the repo root -- typically the owning service dir.
+    """
     out_items: list[dict] = []
     counts = {"done": 0, "partial": 0, "missing": 0, "blocked": 0}
     files_cited = 0
     files_existing = 0
     for it in items:
-        state, evidence = _classify_item(it, root)
+        state, evidence = _classify_item(it, root, bases)
         if it["paths"]:
-            presence = scan_presence(it["paths"], root)
+            presence = scan_presence(it["paths"], root, bases)
             files_cited += len(it["paths"])
             files_existing += sum(1 for v in presence.values() if v["exists"])
         counts[state.lower()] += 1

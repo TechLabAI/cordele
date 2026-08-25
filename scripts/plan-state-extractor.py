@@ -38,6 +38,7 @@ try:
         atomic_write,
         consolidate,
         find_root,
+        issue_bases,
         parse_checklist,
         resolve_issue,
     )
@@ -49,6 +50,7 @@ except ImportError:  # pragma: no cover
         atomic_write,
         consolidate,
         find_root,
+        issue_bases,
         parse_checklist,
         resolve_issue,
     )
@@ -66,11 +68,24 @@ _DEP_NOTE = re.compile(r"(endpoint|/api/|PENDING|stub|BE dependency|backend)", r
 # ── Plan parsing ─────────────────────────────────────────────────────────────
 
 def resolve_plan_file(issue: str, layer: str, explicit: str | None, root: Path) -> Path | None:
+    """Plan owning this issue: per-issue plan first, else the module plan.
+
+    Plans are authored per MODULE (``plan-PROJ.md``) and cover every issue of
+    that prefix; only looking for ``plan-<ISSUE>.md`` reports every issue as
+    having no plan, which sends the decision engine back to the planner forever.
+    """
     if explicit:
         p = Path(explicit)
+        if not p.is_absolute() and (root / p).is_file():
+            return root / p
         return p if p.is_file() else None
-    f = root / LAYER_PROFILES[layer]["plan_dir"] / f"plan-{issue}.md"
-    return f if f.is_file() else None
+    plan_dir = root / LAYER_PROFILES[layer]["plan_dir"]
+    prefix = re.split(r"[-_]", issue, maxsplit=1)[0].upper()
+    for name in (f"plan-{issue}.md", f"plan-{prefix}.md"):
+        f = plan_dir / name
+        if f.is_file():
+            return f
+    return None
 
 
 def parse_plan_phases(text: str) -> list[dict]:
@@ -134,6 +149,14 @@ def suggest_plan_type(checklist: dict, delta: dict, prior_plan_exists: bool) -> 
 
 # ── Subcommand ───────────────────────────────────────────────────────────────
 
+def _rel_to_root(path: Path, root: Path) -> str:
+    """Repo-relative string when possible; absolute path otherwise."""
+    try:
+        return str(path.relative_to(root))
+    except ValueError:
+        return str(path)
+
+
 def cmd_extract(args) -> int:
     root = find_root(args.root)
     layer, issue_file = resolve_issue(args.issue, args.layer, args.issue_file, root)
@@ -147,13 +170,16 @@ def cmd_extract(args) -> int:
         print(f"error: issue sem checklist parseavel: {issue_file}", file=sys.stderr)
         return 2
 
-    checklist = consolidate(items, root)
+    checklist = consolidate(items, root, issue_bases(args.issue, layer, root))
     public_checklist = {k: v for k, v in checklist.items() if not k.startswith("_") and k != "items"}
 
     plan_file = resolve_plan_file(args.issue, layer, args.plan_file, root)
+    if plan_file is not None and not plan_file.is_absolute():
+        # an explicit --plan-file is relative to the caller's cwd, not to root
+        plan_file = (root / plan_file) if (root / plan_file).is_file() else plan_file.resolve()
     phases = parse_plan_phases(plan_file.read_text(encoding="utf-8", errors="replace")) if plan_file else []
     prior = {"exists": plan_file is not None,
-             "file": str(plan_file.relative_to(root)) if plan_file else None,
+             "file": _rel_to_root(plan_file, root) if plan_file else None,
              "phases": phases}
 
     delta = build_delta(checklist)
