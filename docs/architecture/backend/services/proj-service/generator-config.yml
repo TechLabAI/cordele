@@ -1,0 +1,62 @@
+service: proj-service
+type: standard
+port: 3000
+
+domain:
+  aggregates:
+    - ProjetoEditorial
+  entities:
+    - ProjetoStatusHistorico
+
+enums:
+  ProjetoStatus:
+    - rascunho
+    - em_composicao
+    - publicado
+    - com_erros
+  SolicitadoPor:
+    - imp
+    - pub
+    - comp
+    - editor
+    - system
+  EpubcheckStatus:
+    - valido
+    - avisos
+    - erros_criticos
+    - pendente
+
+application_services:
+  - name: ProjetoEditorialService
+    operations:
+      - create
+      - listAll
+      - findById
+      - delete
+      - reopen
+  - name: PublicationHistoryService
+    operations:
+      - listPublications
+      - signedDownloadUrl
+  - name: AdvanceProjetoStatusService
+    operations:
+      - advanceTo
+  - name: ErasureOrchestrationService
+    operations:
+      - purge
+
+outbound_ports:
+  - ManuscriptSummaryPort
+  - ProjectMetadataPort
+  - PublicationHistoryPort
+  - PublicationErasurePort
+  - CompositionErasurePort
+  - ManuscriptErasurePort
+
+consumed_events: []
+
+events:
+  published:
+    - cordele.proj.event.ProjectCreated
+    - cordele.proj.event.ProjectStatusChanged
+    - cordele.proj.event.ProjectDeleted

@@ -1,0 +1,33 @@
+@startuml proj-service-c4-container
+' C4 Container — PROJ module and its direct dependencies
+title Cordelê — PROJ (Projetos) — Containers
+
+rectangle "BFF (NestJS)" as BFF
+
+package "Cordelê modular monolith (single NestJS app)" {
+  rectangle "PROJ module\n(proj)\ncontroller + use cases + domain + adapters" as PROJ
+  rectangle "IMP module" as IMP
+  rectangle "COMP module" as COMP
+  rectangle "PUB module" as PUB
+}
+
+database "PostgreSQL 16\nemp_<slug> (tenant)\n+ cordele_global" as PG
+cloud "Object storage" as OBJ
+
+BFF --> PROJ : HTTP /api/proj (JWT, X-Correlation-Id)
+
+IMP --> PROJ : CreateProjetoEditorialUseCase\nProjetoEditorialLookup\nAdvanceProjetoStatusUseCase (DI)
+PUB --> PROJ : AdvanceProjetoStatusUseCase (DI)
+
+PROJ --> IMP : ManuscriptSummaryPort / ManuscriptErasurePort (DI)
+PROJ --> COMP : ProjectMetadataPort / CompositionErasurePort (DI)
+PROJ --> PUB : PublicationHistoryPort (+signed URL) / PublicationErasurePort (DI)
+
+PROJ --> PG : Prisma (schema targeting via EmpresaContext)
+PUB --> OBJ : ePub artifacts (owns, signs)
+
+note bottom of PROJ
+  ProjectStatus VO holds the legal-transition table.
+  PROJ is the sole writer of projeto_editorial (ADR-002).
+end note
+@enduml

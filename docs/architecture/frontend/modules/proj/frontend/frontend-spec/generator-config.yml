@@ -1,0 +1,96 @@
+# generator-config.yml — PROJ (Projetos) — Cordelê frontend
+# Consumed by the promote/scaffold phase (prototype-first, D-493): the promoted prototype screens
+# BibliotecaDeProjetosComponent (T02) and DownloadEHistoricoComponent (T08) are wired to the facades below.
+# Schema reference: libs/internal-nx-plugin/src/generator-config.schema.json (canonical field set).
+# Project conventions: scope @cordele, Nx module entry as library @cordele/proj (ADR-006),
+# signals-first, no NgRx. PROJ is the home module (isHome). Reconciled with proj-service api-contract (M3).
+
+service: proj
+issue_prefix: PROJ
+shell_route: /proj                     # module identity; PROJ is home → library mounts at /biblioteca-de-projetos
+is_home: true                          # default post-login landing (doc 04 §2, ADR-006)
+npm_scope: "@cordele"
+app_name: cordele-web
+module_entry: "@cordele/proj"          # libs/proj/shell-entry (importPath), ADR-006
+prototype_first: true                  # D-493 — promote prototype screens, do not re-invent UI
+
+features:
+  - name: library
+    routes:
+      - /biblioteca-de-projetos
+    components:
+      - BibliotecaDeProjetosComponent  # promoted from prototype screens/biblioteca-de-projetos
+    facade: LibraryFacade
+    prototype_source: apps/cordele-web/src/app/screens/biblioteca-de-projetos/biblioteca-de-projetos.component.ts
+  - name: history
+    routes:
+      - /projetos/:projetoId/historico
+    components:
+      - DownloadEHistoricoComponent    # promoted from prototype screens/download-e-historico
+    facade: HistoryFacade
+    prototype_source: apps/cordele-web/src/app/screens/download-e-historico/download-e-historico.component.ts
+
+data_access:
+  - resource: Projeto
+    base_path: /api/proj/projetos
+    operations: [list, get, reopen, delete]   # list=ProjetoCard[] (T02); get=ProjetoDetail (T08 header);
+                                              # reopen=POST .../reopen (T08 write); delete=DELETE (LGPD, UI deferred)
+  - resource: Publicacao
+    base_path: /api/proj/projetos/{projetoId}/publicacoes
+    operations: [list, download]              # list=PublicacaoHistoryItem[] (T08); download=signed URL (D-F, no proxy)
+
+backend_contract: ../../../../../backend/services/proj-service/contracts/api-contract.md
+
+state_management: signals
+
+guards:
+  - authGuard
+  - empresaGuard
+  - accessGuard('proj.view')
+  - projProjetoGuard
+
+permissions:
+  - proj.view
+  - proj.download
+  - proj.reopen
+  # proj.delete (BE proj:delete) reserved — LGPD erasure UI deferred (no MVP affordance)
+
+feature_flags:
+  - name: proj.quickDownload
+    default: on
+  - name: proj.reopen
+    default: on
+
+ui_libs_used:
+  - "@cordele/shared/ui-layout"
+  - "@cordele/shared/ui-feedback"
+  - "@cordele/shared/ui-theme"
+  - "@cordele/shared/access-http-base"
+  - "@cordele/shared/access-decision"
+  - "@cordele/shared/empresa-context"
+  - "@cordele/shared/auth-session"
+
+libs:
+  - path: libs/proj/shell-entry
+    tags: [scope:proj, type:app]
+  - path: libs/proj/access
+    tags: [scope:proj, type:domain]
+  - path: libs/proj/data-access
+    tags: [scope:proj, type:data-access]
+  - path: libs/proj/feature-library
+    tags: [scope:proj, type:feature]
+  - path: libs/proj/feature-history
+    tags: [scope:proj, type:feature]
+  - path: libs/proj/integration
+    tags: [scope:proj, type:domain]
+  - path: libs/proj/navigation
+    tags: [scope:proj, type:domain]
+  - path: libs/proj/ui
+    tags: [scope:proj, type:ui]
+
+extra_dependencies: []
+
+e2e:
+  runner: playwright
+  project: apps/proj-e2e
+  features_path: docs/architecture/frontend/modules/proj/frontend/e2e/

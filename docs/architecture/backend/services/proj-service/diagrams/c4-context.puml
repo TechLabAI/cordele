@@ -1,0 +1,36 @@
+@startuml proj-service-c4-context
+' C4 Context — PROJ (Projetos) within the Cordelê modular monolith
+title Cordelê — PROJ (Projetos) — System Context
+
+actor "Coordenador(a) Editorial" as Editor
+actor "Dev team (IMP/COMP/PUB)" as Dev
+
+rectangle "BFF (NestJS)\nsingle gateway — TECH-003" as BFF
+rectangle "PROJ context\n(proj-service)\nproject identity + lifecycle status" as PROJ
+
+rectangle "IMP context\n(manuscritos)" as IMP
+rectangle "COMP context\n(metadados/layout)" as COMP
+rectangle "PUB context\n(publicacoes/ePub)" as PUB
+database "PostgreSQL 16\nschema-per-tenant" as PG
+cloud "Object storage\n(ePub / binaries)" as OBJ
+
+Editor --> BFF : create / library (T02) / detail / history (T08) / reopen / delete
+BFF --> PROJ : /api/proj (OAuth2 JWT, EmpresaContext)
+
+IMP --> PROJ : advanceTo(em_composicao) ; create/lookup (in-process)
+PUB --> PROJ : advanceTo(publicado|com_erros) (in-process)
+
+PROJ --> IMP : ManuscriptSummaryPort ; ManuscriptErasurePort (in-process)
+PROJ --> COMP : ProjectMetadataPort ; CompositionErasurePort (in-process)
+PROJ --> PUB : PublicationHistoryPort (+ signed URL) ; PublicationErasurePort (in-process)
+
+PROJ --> PG : projeto_editorial + projeto_status_historico (tenant schema)
+Editor ..> OBJ : downloads ePub via signed URL (never proxied by PROJ)
+PUB --> OBJ : owns/signs ePub artifacts
+
+note right of PROJ
+  No broker, no AI, no hub (ai.hasAi=false,
+  messaging.enabled=false). All cross-context
+  calls are in-process ports (ADR-001/ADR-002).
+end note
+@enduml

@@ -28,3 +28,27 @@
 | IMP-INT-003 | ManuscriptImported in-process event wiring: NestJS EventEmitter2 bus config + PROJ subscriber stub that calls AdvanceProjetoStatusUseCase on manuscript.imported | INT | P2 | INTACT |
 | IMP-INT-004 | Schema-per-tenant Prisma client factory: resolve EmpresaContext slug -> set Prisma schema dynamically for every IMP repository call | INT | P3 | INTACT |
 | IMP-INT-005 | FileStoragePort S3-compatible adapter: production-path implementation behind the same port as local-disk adapter | INT | P9 | INTACT |
+| PROJ-001 | NestJS ProjModule skeleton + ProjController with all 7 routes wired | BE | P1 | INTACT |
+| PROJ-002 | ProjectStatus value object with legal-transition table and invariants | BE | P2 | INTACT |
+| PROJ-003 | CreateProjetoEditorialUseCase (POST /projetos golden path + ProjectCreated event) | BE | P2 | INTACT |
+| PROJ-004 | AdvanceProjetoStatusUseCase.advanceTo idempotent with audit append and ProjectStatusChanged | BE | P2 | INTACT |
+| PROJ-005 | ReopenProjectForRevisionUseCase + POST /projetos/{id}/reopen handler | BE | P2 | INTACT |
+| PROJ-006 | Inbound port DI provider registry (4 ports exported for IMP, PUB, and editor callers) | BE | P2 | INTACT |
+| PROJ-007 | Prisma schema models + initial migrations V0001-V0002 (ProjetoEditorial + ProjetoStatusHistorico) | BE | P3 | INTACT |
+| PROJ-008 | ProjetoEditorialRepository Prisma adapter (schema-per-tenant via EmpresaContext) | BE | P3 | INTACT |
+| PROJ-009 | Outbound read port stub adapters: ManuscriptSummaryPort + ProjectMetadataPort + PublicationHistoryPort (batched, degraded:true) | BE | P4 | INTACT |
+| PROJ-010 | GetProjetoLibraryUseCase (GET /projetos) batched N+1-free read + degraded fallback + G5 filter reservation | BE | P4 | INTACT |
+| PROJ-011 | GetProjetoDetailUseCase (GET /projetos/{id}) composed cross-context fields with degraded:true | BE | P4 | INTACT |
+| PROJ-012 | GetPublicationHistoryUseCase (GET /projetos/{id}/publicacoes via PublicationHistoryPort.history) | BE | P4 | INTACT |
+| PROJ-013 | GetSignedDownloadUrlUseCase (GET /projetos/{id}/publicacoes/{pid}/download + 409 for non-downloadable) | BE | P4 | INTACT |
+| PROJ-014 | JwtAuthGuard + EmpresaContext tenant injection + scope guards (proj:read, proj:write, proj:delete) | BE | P5 | INTACT |
+| PROJ-015 | Outbound erasure port stubs: PublicationErasurePort + CompositionErasurePort + ManuscriptErasurePort | BE | P6 | INTACT |
+| PROJ-016 | DeleteProjetoEditorialUseCase leaf-first LGPD erasure orchestration (idempotent, abort-before-identity, 502 on failure) | BE | P6 | INTACT |
+| PROJ-017 | Health endpoint (@nestjs/terminus) + correlation ID propagation + degraded:true structured logging | BE | P7 | INTACT |
+| PROJ-018 | BDD Cucumber step definitions for 8 features and 44 scenarios in tests/cucumber/ | BE | P8 | INTACT |
+| PROJ-INT-001 | ManuscriptSummaryPort real adapter binding to IMP in-process query port (stub to real) | INT | P4 | INTACT |
+| PROJ-INT-002 | ProjectMetadataPort real adapter binding to COMP in-process query port (stub to real) | INT | P4 | INTACT |
+| PROJ-INT-003 | PublicationHistoryPort real adapter binding to PUB query port (history + latest + signedDownloadUrl) | INT | P4 | INTACT |
+| PROJ-INT-004 | ManuscriptErasurePort real adapter binding to IMP purge port | INT | P6 | INTACT |
+| PROJ-INT-005 | CompositionErasurePort real adapter binding to COMP purge port | INT | P6 | INTACT |
+| PROJ-INT-006 | PublicationErasurePort real adapter binding to PUB purge port | INT | P6 | INTACT |

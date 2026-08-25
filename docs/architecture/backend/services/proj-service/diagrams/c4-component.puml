@@ -1,0 +1,73 @@
+@startuml proj-service-c4-component
+' C4 Component — hexagonal layers of the PROJ NestJS module (node: modules/proj + domain + infrastructure)
+title Cordelê — PROJ (Projetos) — Components (hexagonal, node)
+
+package "src/modules/proj (application)" {
+  [proj.controller.ts] as Ctrl
+  [create-project.service.ts] as Create
+  [advance-status.service.ts] as Advance
+  [reopen-project.service.ts] as Reopen
+  [list-projects.service.ts] as List
+  [project-detail.service.ts] as Detail
+  [delete-project.service.ts] as Delete
+}
+
+package "src/domain (pure)" {
+  [projeto-editorial.entity.ts] as Entity
+  [project-status.vo.ts\n(legal-transition table)] as VO
+  [projeto-editorial.repository.interface.ts] as RepoPort
+  [advance-projeto-status.usecase.ts (inbound)] as AdvPort
+  [create-projeto-editorial.usecase.ts (inbound)] as CreatePort
+  [publication-history.port.ts (outbound)] as PubPort
+  [manuscript-summary.port.ts (outbound)] as ManPort
+  [project-metadata.port.ts (outbound)] as MetaPort
+  [erasure.ports.ts (outbound)] as ErasePorts
+}
+
+package "src/infrastructure" {
+  [persistence/projeto-editorial.prisma.repository.ts] as Repo
+  [read/publication-history.adapter.ts] as PubAdp
+  [read/manuscript-summary.adapter.ts] as ManAdp
+  [read/project-metadata.adapter.ts] as MetaAdp
+  [erasure/*.adapter.ts] as EraseAdp
+  [events/nest-event-emitter.ts] as Events
+}
+
+Ctrl --> Create
+Ctrl --> Reopen
+Ctrl --> List
+Ctrl --> Detail
+Ctrl --> Delete
+Create --> Entity
+Advance --> VO
+Reopen --> VO
+Advance --> RepoPort
+Create --> RepoPort
+List --> RepoPort
+Detail --> RepoPort
+Delete --> RepoPort
+
+List --> ManPort
+List --> PubPort
+List --> MetaPort
+Detail --> ManPort
+Detail --> PubPort
+Detail --> MetaPort
+Delete --> ErasePorts
+
+RepoPort <|.. Repo
+PubPort <|.. PubAdp
+ManPort <|.. ManAdp
+MetaPort <|.. MetaAdp
+ErasePorts <|.. EraseAdp
+Advance --> Events
+Create --> Events
+Delete --> Events
+
+note right of VO
+  Domain imports nothing outward.
+  Application depends on domain.
+  Infrastructure implements domain ports,
+  wired in ProjModule.providers by Symbol tokens.
+end note
+@enduml
