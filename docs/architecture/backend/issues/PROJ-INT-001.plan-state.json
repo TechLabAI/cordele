@@ -1,0 +1,43 @@
+{
+  "issue": "PROJ-INT-001",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:12:29",
+  "checklist": {
+    "total": 7,
+    "done": 0,
+    "partial": 1,
+    "missing": 6,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PROJ.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [],
+    "partial": [
+      "`src/modules/proj/proj.module.ts` — add env-flag switch: when IMP module is present, register real adapter under `MANUSCRIPT_SUMMARY_PORT` instead of stub"
+    ],
+    "notStarted": [
+      "`src/infrastructure/proj/read/manuscript-summary.adapter.ts` — implements `ManuscriptSummaryPort`; injects IMP's in-process query provider by DI token; calls `summaries(projetoIds)` in one call; maps IMP's response shape to `ManuscriptSummary` (totalCapitulos, totalImagens, trechosNaoParseados, criadoEm); on error: returns empty Map (caller marks degraded)",
+      "`src/infrastructure/proj/read/manuscript-summary.adapter.spec.ts` — IMP port mock returns data for 2 projects; adapter maps correctly; IMP port throws → adapter returns empty Map without rethrowing",
+      "`summaries(projetoIds)` makes exactly 1 call to IMP's query port regardless of `projetoIds.length`",
+      "Correct shape mapping: IMP `totalCapitulos` → `ManuscriptSummary.totalCapitulos`",
+      "IMP port unavailability returns empty `Map` (not thrown error) — callers degrade gracefully",
+      "`pnpm test` on adapter spec exits 0"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "IMP-010",
+      "PROJ-009"
+    ],
+    "notes": [
+      "- PROJ-009 (precede — port interface and stub must exist; real adapter replaces stub)"
+    ]
+  },
+  "suggestedPlanType": "INCREMENTAL",
+  "needsAgentConfirm": true
+}

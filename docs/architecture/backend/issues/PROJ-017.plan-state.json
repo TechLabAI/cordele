@@ -1,0 +1,40 @@
+{
+  "issue": "PROJ-017",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:12:29",
+  "checklist": {
+    "total": 7,
+    "done": 0,
+    "partial": 0,
+    "missing": 7,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PROJ.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [],
+    "partial": [],
+    "notStarted": [
+      "`src/infrastructure/health/proj-health.controller.ts` — `GET /api/proj/health` (or shared monolith health endpoint if already registered); uses `@nestjs/terminus` `HealthCheckService` + `PrismaHealthIndicator`; returns 200 `{ status: 'ok' }` or 503 on DB unavailability",
+      "`src/infrastructure/middleware/correlation-id.middleware.ts` — NestJS middleware: reads `X-Correlation-Id` from request or generates UUID v4; stores in `AsyncLocalStorage<{ correlationId }>`; sets response header `X-Correlation-Id`; applies to all routes in `ProjModule`",
+      "Logger configuration (if not already shared) — structured JSON logger with fields: `correlationId`, `port` (when `degraded:true`), `level` (`WARN` on degraded), `module: 'proj'`",
+      "`GET /api/proj/health` returns 200 `{ status: 'ok' }` when DB reachable",
+      "Every response includes `X-Correlation-Id` header matching the request header (or a new UUID if absent)",
+      "When `ManuscriptSummaryPort` stub emits `degraded:true`, a `WARN` log entry contains `port=ManuscriptSummaryPort` and `correlationId` (verifiable via logger spy in integration test)",
+      "`pnpm build` exits 0 with health controller registered"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "PROJ-001",
+      "PROJ-007"
+    ],
+    "notes": []
+  },
+  "suggestedPlanType": "INCREMENTAL",
+  "needsAgentConfirm": true
+}

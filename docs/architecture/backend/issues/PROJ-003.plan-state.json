@@ -1,0 +1,47 @@
+{
+  "issue": "PROJ-003",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:12:27",
+  "checklist": {
+    "total": 10,
+    "done": 1,
+    "partial": 0,
+    "missing": 9,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PROJ.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [
+      "`src/modules/proj/proj.controller.ts` — wire `POST /projetos` to use case (update PROJ-001 stub), return 201 with `ProjetoDetail`, `Location` header"
+    ],
+    "partial": [],
+    "notStarted": [
+      "`src/modules/proj/use-cases/create-projeto-editorial.use-case.ts` — validates `nome` (non-empty, ≤200), resolves `editoraId` from `EmpresaContext`, persists via `ProjetoEditorialRepository`, appends `projeto_status_historico` in same transaction, emits `ProjectCreated` (post-commit hook via NestJS EventEmitter)",
+      "`src/modules/proj/use-cases/create-projeto-editorial.use-case.spec.ts` — unit tests: valid nome creates + emits; empty nome throws `ValidationError`; `editoraId` resolved from context, not body",
+      "`src/domain/proj/events/project-created.event.ts` — payload: `{ eventId, occurredAt, projetoId, editoraId, nome, status: 'rascunho' }`",
+      "Valid `nome` persists `ProjetoEditorial` with `status=rascunho`, `editoraId` from JWT claim",
+      "`projeto_status_historico` row appended in same transaction (`status_de=null, status_para=rascunho`)",
+      "`ProjectCreated` event emitted with unique `eventId` (UUID v4), never on rollback",
+      "400 `urn:cordele:proj:validation` when `nome` is missing or empty; nothing persisted",
+      "In-process port `CreateProjetoEditorialUseCase.create({ titulo })` returns `{ projetoId }` for IMP",
+      "`pnpm test` on use case spec exits 0"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "PROJ-001",
+      "PROJ-002",
+      "PROJ-008"
+    ],
+    "notes": [
+      "- PROJ-001 (precede — ProjModule and controller stubs)"
+    ]
+  },
+  "suggestedPlanType": "CONTINUACAO",
+  "needsAgentConfirm": true
+}

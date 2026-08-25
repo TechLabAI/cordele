@@ -1,0 +1,36 @@
+@startuml pub-c4-container
+' C4 Level 2 — Container — Publication (PUB)
+title Cordelê — Publication (PUB) — Container
+
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #24608A
+}
+
+rectangle "BFF (NestJS)\nsingle entry point" as BFF
+rectangle "Cordelê backend (NestJS 11 monolith)" as App {
+  rectangle "PubModule\n(pub bounded context)" as PUB #E8F0FE
+  rectangle "ImpModule" as IMP
+  rectangle "CompModule" as COMP
+  rectangle "ProjModule" as PROJ
+}
+database "PostgreSQL 16\n(Prisma; tenant schema emp_<slug>)" as PG
+rectangle "File Storage\n(FileStoragePort adapter:\nlocal disk / S3)" as Storage
+rectangle "epubcheck JAR\n(EpubValidationPort adapter:\nchild process)" as EpubCheck
+
+BFF --> PUB : POST /api/pub/projetos/{id}/publicacoes (202)\nGET .../status (poll), .../download, .../stats
+PUB --> IMP : in-process DI\n(ManuscriptContentPort.getContentTree)
+PUB --> COMP : in-process DI\n(GetMetadados / GetConfiguracaoLayout)
+PUB --> PROJ : in-process DI\n(AdvanceProjetoStatusUseCase.advanceTo)
+PUB --> PG : Prisma repository\n(publicacao, validation_message; tenant schema)
+PUB --> Storage : put/get/delete/signUrl\n(tenant-scoped keys)
+PUB ..> EpubCheck : validate(ocf) -> verdict\n(child process)
+PROJ ..> PUB : PublicationHistoryPort / PublicationErasurePort\n(in-process DI)
+
+note right of PUB
+  No Kafka/Artemis (messaging.enabled=false) -> progress via polling.
+  No Eureka/gateway (single monolith).
+  epubcheck (JVM) is the only Java: an external tool behind a port,
+  not a service dependency (TECH-001 stands for the service code).
+end note
+@enduml

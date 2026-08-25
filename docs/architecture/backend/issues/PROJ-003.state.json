@@ -1,0 +1,113 @@
+{
+  "issue": "PROJ-003",
+  "layer": "be",
+  "computedAt": "2026-08-25T19:59:33",
+  "checklist": {
+    "total": 10,
+    "done": 6,
+    "partial": 0,
+    "missing": 4,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/proj/use-cases/create-projeto-editorial.use-case.ts` — validates `nome` (non-empty, ≤200), resolves `editoraId` from `EmpresaContext`, persists via `ProjetoEditorialRepository`, appends `projeto_status_historico` in same transaction, emits `ProjectCreated` (post-commit hook via NestJS EventEmitter)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/use-cases/create-projeto-editorial.use-case.ts"
+      },
+      {
+        "text": "`src/modules/proj/use-cases/create-projeto-editorial.use-case.spec.ts` — unit tests: valid nome creates + emits; empty nome throws `ValidationError`; `editoraId` resolved from context, not body",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/use-cases/create-projeto-editorial.use-case.spec.ts"
+      },
+      {
+        "text": "`src/domain/proj/events/project-created.event.ts` — payload: `{ eventId, occurredAt, projetoId, editoraId, nome, status: 'rascunho' }`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/domain/proj/events/project-created.event.ts"
+      },
+      {
+        "text": "`src/modules/proj/proj.controller.ts` — wire `POST /projetos` to use case (update PROJ-001 stub), return 201 with `ProjetoDetail`, `Location` header",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/proj.controller.ts"
+      },
+      {
+        "text": "Valid `nome` persists `ProjetoEditorial` with `status=rascunho`, `editoraId` from JWT claim",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`projeto_status_historico` row appended in same transaction (`status_de=null, status_para=rascunho`)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`ProjectCreated` event emitted with unique `eventId` (UUID v4), never on rollback",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "400 `urn:cordele:proj:validation` when `nome` is missing or empty; nothing persisted",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "In-process port `CreateProjetoEditorialUseCase.create({ titulo })` returns `{ projetoId }` for IMP",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm test` on use case spec exits 0",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "pass",
+    "e2e": "skip"
+  },
+  "score": {
+    "total": 68,
+    "provisional": true,
+    "range": [
+      68,
+      78
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 30,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 18,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 20,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Consistente",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 18/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

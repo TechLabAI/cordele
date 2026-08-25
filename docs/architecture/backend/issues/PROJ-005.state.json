@@ -1,0 +1,103 @@
+{
+  "issue": "PROJ-005",
+  "layer": "be",
+  "computedAt": "2026-08-25T19:59:33",
+  "checklist": {
+    "total": 8,
+    "done": 5,
+    "partial": 0,
+    "missing": 3,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/proj/use-cases/reopen-project-for-revision.use-case.ts` — loads project within `EmpresaContext`, delegates to `ProjectStatus.reopen`, on change: updates row + appends `projeto_status_historico (solicitado_por=editor)` + emits `ProjectStatusChanged`; on no-op returns `{ changed: false }`; on `rascunho` throws `IllegalStatusTransitionError`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/use-cases/reopen-project-for-revision.use-case.ts"
+      },
+      {
+        "text": "`src/modules/proj/use-cases/reopen-project-for-revision.use-case.spec.ts` — reopen from `publicado` succeeds; idempotent on `em_composicao`; rejects from `rascunho`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/use-cases/reopen-project-for-revision.use-case.spec.ts"
+      },
+      {
+        "text": "`src/modules/proj/proj.controller.ts` — wire `POST /projetos/:projetoId/reopen` to use case (update PROJ-001 stub); on success return `200` with `ProjetoDetail`; map `IllegalStatusTransitionError` → 409",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/proj.controller.ts"
+      },
+      {
+        "text": "`POST /projetos/{id}/reopen` on `publicado` returns 200 with `ProjetoDetail` and `status=em_composicao`",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Reopen when already `em_composicao` returns 200 with `changed=false` (idempotent, no event)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`POST /projetos/{id}/reopen` when `rascunho` returns 409 `urn:cordele:proj:illegal-status-transition`",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`ProjectStatusChanged` emitted with `solicitadoPor=editor` on actual change only",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm test` on use case spec exits 0",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "pass",
+    "e2e": "skip"
+  },
+  "score": {
+    "total": 69,
+    "provisional": true,
+    "range": [
+      69,
+      79
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 30,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 19,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 20,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Consistente",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 19/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

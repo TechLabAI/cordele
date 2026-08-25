@@ -1,0 +1,113 @@
+{
+  "issue": "PROJ-014",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:10:43",
+  "checklist": {
+    "total": 10,
+    "done": 1,
+    "partial": 0,
+    "missing": 9,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/infrastructure/auth/jwt.guard.ts` — validates JWT from `Authorization: Bearer`; on invalid/missing token throws 401; populates `EmpresaContext` (slug + editoraId) from JWT claims; if the module does not already share a monolith-wide guard, reference the shared guard and annotate with `PROJ` scope binding",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/auth/jwt.guard.ts"
+      },
+      {
+        "text": "`src/infrastructure/auth/scopes.decorator.ts` + `src/infrastructure/auth/scopes.guard.ts` — `@Scopes('proj:read')` decorator + guard reads required scopes from metadata and validates against JWT `scope` claim",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/auth/scopes.decorator.ts, src/infrastructure/auth/scopes.guard.ts"
+      },
+      {
+        "text": "`src/infrastructure/context/empresa.context.ts` — `AsyncLocalStorage<EmpresaContext>` singleton; `EmpresaContext.getEditoraId()`, `EmpresaContext.getSlug()`, `EmpresaContext.run(store, fn)` for middleware wrapping",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/context/empresa.context.ts"
+      },
+      {
+        "text": "`src/modules/proj/proj.controller.ts` — apply `@UseGuards(JwtAuthGuard, ScopesGuard)` + `@Scopes(...)` on each route (update PROJ-001 deliverable)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/proj.controller.ts"
+      },
+      {
+        "text": "`src/modules/proj/proj.controller.spec.ts` — add 401/403 cases for missing/invalid token and wrong scope",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/proj/proj.controller.spec.ts"
+      },
+      {
+        "text": "Request without `Authorization` header returns 401 `urn:cordele:proj:unauthorized`",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Request with valid JWT but missing `proj:delete` scope returns 403 `urn:cordele:proj:forbidden` on `DELETE /projetos/{id}`",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`EmpresaContext.getEditoraId()` returns the empresaId from the JWT claim, not from request body/path",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "All PROJ endpoints unreachable without a valid JWT (integration test via supertest)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm test` on controller spec exits 0",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "skip",
+    "e2e": "skip"
+  },
+  "score": {
+    "total": 21,
+    "provisional": true,
+    "range": [
+      21,
+      31
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 18,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 3,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 3/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

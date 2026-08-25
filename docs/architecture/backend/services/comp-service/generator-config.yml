@@ -1,0 +1,68 @@
+service: comp-service
+type: standard
+port: 3000
+
+domain:
+  aggregates:
+    - Metadados
+    - ConfiguracaoLayout
+  entities:
+    - LayoutOverride
+
+enums:
+  Idioma:
+    - pt
+    - en
+    - es
+    - fr
+  FonteCorpoFamilia:
+    - serif
+    - sans-serif
+  OverrideTipo:
+    - imagem
+    - em-branco
+  Alinhamento:
+    - full
+    - centralizado
+    - junto-esquerda
+    - junto-direita
+
+application_services:
+  - name: MetadadosService
+    operations:
+      - getMetadados
+      - upsertMetadados
+      - uploadCover
+      - removeCover
+  - name: ConfiguracaoLayoutService
+    operations:
+      - getLayout
+      - upsertLayout
+  - name: LayoutPreviewService
+    operations:
+      - getPreviewContext
+  - name: CompositionQueryService
+    operations:
+      - getMetadados
+      - getConfiguracaoLayout
+      - projectMetadata
+  - name: CompositionErasureService
+    operations:
+      - purge
+
+inbound_ports:
+  - GetMetadadosUseCase
+  - GetConfiguracaoLayoutUseCase
+  - ProjectMetadataPort
+  - CompositionErasurePort
+
+outbound_ports:
+  - ManuscriptContentPort
+  - FileStoragePort
+
+consumed_events: []
+
+events:
+  published:
+    - cordele.comp.event.MetadataUpdated
+    - cordele.comp.event.LayoutUpdated

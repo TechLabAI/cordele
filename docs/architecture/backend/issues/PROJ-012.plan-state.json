@@ -1,0 +1,43 @@
+{
+  "issue": "PROJ-012",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:12:28",
+  "checklist": {
+    "total": 7,
+    "done": 1,
+    "partial": 0,
+    "missing": 6,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PROJ.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [
+      "`src/modules/proj/proj.controller.ts` — wire `GET /projetos/:projetoId/publicacoes` (update PROJ-001 stub); 200 with `PublicacaoHistoryItem[]`"
+    ],
+    "partial": [],
+    "notStarted": [
+      "`src/modules/proj/use-cases/get-publication-history.use-case.ts` — validates projetoId exists + belongs to active empresa (repository lookup); calls `PublicationHistoryPort.history(projetoId)`; enforces `arquivoUrl=null` for `erros_criticos|pendente` statuses; returns `PublicacaoHistoryItem[]` ordered by `criadoEm DESC`",
+      "`src/modules/proj/use-cases/get-publication-history.use-case.spec.ts` — unknown projetoId → 404; known projetoId → full list returned; `erros_criticos` item has `arquivoUrl=null`",
+      "Returns `PublicacaoHistoryItem[]` ordered by `criadoEm DESC`",
+      "Items with `epubcheckStatus in {erros_criticos, pendente}` have `arquivoUrl=null`",
+      "Cross-tenant or non-existent projetoId returns 404",
+      "`pnpm test` on use case spec exits 0"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "PROJ-008",
+      "PROJ-009"
+    ],
+    "notes": [
+      "- PROJ-009 (precede — PublicationHistoryPort stub)"
+    ]
+  },
+  "suggestedPlanType": "CONTINUACAO",
+  "needsAgentConfirm": true
+}

@@ -1,0 +1,98 @@
+{
+  "issue": "PROJ-INT-006",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:10:49",
+  "checklist": {
+    "total": 7,
+    "done": 0,
+    "partial": 1,
+    "missing": 6,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/infrastructure/proj/erasure/publication-erasure.adapter.ts` — implements `PublicationErasurePort`; calls PUB's `PublicacaoErasurePort.purgeByProjeto(projetoId)` (PUB deletes rows + storage artifacts internally); idempotent; on PUB unavailability: rethrows",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/proj/erasure/publication-erasure.adapter.ts"
+      },
+      {
+        "text": "`src/infrastructure/proj/erasure/publication-erasure.adapter.spec.ts` — PUB port purges; PUB port no-ops on empty; PUB port throws → rethrows",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/proj/erasure/publication-erasure.adapter.spec.ts"
+      },
+      {
+        "text": "`src/modules/proj/proj.module.ts` — register real adapter under `PUBLICATION_ERASURE_PORT` when PUB is scaffolded",
+        "state": "PARTIAL",
+        "evidence": "arquivo presente porem stub: src/modules/proj/proj.module.ts"
+      },
+      {
+        "text": "`purge(projetoId)` calls PUB's purge port once",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`purge(projetoId)` for a project with no publications completes without error (idempotent)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "PUB port failure: adapter rethrows; PROJ-016 aborts and leaves `projeto_editorial` intact",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm test` on adapter spec exits 0",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "skip",
+    "e2e": "skip"
+  },
+  "score": {
+    "total": 20,
+    "provisional": true,
+    "range": [
+      20,
+      30
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 20,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 0,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

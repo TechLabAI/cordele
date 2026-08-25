@@ -1,0 +1,108 @@
+{
+  "issue": "PROJ-013",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:10:42",
+  "checklist": {
+    "total": 9,
+    "done": 1,
+    "partial": 0,
+    "missing": 8,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/proj/use-cases/get-signed-download-url.use-case.ts` — validates `publicacaoId` belongs to `projetoId` and active empresa (via `PublicationHistoryPort.history(projetoId)` or a single-item fetch); checks `epubcheckStatus`; if `erros_criticos|pendente` throws `ArtifactNotAvailableError`; calls `PublicationHistoryPort.signedDownloadUrl(publicacaoId)`; returns `{ publicacaoId, arquivoUrl, expiresAt }`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/proj/use-cases/get-signed-download-url.use-case.ts"
+      },
+      {
+        "text": "`src/domain/proj/errors/artifact-not-available.error.ts` — extends `DomainError`; carries `publicacaoId`, `epubcheckStatus`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/domain/proj/errors/artifact-not-available.error.ts"
+      },
+      {
+        "text": "`src/modules/proj/use-cases/get-signed-download-url.use-case.spec.ts` — valid publication returns signed URL; `erros_criticos` returns `ArtifactNotAvailableError`; cross-tenant publicacaoId returns 404",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/proj/use-cases/get-signed-download-url.use-case.spec.ts"
+      },
+      {
+        "text": "`src/modules/proj/proj.controller.ts` — wire `GET /projetos/:projetoId/publicacoes/:publicacaoId/download` (update PROJ-001 stub); map `ArtifactNotAvailableError` → 409 `urn:cordele:proj:artifact-not-available`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/proj.controller.ts"
+      },
+      {
+        "text": "Returns `{ publicacaoId, arquivoUrl, expiresAt }` for `valido|avisos` publications",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "409 `urn:cordele:proj:artifact-not-available` for `erros_criticos|pendente` publications",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "404 when `publicacaoId` does not belong to `projetoId` or active empresa",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "PROJ never proxies bytes — the signed URL is opened by the SPA directly (no streaming in controller)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm test` on use case spec exits 0",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "skip",
+    "e2e": "skip"
+  },
+  "score": {
+    "total": 22,
+    "provisional": true,
+    "range": [
+      22,
+      32
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 19,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 3,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 3/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

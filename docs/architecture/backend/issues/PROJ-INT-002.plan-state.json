@@ -1,0 +1,40 @@
+{
+  "issue": "PROJ-INT-002",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:12:29",
+  "checklist": {
+    "total": 7,
+    "done": 0,
+    "partial": 1,
+    "missing": 6,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PROJ.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [],
+    "partial": [
+      "`src/modules/proj/proj.module.ts` — env-flag switch to register real adapter under `PROJECT_METADATA_PORT`"
+    ],
+    "notStarted": [
+      "`src/infrastructure/proj/read/project-metadata.adapter.ts` — implements `ProjectMetadataPort`; calls COMP's exported `MetadataQueryPort.metadataByProjetoIds(projetoIds)` in one call; maps to `Map<projetoId, { autor? }>`; on error: returns empty Map",
+      "`src/infrastructure/proj/read/project-metadata.adapter.spec.ts` — COMP port returns data; adapter maps correctly; COMP port throws → empty Map returned",
+      "`metadata(projetoIds)` makes exactly 1 call to COMP's query port",
+      "`autor=undefined` for projects with no COMP metadata (not an error)",
+      "COMP unavailability returns empty `Map` — no rethrow",
+      "`pnpm test` on adapter spec exits 0"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "PROJ-009"
+    ],
+    "notes": []
+  },
+  "suggestedPlanType": "INCREMENTAL",
+  "needsAgentConfirm": true
+}

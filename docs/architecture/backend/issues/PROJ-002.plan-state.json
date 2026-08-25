@@ -1,0 +1,42 @@
+{
+  "issue": "PROJ-002",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:12:27",
+  "checklist": {
+    "total": 10,
+    "done": 0,
+    "partial": 0,
+    "missing": 10,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PROJ.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [],
+    "partial": [],
+    "notStarted": [
+      "`src/domain/proj/value-objects/project-status.vo.ts` — enum `ProjetoStatus { rascunho, em_composicao, publicado, com_erros }`; static `advanceTo(current, target): { newStatus, changed }` (validates legal table, idempotent no-op returns `changed=false`); static `reopen(current): { newStatus, changed }` (validates `publicado|com_erros → em_composicao`, idempotent on `em_composicao`, rejects `rascunho`); throws `IllegalStatusTransitionError` on illegal transitions",
+      "`src/domain/proj/errors/illegal-status-transition.error.ts` — extends `DomainError`; carries `from`, `to`, `reason`",
+      "`src/domain/proj/value-objects/project-status.vo.spec.ts` — unit tests for every edge in the legal table (7 forward/lateral transitions + 2 reopen edges + all rejection cases + idempotent no-ops)",
+      "All 7 legal transitions in api-contract §7 pass without throwing",
+      "`advanceTo` with `targetStatus === currentStatus` returns `changed=false` without throwing",
+      "`advanceTo(em_composicao, em_composicao)` returns `changed=false` (IMP idempotency rule)",
+      "`advanceTo(rascunho, publicado)` throws `IllegalStatusTransitionError`",
+      "`reopen(rascunho)` throws `IllegalStatusTransitionError`",
+      "`reopen(publicado)` returns `{ newStatus: em_composicao, changed: true }`",
+      "`pnpm test src/domain/proj/value-objects/project-status.vo.spec.ts` exits 0"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "PROJ-001"
+    ],
+    "notes": []
+  },
+  "suggestedPlanType": "INCREMENTAL",
+  "needsAgentConfirm": true
+}

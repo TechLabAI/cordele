@@ -1,0 +1,41 @@
+{
+  "issue": "PROJ-INT-006",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:12:30",
+  "checklist": {
+    "total": 7,
+    "done": 0,
+    "partial": 1,
+    "missing": 6,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PROJ.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [],
+    "partial": [
+      "`src/modules/proj/proj.module.ts` — register real adapter under `PUBLICATION_ERASURE_PORT` when PUB is scaffolded"
+    ],
+    "notStarted": [
+      "`src/infrastructure/proj/erasure/publication-erasure.adapter.ts` — implements `PublicationErasurePort`; calls PUB's `PublicacaoErasurePort.purgeByProjeto(projetoId)` (PUB deletes rows + storage artifacts internally); idempotent; on PUB unavailability: rethrows",
+      "`src/infrastructure/proj/erasure/publication-erasure.adapter.spec.ts` — PUB port purges; PUB port no-ops on empty; PUB port throws → rethrows",
+      "`purge(projetoId)` calls PUB's purge port once",
+      "`purge(projetoId)` for a project with no publications completes without error (idempotent)",
+      "PUB port failure: adapter rethrows; PROJ-016 aborts and leaves `projeto_editorial` intact",
+      "`pnpm test` on adapter spec exits 0"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "PROJ-015",
+      "PROJ-016"
+    ],
+    "notes": []
+  },
+  "suggestedPlanType": "INCREMENTAL",
+  "needsAgentConfirm": true
+}

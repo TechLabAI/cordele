@@ -1,0 +1,78 @@
+@startuml comp-service-c4-component
+' C4 Component — hexagonal layers of the COMP NestJS module (node: modules/comp + domain + infrastructure)
+title Cordelê — COMP (Composição) — Components (hexagonal, node)
+
+package "src/modules/comp (application)" {
+  [comp.controller.ts] as Ctrl
+  [update-metadados.service.ts] as UpdMeta
+  [upload-cover.service.ts] as UpCover
+  [update-layout.service.ts] as UpdLayout
+  [layout-preview.service.ts] as Preview
+  [get-metadados.service.ts (inbound export)] as GetMeta
+  [get-layout.service.ts (inbound export)] as GetLayout
+  [composition-erasure.service.ts (inbound export)] as Erase
+}
+
+package "src/domain (pure)" {
+  [metadados.entity.ts] as Meta
+  [configuracao-layout.entity.ts] as Layout
+  [layout-override.ts] as Override
+  [idioma.vo.ts] as IdiomaVO
+  [alinhamento.vo.ts] as AlinhaVO
+  [metadados.repository.interface.ts] as MetaRepo
+  [configuracao-layout.repository.interface.ts] as LayoutRepo
+  [manuscript-content.port.ts (outbound, read-only)] as ManPort
+  [file-storage.port.ts (outbound)] as FilePort
+}
+
+package "src/infrastructure" {
+  [persistence/metadados.prisma.repository.ts] as MetaAdp
+  [persistence/configuracao-layout.prisma.repository.ts] as LayoutAdp
+  [read/manuscript-content.adapter.ts] as ManAdp
+  [storage/file-storage.adapter.ts] as FileAdp
+  [events/nest-event-emitter.ts] as Events
+}
+
+Ctrl --> UpdMeta
+Ctrl --> UpCover
+Ctrl --> UpdLayout
+Ctrl --> Preview
+
+UpdMeta --> Meta
+UpdMeta --> IdiomaVO
+UpdLayout --> Layout
+UpdLayout --> Override
+UpdLayout --> AlinhaVO
+UpCover --> FilePort
+
+UpdMeta --> MetaRepo
+GetMeta --> MetaRepo
+UpdLayout --> LayoutRepo
+GetLayout --> LayoutRepo
+Erase --> MetaRepo
+Erase --> LayoutRepo
+Erase --> FilePort
+
+UpdLayout --> ManPort : validate referenciaNo (read-only)
+Preview --> ManPort : read content tree (read-only)
+Preview --> LayoutRepo
+
+MetaRepo <|.. MetaAdp
+LayoutRepo <|.. LayoutAdp
+ManPort <|.. ManAdp
+FilePort <|.. FileAdp
+
+UpdMeta --> Events : MetadataUpdated
+UpCover --> Events : MetadataUpdated
+UpdLayout --> Events : LayoutUpdated
+
+note right of AlinhaVO
+  Domain imports nothing outward.
+  Application depends on domain.
+  Infrastructure implements domain ports,
+  wired in CompModule.providers by Symbol tokens
+  (METADADOS_REPOSITORY, CONFIGURACAO_LAYOUT_REPOSITORY,
+   MANUSCRIPT_CONTENT, FILE_STORAGE).
+  ManuscriptContentPort is READ-ONLY (ADR-002).
+end note
+@enduml

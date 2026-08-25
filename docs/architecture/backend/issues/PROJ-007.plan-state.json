@@ -1,0 +1,42 @@
+{
+  "issue": "PROJ-007",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:12:28",
+  "checklist": {
+    "total": 9,
+    "done": 1,
+    "partial": 0,
+    "missing": 8,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PROJ.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [
+      "`prisma/schema.prisma` — add `ProjetoEditorial` model (id, editoraId, nome, status, descricao, criadoEm, atualizadoEm) and `ProjetoStatusHistorico` model (id, projetoId FK ON DELETE CASCADE, statusDe, statusPara, solicitadoPor, principalId, motivo, criadoEm); enum `ProjetoStatus { rascunho em_composicao publicado com_erros }` and `SolicitadoPor { imp pub comp editor system }`; `@@index` decorators matching data-model.md indexes"
+    ],
+    "partial": [],
+    "notStarted": [
+      "`prisma/migrations/0001_create_projeto_editorial/migration.sql` — `CREATE TABLE projeto_editorial` with all CHECKs, indexes, comments from data-model.md §2.1",
+      "`prisma/migrations/0002_create_projeto_status_historico/migration.sql` — `CREATE TABLE projeto_status_historico` with FK cascade, CHECKs, indexes, comments from data-model.md §2.2",
+      "`prisma migrate dev` runs without error and creates both tables",
+      "`CHECK (status IN ('rascunho','em_composicao','publicado','com_erros'))` present on `projeto_editorial`",
+      "`CHECK (solicitado_por IN ('imp','pub','comp','editor','system'))` present on `projeto_status_historico`",
+      "FK `fk_psh_projeto` has `ON DELETE CASCADE` in migration SQL",
+      "Three indexes on `projeto_editorial` (`editora_id`, `status`, `atualizado_em DESC`) match data-model.md",
+      "`pnpm build` exits 0 with generated Prisma client"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "PROJ-001"
+    ],
+    "notes": []
+  },
+  "suggestedPlanType": "CONTINUACAO",
+  "needsAgentConfirm": true
+}

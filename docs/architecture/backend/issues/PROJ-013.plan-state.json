@@ -1,0 +1,45 @@
+{
+  "issue": "PROJ-013",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:12:28",
+  "checklist": {
+    "total": 9,
+    "done": 1,
+    "partial": 0,
+    "missing": 8,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PROJ.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [
+      "`src/modules/proj/proj.controller.ts` — wire `GET /projetos/:projetoId/publicacoes/:publicacaoId/download` (update PROJ-001 stub); map `ArtifactNotAvailableError` → 409 `urn:cordele:proj:artifact-not-available`"
+    ],
+    "partial": [],
+    "notStarted": [
+      "`src/modules/proj/use-cases/get-signed-download-url.use-case.ts` — validates `publicacaoId` belongs to `projetoId` and active empresa (via `PublicationHistoryPort.history(projetoId)` or a single-item fetch); checks `epubcheckStatus`; if `erros_criticos|pendente` throws `ArtifactNotAvailableError`; calls `PublicationHistoryPort.signedDownloadUrl(publicacaoId)`; returns `{ publicacaoId, arquivoUrl, expiresAt }`",
+      "`src/domain/proj/errors/artifact-not-available.error.ts` — extends `DomainError`; carries `publicacaoId`, `epubcheckStatus`",
+      "`src/modules/proj/use-cases/get-signed-download-url.use-case.spec.ts` — valid publication returns signed URL; `erros_criticos` returns `ArtifactNotAvailableError`; cross-tenant publicacaoId returns 404",
+      "Returns `{ publicacaoId, arquivoUrl, expiresAt }` for `valido|avisos` publications",
+      "409 `urn:cordele:proj:artifact-not-available` for `erros_criticos|pendente` publications",
+      "404 when `publicacaoId` does not belong to `projetoId` or active empresa",
+      "PROJ never proxies bytes — the signed URL is opened by the SPA directly (no streaming in controller)",
+      "`pnpm test` on use case spec exits 0"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "PROJ-009",
+      "PROJ-011"
+    ],
+    "notes": [
+      "- PROJ-009 (precede — PublicationHistoryPort stub with signedDownloadUrl)"
+    ]
+  },
+  "suggestedPlanType": "CONTINUACAO",
+  "needsAgentConfirm": true
+}

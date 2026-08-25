@@ -1,0 +1,98 @@
+{
+  "issue": "PROJ-012",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:10:42",
+  "checklist": {
+    "total": 7,
+    "done": 1,
+    "partial": 0,
+    "missing": 6,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/proj/use-cases/get-publication-history.use-case.ts` — validates projetoId exists + belongs to active empresa (repository lookup); calls `PublicationHistoryPort.history(projetoId)`; enforces `arquivoUrl=null` for `erros_criticos|pendente` statuses; returns `PublicacaoHistoryItem[]` ordered by `criadoEm DESC`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/proj/use-cases/get-publication-history.use-case.ts"
+      },
+      {
+        "text": "`src/modules/proj/use-cases/get-publication-history.use-case.spec.ts` — unknown projetoId → 404; known projetoId → full list returned; `erros_criticos` item has `arquivoUrl=null`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/proj/use-cases/get-publication-history.use-case.spec.ts"
+      },
+      {
+        "text": "`src/modules/proj/proj.controller.ts` — wire `GET /projetos/:projetoId/publicacoes` (update PROJ-001 stub); 200 with `PublicacaoHistoryItem[]`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/proj.controller.ts"
+      },
+      {
+        "text": "Returns `PublicacaoHistoryItem[]` ordered by `criadoEm DESC`",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Items with `epubcheckStatus in {erros_criticos, pendente}` have `arquivoUrl=null`",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Cross-tenant or non-existent projetoId returns 404",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm test` on use case spec exits 0",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "skip",
+    "e2e": "skip"
+  },
+  "score": {
+    "total": 24,
+    "provisional": true,
+    "range": [
+      24,
+      34
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 20,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 4,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 4/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

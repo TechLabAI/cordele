@@ -1,0 +1,42 @@
+@startuml pub-c4-context
+' C4 Level 1 — System Context — Publication (PUB) context of Cordelê
+title Cordelê — Publication (PUB) — System Context
+
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #24608A
+}
+
+actor "Coordenador(a) Editorial\n(Marina — Editora Aetós)" as Editor
+
+rectangle "Cordelê Platform\n(modular monolith)" as Monolith {
+  rectangle "Publication (PUB)\nbounded context" as PUB #E8F0FE
+  rectangle "Import (IMP)\ncontext" as IMP
+  rectangle "Composition (COMP)\ncontext" as COMP
+  rectangle "Projects (PROJ)\ncontext" as PROJ
+}
+
+rectangle "Angular Frontend\n(cordele-web)" as FE
+rectangle "BFF (NestJS)\nsingle entry point" as BFF
+database "PostgreSQL 16\nschema-per-tenant\n(cordele_global + emp_<slug>)" as PG
+rectangle "File Storage\n(local disk POC / S3 prod)" as Storage
+rectangle "epubcheck\n(W3C ePub validator, Java CLI/JAR)" as EpubCheck
+
+Editor --> FE : Gerar ePub (T07)\ndownload / histórico (T08)
+FE --> BFF : HTTPS (OAuth2 JWT)
+BFF --> PUB : POST /api/pub/.../publicacoes (202)\nGET .../status (poll), .../download
+PUB --> IMP : in-process read\n(ManuscriptContentPort)
+PUB --> COMP : in-process read\n(GetMetadados / GetConfiguracaoLayout)
+PUB --> PROJ : in-process call\n(advanceTo publicado|com_erros)
+PUB ..> EpubCheck : validate .epub\n(child process — authoritative verdict)
+PUB --> PG : persist Publicacao + validation_message\n(tenant schema)
+PUB --> Storage : store .epub / sign download URL\n(tenant-scoped keys)
+PROJ ..> PUB : PublicationHistoryPort / PublicationErasurePort\n(in-process)
+
+note bottom of PUB
+  No broker, no TechLab AI, no hub.
+  Async in-process build (gerando->validando->publicado|com_erros);
+  progress via bounded polling (no SSE). epubcheck is authoritative.
+  Never ships an artifact epubcheck has not accepted.
+end note
+@enduml

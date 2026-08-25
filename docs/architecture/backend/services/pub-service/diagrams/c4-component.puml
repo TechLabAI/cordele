@@ -1,0 +1,54 @@
+@startuml pub-c4-component
+' C4 Level 3 — Component — Publication (PUB) — hexagonal (node): modules/pub + domain + infrastructure
+title Cordelê — Publication (PUB) — Component (hexagonal-node)
+
+skinparam rectangle {
+  BackgroundColor #FFFFFF
+  BorderColor #24608A
+}
+
+rectangle "modules/pub (application)" as App #E8F0FE {
+  rectangle "PubController\n(POST publicacoes, GET status/list/download/stats)" as Ctrl
+  rectangle "GeneratePublicationUseCase\n(pre-flight > enqueue > 202)" as Gen
+  rectangle "PublicationBuildJob\n(gerando>validando>terminal, async)" as Job
+  rectangle "GetPublicationStatusUseCase\nListPublicationsUseCase\nGetPublicationStatsUseCase\nDownloadPublicationUseCase" as Reads
+  rectangle "dto/ (request/response)" as Dto
+}
+
+rectangle "domain (no @nestjs, no @prisma, no fs)" as Domain {
+  rectangle "Publicacao (aggregate root)\nPublicationStatus (transition table)\nValidationReport (verdict mapping D-Q)" as Agg
+  rectangle "EpubBuilder (domain service)\nOPF/spine/nav/XHTML/CSS assembly" as Builder
+  rectangle "Ports:\nPublicacaoRepositoryPort\nEpubValidationPort\nFileStoragePort\nManuscriptContentPort (IMP)\nCompositionReadPort (COMP)\nProjectStatusPort (PROJ)" as Ports
+}
+
+rectangle "infrastructure (adapters)" as Infra {
+  rectangle "PrismaPublicacaoRepository\n+ mappers" as Repo
+  rectangle "EpubcheckAdapter\n(child process JAR)" as EpubCk
+  rectangle "FileStorageAdapter\n(local-disk / S3)" as Store
+  rectangle "ManuscriptReadAdapter (->IMP)\nCompositionReadAdapter (->COMP)\nProjectStatusAdapter (->PROJ advanceTo)" as XCtx
+}
+
+rectangle "Exported inbound ports (in-process)\nPublicationHistoryPort\nPublicationErasurePort" as Exported
+
+Ctrl --> Gen
+Ctrl --> Reads
+Ctrl --> Dto
+Gen --> Job : enqueue
+Job --> Agg
+Job --> Builder
+Job --> Ports
+Reads --> Ports
+Repo ..|> Ports : implements PublicacaoRepositoryPort
+EpubCk ..|> Ports : implements EpubValidationPort
+Store ..|> Ports : implements FileStoragePort
+XCtx ..|> Ports : implements Manuscript/Composition/ProjectStatus ports
+Repo --> Agg : maps rows <-> aggregate
+Exported --> Repo : read-model / erasure over publicacao
+
+note bottom of Domain
+  Dependency rule points inward.
+  Build machine + verdict mapping live in the domain (PublicationStatus/ValidationReport);
+  no adapter re-encodes gerando/validando/publicado/com_erros or the epubcheck mapping.
+  epubcheck reached only through EpubValidationPort; artifact only through FileStoragePort.
+end note
+@enduml

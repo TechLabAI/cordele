@@ -1,0 +1,32 @@
+@startuml comp-service-c4-context
+' C4 Context — COMP (Composição) within the Cordelê modular monolith
+title Cordelê — COMP (Composição) — System Context
+
+actor "Coordenador(a) Editorial" as Editor
+
+rectangle "BFF (NestJS)\nsingle gateway — TECH-003" as BFF
+rectangle "COMP context\n(comp-service)\nmetadata + layout configuration" as COMP
+
+rectangle "IMP context\n(manuscritos — content tree)" as IMP
+rectangle "PROJ context\n(projeto_editorial — status)" as PROJ
+rectangle "PUB context\n(publicacoes / ePub build)" as PUB
+database "PostgreSQL 16\nschema-per-tenant" as PG
+cloud "FileStoragePort\n(cover binary — disk/S3)" as OBJ
+
+Editor --> BFF : metadata (T05) / layout + preview (T06) / cover upload
+BFF --> COMP : /api/comp (OAuth2 JWT, EmpresaContext)
+
+COMP --> IMP : ManuscriptContentPort (in-process, READ-ONLY)\ncontent tree for preview + override validation
+COMP --> PG : metadados + configuracao_layout + layout_override (tenant schema)
+COMP --> OBJ : cover binary (capaUrl reference, ADR-003)
+
+PUB --> COMP : GetMetadados / GetConfiguracaoLayout (in-process, at export)
+PROJ --> COMP : ProjectMetadataPort (author) ; CompositionErasurePort (LGPD) (in-process)
+
+note right of COMP
+  COMP never mutates the manuscript (ADR-002) and
+  never changes project status (project stays em_composicao).
+  No broker, no AI, no hub (ai.hasAi=false, messaging.enabled=false).
+  Structural page edits deferred (comp.structuralEdits=false, D-H).
+end note
+@enduml

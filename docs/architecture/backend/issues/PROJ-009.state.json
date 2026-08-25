@@ -1,0 +1,123 @@
+{
+  "issue": "PROJ-009",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:10:42",
+  "checklist": {
+    "total": 12,
+    "done": 0,
+    "partial": 1,
+    "missing": 11,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/domain/proj/ports/outbound/manuscript-summary.port.ts` — interface: `summaries(projetoIds: string[]): Promise<Map<string, ManuscriptSummary>>`; `ManuscriptSummary` shape from integration-contracts §2.1",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/domain/proj/ports/outbound/manuscript-summary.port.ts"
+      },
+      {
+        "text": "`src/domain/proj/ports/outbound/project-metadata.port.ts` — interface: `metadata(projetoIds: string[]): Promise<Map<string, { autor?: string }>>`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/domain/proj/ports/outbound/project-metadata.port.ts"
+      },
+      {
+        "text": "`src/domain/proj/ports/outbound/publication-history.port.ts` — interface: `history(projetoId: string): Promise<PublicacaoHistoryItem[]>`, `latest(projetoIds: string[]): Promise<Map<string, PublicacaoHistoryItem>>`, `signedDownloadUrl(publicacaoId: string): Promise<{ arquivoUrl: string; expiresAt: string }>`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/domain/proj/ports/outbound/publication-history.port.ts"
+      },
+      {
+        "text": "`src/infrastructure/stubs/proj/manuscript-summary.stub.ts` — returns empty `Map`, logs `WARN degraded:true port=ManuscriptSummaryPort`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/stubs/proj/manuscript-summary.stub.ts"
+      },
+      {
+        "text": "`src/infrastructure/stubs/proj/project-metadata.stub.ts` — returns empty `Map`, logs `WARN degraded:true port=ProjectMetadataPort`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/stubs/proj/project-metadata.stub.ts"
+      },
+      {
+        "text": "`src/infrastructure/stubs/proj/publication-history.stub.ts` — `history()` returns `[]`, `latest()` returns empty `Map`, `signedDownloadUrl()` throws `ArtifactNotAvailableError`; all log `WARN degraded:true port=PublicationHistoryPort`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/stubs/proj/publication-history.stub.ts"
+      },
+      {
+        "text": "`src/modules/proj/proj.module.ts` — register stubs under `MANUSCRIPT_SUMMARY_PORT`, `PROJECT_METADATA_PORT`, `PUBLICATION_HISTORY_PORT` DI tokens (update PROJ-001 deliverable; swappable via env-flag for real adapter from PROJ-INT-001..003)",
+        "state": "PARTIAL",
+        "evidence": "arquivo presente porem stub: src/modules/proj/proj.module.ts"
+      },
+      {
+        "text": "Stub adapters implement the port interfaces (TypeScript compiles with `implements` clause)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`summaries([])` and `latest([])` return empty `Map` (not error) — degraded path safe for zero projects",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Each stub logs `WARN degraded:true port=<PortName>` on every call (verifiable in unit test via logger spy)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Integration tests can override stubs via `overrideProvider` in NestJS testing module",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm build` exits 0 with all 3 stubs registered",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "skip",
+    "e2e": "skip"
+  },
+  "score": {
+    "total": 17,
+    "provisional": true,
+    "range": [
+      17,
+      27
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 17,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 0,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

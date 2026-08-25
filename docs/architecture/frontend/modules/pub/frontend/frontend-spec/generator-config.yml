@@ -1,0 +1,108 @@
+# generator-config.yml — PUB (Publicação) — Cordelê frontend
+# Consumed by the promote/scaffold phase (prototype-first, D-493): the promoted prototype screens
+# ExportacaoEValidacaoComponent (T07) and DownloadEHistoricoComponent (T08) are wired to the facades
+# below; the mock imports (shared/mock-data), the setInterval progress timer, the "Simular estado"
+# selector, AVISOS_MOCK and the hardcoded KPIs are stripped (R-proto). Progress becomes real bounded
+# polling (POST 202 + GET status, Retry-After — api-contract D-N); download becomes a short-TTL signed
+# URL opened directly (api-contract §4.4 / D-F), never a byte stream through the app.
+# Schema reference: libs/internal-nx-plugin/src/generator-config.schema.json (canonical field set).
+# Project conventions: scope @cordele, Nx module entry as library @cordele/pub (ADR-006), signals-first,
+# no NgRx. PUB is NOT home (deep-linked with projetoId). Reconciled with pub-service api-contract (M3):
+# nested project routes, bounded status poll, signed-URL download, live KPI stats.
+
+service: pub
+issue_prefix: PUB
+shell_route: /pub                      # module identity; screens deep-link under /projetos/:projetoId/...
+is_home: false                         # closing pipeline step, reached from COMP/PROJ (not a landing)
+npm_scope: "@cordele"
+app_name: cordele-web
+module_entry: "@cordele/pub"           # libs/pub/shell-entry (importPath), ADR-006
+prototype_first: true                  # D-493 — promote prototype screens, do not re-invent UI
+
+features:
+  - name: export
+    routes:
+      - /projetos/:projetoId/exportacao-e-validacao
+    components:
+      - ExportacaoEValidacaoComponent  # promoted from prototype screens/exportacao-e-validacao
+    facade: ExportFacade
+    prototype_source: apps/cordele-web/src/app/screens/exportacao-e-validacao/exportacao-e-validacao.component.ts
+  - name: history
+    routes:
+      - /projetos/:projetoId/download-e-historico
+    components:
+      - DownloadEHistoricoComponent    # promoted from prototype screens/download-e-historico
+    facade: HistoryFacade
+    prototype_source: apps/cordele-web/src/app/screens/download-e-historico/download-e-historico.component.ts
+
+data_access:
+  - resource: Publicacao
+    base_path: /api/pub/projetos/{projetoId}/publicacoes
+    operations: [create, list]         # create=POST §4.1 (202 new / 200 in-flight idempotent, D-R); list=§4.3 newest-first
+    poll: true                         # bounded status poll (POST 202 + GET .../status, Retry-After) — NO SSE, NO long-request (D-N)
+  - resource: PublicacaoStatus
+    base_path: /api/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/status
+    operations: [get]                  # §4.2 poll target; build status + epubcheck verdict + counts; Retry-After while non-terminal
+  - resource: PublicacaoDownload
+    base_path: /api/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/download
+    operations: [get]                  # §4.4 mints short-TTL signed URL {arquivoUrl, expiresAt}; client opens directly (D-F)
+  - resource: PublicationStats
+    base_path: /api/pub/projetos/{projetoId}/publicacoes/stats
+    operations: [get]                  # §4.5 live KPI projection (D-O); no separate analytics store
+
+backend_contract: ../../../../../backend/services/pub-service/contracts/api-contract.md
+
+state_management: signals
+
+guards:
+  - authGuard
+  - empresaGuard
+  - accessGuard('pub.export')
+  - accessGuard('pub.view')
+  - pubProjetoGuard
+  - pubStatusGuard
+
+permissions:
+  - pub.view                           # BE pub:read — status/list/stats/download-url
+  - pub.export                         # BE pub:write — trigger export
+  - pub.download                       # BE pub:read — download signed URL
+
+feature_flags:
+  - name: pub.rexport
+    default: on
+  - name: pub.pdfExport
+    default: off
+
+ui_libs_used:
+  - "@cordele/shared/ui-layout"
+  - "@cordele/shared/ui-feedback"
+  - "@cordele/shared/ui-theme"
+  - "@cordele/shared/access-http-base"
+  - "@cordele/shared/access-decision"
+  - "@cordele/shared/empresa-context"
+  - "@cordele/shared/auth-session"
+
+libs:
+  - path: libs/pub/shell-entry
+    tags: [scope:pub, type:app]
+  - path: libs/pub/access
+    tags: [scope:pub, type:domain]
+  - path: libs/pub/data-access
+    tags: [scope:pub, type:data-access]
+  - path: libs/pub/feature-export
+    tags: [scope:pub, type:feature]
+  - path: libs/pub/feature-history
+    tags: [scope:pub, type:feature]
+  - path: libs/pub/integration
+    tags: [scope:pub, type:domain]
+  - path: libs/pub/navigation
+    tags: [scope:pub, type:domain]
+  - path: libs/pub/ui
+    tags: [scope:pub, type:ui]
+
+extra_dependencies: []
+
+e2e:
+  runner: playwright
+  project: apps/pub-e2e
+  features_path: docs/architecture/frontend/modules/pub/frontend/e2e/

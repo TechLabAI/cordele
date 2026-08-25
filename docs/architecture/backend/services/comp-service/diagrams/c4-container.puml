@@ -1,0 +1,31 @@
+@startuml comp-service-c4-container
+' C4 Container — COMP module and its direct dependencies
+title Cordelê — COMP (Composição) — Containers
+
+rectangle "BFF (NestJS)" as BFF
+
+package "Cordelê modular monolith (single NestJS app)" {
+  rectangle "COMP module\n(comp)\ncontroller + use cases + domain + adapters" as COMP
+  rectangle "IMP module" as IMP
+  rectangle "PROJ module" as PROJ
+  rectangle "PUB module" as PUB
+}
+
+database "PostgreSQL 16\nemp_<slug> (tenant)\n+ cordele_global" as PG
+cloud "FileStoragePort\n(disk / S3)" as OBJ
+
+BFF --> COMP : HTTP /api/comp (JWT, X-Correlation-Id)
+
+COMP --> IMP : ManuscriptContentPort (DI, READ-ONLY)
+COMP --> PG  : Prisma (schema targeting via EmpresaContext)
+COMP --> OBJ : cover binary (put/delete)
+
+PUB  --> COMP : GetMetadadosUseCase / GetConfiguracaoLayoutUseCase (DI)
+PROJ --> COMP : ProjectMetadataPort / CompositionErasurePort (DI)
+
+note bottom of COMP
+  Two aggregates: Metadados + ConfiguracaoLayout (1:1 project, lazy defaults — D-M).
+  LayoutOverride references IMP nodes (read reference, never a write — ADR-002).
+  Layout bounds + honoured params live in domain value objects (api-contract §7).
+end note
+@enduml

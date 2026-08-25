@@ -1,0 +1,61 @@
+service: pub-service
+type: standard
+port: 3000
+
+domain:
+  aggregates:
+    - Publicacao
+  entities:
+    - ValidationMessage
+
+enums:
+  PublicacaoStatus:
+    - gerando
+    - validando
+    - publicado
+    - com_erros
+  EpubcheckStatus:
+    - valido
+    - avisos
+    - erros_criticos
+    - pendente
+  ValidationSeverity:
+    - error
+    - warning
+    - info
+
+application_services:
+  - name: GeneratePublicationService
+    operations:
+      - generate
+  - name: PublicationBuildJob
+    operations:
+      - run
+  - name: PublicationQueryService
+    operations:
+      - getStatus
+      - listByProjeto
+      - getStats
+      - downloadUrl
+  - name: PublicationHistoryService
+    operations:
+      - history
+      - latest
+      - signedDownloadUrl
+  - name: PublicationErasureService
+    operations:
+      - purge
+
+outbound_ports:
+  - EpubValidationPort
+  - FileStoragePort
+  - ManuscriptContentPort
+  - CompositionReadPort
+  - ProjectStatusPort
+
+consumed_events: []
+
+events:
+  published:
+    - PublicationSucceeded
+    - PublicationFailed

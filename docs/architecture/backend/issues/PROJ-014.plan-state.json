@@ -1,0 +1,44 @@
+{
+  "issue": "PROJ-014",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:12:29",
+  "checklist": {
+    "total": 10,
+    "done": 1,
+    "partial": 0,
+    "missing": 9,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PROJ.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [
+      "`src/modules/proj/proj.controller.ts` — apply `@UseGuards(JwtAuthGuard, ScopesGuard)` + `@Scopes(...)` on each route (update PROJ-001 deliverable)"
+    ],
+    "partial": [],
+    "notStarted": [
+      "`src/infrastructure/auth/jwt.guard.ts` — validates JWT from `Authorization: Bearer`; on invalid/missing token throws 401; populates `EmpresaContext` (slug + editoraId) from JWT claims; if the module does not already share a monolith-wide guard, reference the shared guard and annotate with `PROJ` scope binding",
+      "`src/infrastructure/auth/scopes.decorator.ts` + `src/infrastructure/auth/scopes.guard.ts` — `@Scopes('proj:read')` decorator + guard reads required scopes from metadata and validates against JWT `scope` claim",
+      "`src/infrastructure/context/empresa.context.ts` — `AsyncLocalStorage<EmpresaContext>` singleton; `EmpresaContext.getEditoraId()`, `EmpresaContext.getSlug()`, `EmpresaContext.run(store, fn)` for middleware wrapping",
+      "`src/modules/proj/proj.controller.spec.ts` — add 401/403 cases for missing/invalid token and wrong scope",
+      "Request without `Authorization` header returns 401 `urn:cordele:proj:unauthorized`",
+      "Request with valid JWT but missing `proj:delete` scope returns 403 `urn:cordele:proj:forbidden` on `DELETE /projetos/{id}`",
+      "`EmpresaContext.getEditoraId()` returns the empresaId from the JWT claim, not from request body/path",
+      "All PROJ endpoints unreachable without a valid JWT (integration test via supertest)",
+      "`pnpm test` on controller spec exits 0"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "PROJ-001",
+      "PROJ-008"
+    ],
+    "notes": []
+  },
+  "suggestedPlanType": "CONTINUACAO",
+  "needsAgentConfirm": true
+}

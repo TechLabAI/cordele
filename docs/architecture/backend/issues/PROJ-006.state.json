@@ -1,0 +1,103 @@
+{
+  "issue": "PROJ-006",
+  "layer": "be",
+  "computedAt": "2026-08-25T19:59:33",
+  "checklist": {
+    "total": 8,
+    "done": 7,
+    "partial": 0,
+    "missing": 1,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/proj/proj.module.ts` — update PROJ-001 deliverable: export all 4 use cases as providers under their DI tokens; mark them `exports` so the AppModule can make them available to other module DI contexts",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/proj.module.ts"
+      },
+      {
+        "text": "`src/domain/proj/ports/inbound/create-projeto-editorial.port.ts` — interface `create({ titulo: string }): Promise<{ projetoId: string }>`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/domain/proj/ports/inbound/create-projeto-editorial.port.ts"
+      },
+      {
+        "text": "`src/domain/proj/ports/inbound/projeto-editorial-lookup.port.ts` — interface `exists(projetoId: string): Promise<boolean>`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/domain/proj/ports/inbound/projeto-editorial-lookup.port.ts"
+      },
+      {
+        "text": "`src/infrastructure/proj/lookup/projeto-editorial-lookup.adapter.ts` — adapter calling `ProjetoEditorialRepository.existsByIdAndEmpresa(projetoId, empresaSlug)`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/proj/lookup/projeto-editorial-lookup.adapter.ts"
+      },
+      {
+        "text": "`ProjModule.exports` includes all 4 DI tokens: `CREATE_PROJETO_USE_CASE`, `PROJETO_EDITORIAL_LOOKUP`, `ADVANCE_PROJETO_STATUS_USE_CASE`, `REOPEN_PROJECT_USE_CASE`",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "IMP can inject `CREATE_PROJETO_USE_CASE` via `@Inject(CREATE_PROJETO_USE_CASE)` and call `create({ titulo })` returning `{ projetoId }`",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`ProjetoEditorialLookup.exists(projetoId)` returns `false` for a project of another empresa (cross-tenant safety)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm build` exits 0 with ProjModule exporting all 4 providers",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "pass",
+    "e2e": "skip"
+  },
+  "score": {
+    "total": 76,
+    "provisional": true,
+    "range": [
+      76,
+      86
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 30,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 26,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 20,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Consistente",
+    "statusTag": "NEAR-CLOSED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 26/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

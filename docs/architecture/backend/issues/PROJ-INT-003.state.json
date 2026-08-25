@@ -1,0 +1,103 @@
+{
+  "issue": "PROJ-INT-003",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:10:49",
+  "checklist": {
+    "total": 8,
+    "done": 0,
+    "partial": 1,
+    "missing": 7,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/infrastructure/proj/read/publication-history.adapter.ts` — implements `PublicationHistoryPort`; `history(projetoId)`: calls PUB's in-process `PublicacaoQueryPort.historyByProjeto(projetoId)`, maps to `PublicacaoHistoryItem[]`; `latest(projetoIds)`: calls PUB's `PublicacaoQueryPort.latestByProjetoIds(projetoIds)` in one batched call; `signedDownloadUrl(publicacaoId)`: delegates to PUB's `FileStoragePort.signedUrl(publicacaoId, ttlSeconds)`, wraps in `{ arquivoUrl, expiresAt }`; on PUB unavailability: `history()` returns `[]`, `latest()` returns empty Map, `signedDownloadUrl()` rethrows (caller handles as 502)",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/proj/read/publication-history.adapter.ts"
+      },
+      {
+        "text": "`src/infrastructure/proj/read/publication-history.adapter.spec.ts` — `history()` maps correctly; `latest()` makes 1 call; `signedDownloadUrl()` delegates to PUB's storage port; PUB unavailable → `history()` returns `[]`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/proj/read/publication-history.adapter.spec.ts"
+      },
+      {
+        "text": "`src/modules/proj/proj.module.ts` — env-flag switch to register real adapter under `PUBLICATION_HISTORY_PORT`",
+        "state": "PARTIAL",
+        "evidence": "arquivo presente porem stub: src/modules/proj/proj.module.ts"
+      },
+      {
+        "text": "`latest(projetoIds)` makes exactly 1 call to PUB's query port (batching invariant)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`signedDownloadUrl(publicacaoId)` returns `{ arquivoUrl: string, expiresAt: string }` from PUB's signed URL — PROJ never calls storage directly",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "PUB unavailability: `history()` returns `[]`, `latest()` returns empty Map (callers degrade gracefully)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`signedDownloadUrl` for a non-downloadable publication: the port itself does not 409; the use case (PROJ-013) enforces the 409 based on `epubcheckStatus`",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm test` on adapter spec exits 0",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "skip",
+    "e2e": "skip"
+  },
+  "score": {
+    "total": 20,
+    "provisional": true,
+    "range": [
+      20,
+      30
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 20,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 0,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

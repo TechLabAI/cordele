@@ -1,0 +1,43 @@
+{
+  "issue": "PROJ-004",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:12:27",
+  "checklist": {
+    "total": 9,
+    "done": 0,
+    "partial": 0,
+    "missing": 9,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PROJ.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [],
+    "partial": [],
+    "notStarted": [
+      "`src/modules/proj/use-cases/advance-projeto-status.use-case.ts` — loads `ProjetoEditorial` within caller's `EmpresaContext`, delegates to `ProjectStatus.advanceTo`, on actual change: updates row + appends `projeto_status_historico` (same transaction) + emits `ProjectStatusChanged`; on no-op: returns `{ changed: false }` immediately",
+      "`src/modules/proj/use-cases/advance-projeto-status.use-case.spec.ts` — legal transition applies + emits; idempotent no-op returns `changed=false` without event; illegal transition surfaces `IllegalStatusTransitionError`; concurrent calls on same project are safe (Prisma optimistic lock or serializable read)",
+      "`src/domain/proj/events/project-status-changed.event.ts` — payload: `{ eventId, occurredAt, projetoId, editoraId, statusDe, statusPara, solicitadoPor }`",
+      "Legal transition applies status, appends `projeto_status_historico` row in same DB transaction",
+      "`ProjectStatusChanged` emitted with unique `eventId`; NOT emitted on idempotent no-op",
+      "`advanceTo(em_composicao, em_composicao)` returns `{ changed: false }` — IMP idempotency (SPEC-02)",
+      "`advanceTo(rascunho, publicado)` throws `IllegalStatusTransitionError`",
+      "Concurrent `advanceTo` for same `projetoId` serializes safely (no double-emit)",
+      "`pnpm test` on use case spec exits 0"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "PROJ-002",
+      "PROJ-007",
+      "PROJ-008"
+    ],
+    "notes": []
+  },
+  "suggestedPlanType": "INCREMENTAL",
+  "needsAgentConfirm": true
+}

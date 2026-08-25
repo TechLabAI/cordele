@@ -1,0 +1,98 @@
+{
+  "issue": "PROJ-INT-004",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:10:49",
+  "checklist": {
+    "total": 7,
+    "done": 0,
+    "partial": 1,
+    "missing": 6,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/infrastructure/proj/erasure/manuscript-erasure.adapter.ts` — implements `ManuscriptErasurePort`; calls IMP's exported `ManuscritoErasurePort.purgeByProjeto(projetoId)`; idempotent (IMP port returns cleanly when no manuscripts exist); on IMP unavailability: rethrows (caller in PROJ-016 aborts and returns 502)",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/proj/erasure/manuscript-erasure.adapter.ts"
+      },
+      {
+        "text": "`src/infrastructure/proj/erasure/manuscript-erasure.adapter.spec.ts` — IMP port purges; IMP port no-ops on empty; IMP port throws → adapter rethrows",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/proj/erasure/manuscript-erasure.adapter.spec.ts"
+      },
+      {
+        "text": "`src/modules/proj/proj.module.ts` — register real adapter under `MANUSCRIPT_ERASURE_PORT` when IMP is scaffolded",
+        "state": "PARTIAL",
+        "evidence": "arquivo presente porem stub: src/modules/proj/proj.module.ts"
+      },
+      {
+        "text": "`purge(projetoId)` calls IMP's purge port exactly once",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`purge(projetoId)` for a project with no manuscripts completes without error (idempotent)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "IMP port unavailability: adapter rethrows; PROJ-016 catches and returns 502",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm test` on adapter spec exits 0",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "skip",
+    "e2e": "skip"
+  },
+  "score": {
+    "total": 20,
+    "provisional": true,
+    "range": [
+      20,
+      30
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 20,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 0,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

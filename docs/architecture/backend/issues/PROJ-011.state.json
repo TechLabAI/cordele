@@ -1,0 +1,98 @@
+{
+  "issue": "PROJ-011",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:10:42",
+  "checklist": {
+    "total": 7,
+    "done": 1,
+    "partial": 0,
+    "missing": 6,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/proj/use-cases/get-projeto-detail.use-case.ts` — loads project via repository (returns 404 if absent or cross-tenant); calls 3 ports individually; assembles `ProjetoDetail`; each port wrapped in try/catch; `degraded=true` if any port fails; `manuscriptSummary=null` when IMP unavailable, `publicationHistory=[]` when PUB unavailable, `metadata={autor:null}` when COMP unavailable",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/proj/use-cases/get-projeto-detail.use-case.ts"
+      },
+      {
+        "text": "`src/modules/proj/use-cases/get-projeto-detail.use-case.spec.ts` — full compose; PUB unavailable → `publicationHistory=[]`, `degraded=true`; unknown projetoId → 404; cross-tenant projetoId → 404",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/proj/use-cases/get-projeto-detail.use-case.spec.ts"
+      },
+      {
+        "text": "`src/modules/proj/proj.controller.ts` — wire `GET /projetos/:projetoId` to use case (update PROJ-001 stub); 404 on not found",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/proj.controller.ts"
+      },
+      {
+        "text": "`GET /projetos/{id}` returns `ProjetoDetail` with `status` from PROJ own row always present",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "When PUB unavailable, returns `publicationHistory=[]` and `degraded=true` — no 500",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Cross-tenant projetoId returns 404 (never leaks cross-tenant existence)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm test` on use case spec exits 0",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "skip",
+    "e2e": "skip"
+  },
+  "score": {
+    "total": 24,
+    "provisional": true,
+    "range": [
+      24,
+      34
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 20,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 4,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 4/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

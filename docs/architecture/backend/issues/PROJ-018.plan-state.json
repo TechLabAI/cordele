@@ -1,0 +1,47 @@
+{
+  "issue": "PROJ-018",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:12:29",
+  "checklist": {
+    "total": 12,
+    "done": 0,
+    "partial": 0,
+    "missing": 12,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PROJ.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [],
+    "partial": [],
+    "notStarted": [
+      "`test/proj/step-definitions/project-api-surface.steps.ts` — step defs for `project-api-surface-guard.feature`",
+      "`test/proj/step-definitions/project-lifecycle.steps.ts` — step defs for `project-lifecycle-invariants.feature`; uses `ProjectStatus` VO directly for white-box assertions",
+      "`test/proj/step-definitions/project-events.steps.ts` — step defs for `project-event-integrity.feature`; uses NestJS EventEmitter spy",
+      "`test/proj/step-definitions/project-observability.steps.ts` — step defs for `project-observability-health.feature`; uses logger spy for `WARN degraded:true` assertions",
+      "`test/proj/step-definitions/project-status-transitions.steps.ts` — step defs for `project-status-authority-transitions.feature`",
+      "`test/proj/step-definitions/project-library.steps.ts` — step defs for `project-library-and-history-read.feature`; asserts port mock call count = 1 for batched reads (SPEC-10 cls 3)",
+      "`test/proj/step-definitions/project-deletion.steps.ts` — step defs for LGPD erasure feature; verifies purge order via spy on port mocks",
+      "`test/proj/cucumber.config.ts` — Cucumber runner configuration pointing to all 8 feature files and the step definition directory",
+      "`pnpm test` Cucumber runner with all 8 feature files exits 0 (scenarios may be `pending` for unimplemented steps but must not error)",
+      "Logger spy correctly captures `WARN degraded:true port=<PortName>` (SPEC-07 cls 3/5 scenarios pass)",
+      "Port mock call count assertion enforced: `ManuscriptSummaryPort.summaries` called exactly once for a library of N projects (SPEC-10 cls 3)",
+      "`ProjectStatusChanged` event spy asserted in event-integrity scenarios"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "PROJ-010",
+      "PROJ-011",
+      "PROJ-016",
+      "PROJ-017"
+    ],
+    "notes": []
+  },
+  "suggestedPlanType": "INCREMENTAL",
+  "needsAgentConfirm": true
+}

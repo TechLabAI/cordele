@@ -1,0 +1,45 @@
+{
+  "issue": "PROJ-009",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:12:28",
+  "checklist": {
+    "total": 12,
+    "done": 0,
+    "partial": 1,
+    "missing": 11,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PROJ.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [],
+    "partial": [
+      "`src/modules/proj/proj.module.ts` — register stubs under `MANUSCRIPT_SUMMARY_PORT`, `PROJECT_METADATA_PORT`, `PUBLICATION_HISTORY_PORT` DI tokens (update PROJ-001 deliverable; swappable via env-flag for real adapter from PROJ-INT-001..003)"
+    ],
+    "notStarted": [
+      "`src/domain/proj/ports/outbound/manuscript-summary.port.ts` — interface: `summaries(projetoIds: string[]): Promise<Map<string, ManuscriptSummary>>`; `ManuscriptSummary` shape from integration-contracts §2.1",
+      "`src/domain/proj/ports/outbound/project-metadata.port.ts` — interface: `metadata(projetoIds: string[]): Promise<Map<string, { autor?: string }>>`",
+      "`src/domain/proj/ports/outbound/publication-history.port.ts` — interface: `history(projetoId: string): Promise<PublicacaoHistoryItem[]>`, `latest(projetoIds: string[]): Promise<Map<string, PublicacaoHistoryItem>>`, `signedDownloadUrl(publicacaoId: string): Promise<{ arquivoUrl: string; expiresAt: string }>`",
+      "`src/infrastructure/stubs/proj/manuscript-summary.stub.ts` — returns empty `Map`, logs `WARN degraded:true port=ManuscriptSummaryPort`",
+      "`src/infrastructure/stubs/proj/project-metadata.stub.ts` — returns empty `Map`, logs `WARN degraded:true port=ProjectMetadataPort`",
+      "`src/infrastructure/stubs/proj/publication-history.stub.ts` — `history()` returns `[]`, `latest()` returns empty `Map`, `signedDownloadUrl()` throws `ArtifactNotAvailableError`; all log `WARN degraded:true port=PublicationHistoryPort`",
+      "Stub adapters implement the port interfaces (TypeScript compiles with `implements` clause)",
+      "`summaries([])` and `latest([])` return empty `Map` (not error) — degraded path safe for zero projects",
+      "Each stub logs `WARN degraded:true port=<PortName>` on every call (verifiable in unit test via logger spy)",
+      "Integration tests can override stubs via `overrideProvider` in NestJS testing module",
+      "`pnpm build` exits 0 with all 3 stubs registered"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "PROJ-001"
+    ],
+    "notes": []
+  },
+  "suggestedPlanType": "INCREMENTAL",
+  "needsAgentConfirm": true
+}

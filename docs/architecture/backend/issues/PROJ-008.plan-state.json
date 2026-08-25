@@ -1,0 +1,41 @@
+{
+  "issue": "PROJ-008",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:12:28",
+  "checklist": {
+    "total": 8,
+    "done": 0,
+    "partial": 0,
+    "missing": 8,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PROJ.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [],
+    "partial": [],
+    "notStarted": [
+      "`src/domain/proj/ports/outbound/projeto-editorial-repository.port.ts` — interface: `create(data): Promise<ProjetoEditorial>`, `findById(id): Promise<ProjetoEditorial | null>`, `findAll(filter): Promise<ProjetoEditorial[]>`, `updateStatus(id, newStatus, historico): Promise<void>` (transactional), `delete(id): Promise<void>`, `existsByIdAndEmpresa(id, empresaSlug): Promise<boolean>`",
+      "`src/infrastructure/persistence/proj/projeto-editorial.repository.ts` — Prisma adapter; resolves tenant schema slug from `EmpresaContext.getSlug()`; all queries filter by `editoraId` (from `EmpresaContext.getEditoraId()`); `updateStatus` is a Prisma `$transaction` updating the row + inserting `projeto_status_historico`",
+      "`src/infrastructure/persistence/proj/projeto-editorial.repository.spec.ts` — unit tests with Prisma mock: create, findById (own empresa), findById (other empresa returns null), updateStatus writes both rows in transaction",
+      "`findById` returns `null` for a project belonging to a different empresa (cross-tenant isolation)",
+      "`findAll` returns projects ordered by `atualizado_em DESC` (index `idx_projeto_editorial_atualizado_em`)",
+      "`updateStatus` writes the `projeto_editorial` update and `projeto_status_historico` insert in a single Prisma `$transaction`",
+      "Tenant schema slug resolved from `EmpresaContext`, never from caller arguments",
+      "`pnpm test` on repository spec exits 0"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "PROJ-007",
+      "PROJ-014"
+    ],
+    "notes": []
+  },
+  "suggestedPlanType": "INCREMENTAL",
+  "needsAgentConfirm": true
+}

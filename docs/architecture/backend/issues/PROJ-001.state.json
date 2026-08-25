@@ -1,0 +1,113 @@
+{
+  "issue": "PROJ-001",
+  "layer": "be",
+  "computedAt": "2026-08-25T19:24:46",
+  "checklist": {
+    "total": 10,
+    "done": 10,
+    "partial": 0,
+    "missing": 0,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/proj/proj.module.ts` — registers ProjController; declares DI tokens for 4 use cases (create, advance, reopen, library) + 6 outbound ports; applies `EmpresaContext` middleware",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/proj.module.ts"
+      },
+      {
+        "text": "`src/modules/proj/proj.controller.ts` — 7 route handlers under `/api/proj`: `POST /projetos`, `GET /projetos`, `GET /projetos/:projetoId`, `GET /projetos/:projetoId/publicacoes`, `GET /projetos/:projetoId/publicacoes/:publicacaoId/download`, `DELETE /projetos/:projetoId`, `POST /projetos/:projetoId/reopen`; stub responses (empty 200/201/204)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/proj.controller.ts"
+      },
+      {
+        "text": "`src/modules/proj/proj.controller.spec.ts` — unit tests verifying all 7 route handlers are registered and return the stub HTTP status",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/proj.controller.spec.ts"
+      },
+      {
+        "text": "`src/modules/proj/dto/create-projeto.dto.ts` — `{ nome: string; descricao?: string }`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/dto/create-projeto.dto.ts"
+      },
+      {
+        "text": "`src/modules/proj/dto/projeto-detail.dto.ts`, `projeto-card.dto.ts`, `publicacao-history-item.dto.ts`, `signed-download-url.dto.ts` — response shape stubs matching api-contract §6",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/dto/projeto-detail.dto.ts, projeto-card.dto.ts, publicacao-history-item.dto.ts, signed-download-url.dto.ts"
+      },
+      {
+        "text": "`pnpm build` exits 0 with ProjModule present",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "All 7 route handlers exist in ProjController (verified by controller unit test listing route metadata)",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`@nestjs/swagger` decorators present on each route for OpenAPI generation",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "DI tokens declared: `CREATE_PROJETO_USE_CASE`, `ADVANCE_PROJETO_STATUS_USE_CASE`, `REOPEN_PROJECT_USE_CASE`, `GET_PROJETO_LIBRARY_USE_CASE`, `GET_PROJETO_DETAIL_USE_CASE`, `GET_PUBLICATION_HISTORY_USE_CASE`, `GET_SIGNED_DOWNLOAD_URL_USE_CASE`, `DELETE_PROJETO_USE_CASE`, `MANUSCRIPT_SUMMARY_PORT`, `PROJECT_METADATA_PORT`, `PUBLICATION_HISTORY_PORT`, `PUBLICATION_ERASURE_PORT`, `COMPOSITION_ERASURE_PORT`, `MANUSCRIPT_ERASURE_PORT`",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm test` on the controller spec exits 0",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "pass",
+    "e2e": "skip"
+  },
+  "score": {
+    "total": 80,
+    "provisional": true,
+    "range": [
+      80,
+      90
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 30,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 30,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 20,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Maduro",
+    "statusTag": "NEAR-CLOSED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

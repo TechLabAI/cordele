@@ -1,0 +1,113 @@
+{
+  "issue": "PROJ-016",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:10:43",
+  "checklist": {
+    "total": 10,
+    "done": 1,
+    "partial": 0,
+    "missing": 9,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/proj/use-cases/delete-projeto-editorial.use-case.ts` — validates projetoId exists in active empresa (404 otherwise); calls purge ports in order 1→3; on any port failure: catches error, throws `ErasureFailedError` (no identity deletion); on all ports OK: deletes `projeto_editorial` row via repository; emits `ProjectDeleted` after commit",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/proj/use-cases/delete-projeto-editorial.use-case.ts"
+      },
+      {
+        "text": "`src/domain/proj/errors/erasure-failed.error.ts` — carries `failedPort`, `projetoId`, `cause`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/domain/proj/errors/erasure-failed.error.ts"
+      },
+      {
+        "text": "`src/domain/proj/events/project-deleted.event.ts` — payload: `{ eventId, occurredAt, projetoId, editoraId }`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/domain/proj/events/project-deleted.event.ts"
+      },
+      {
+        "text": "`src/modules/proj/use-cases/delete-projeto-editorial.use-case.spec.ts` — full purge success → 204, `ProjectDeleted` emitted; PUB purge fails → 502, `projeto_editorial` NOT deleted, no event; IMP purge fails → 502, same; idempotent retry succeeds when all stubs are no-ops; unknown projetoId → 404",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/proj/use-cases/delete-projeto-editorial.use-case.spec.ts"
+      },
+      {
+        "text": "`src/modules/proj/proj.controller.ts` — wire `DELETE /projetos/:projetoId` (update PROJ-001 stub); map `ErasureFailedError` → 502; return 204 on success",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/proj.controller.ts"
+      },
+      {
+        "text": "Full purge: 204 returned; `projeto_editorial` row deleted; `ProjectDeleted` emitted",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "PUB purge failure: 502 `urn:cordele:proj:erasure-failed`; `projeto_editorial` row still exists (verified in spec by repository mock assertion)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Each purge step called exactly once per request in order: PUB → COMP → IMP → DB delete (verified by mock call order assertion in spec)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Retried deletion (stubs return no-op on missing data) completes without error (idempotent)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm test` on use case spec exits 0",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "skip",
+    "e2e": "skip"
+  },
+  "score": {
+    "total": 21,
+    "provisional": true,
+    "range": [
+      21,
+      31
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 18,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 3,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 3/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

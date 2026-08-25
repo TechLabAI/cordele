@@ -1,0 +1,103 @@
+# generator-config.yml — COMP (Composição) — Cordelê frontend
+# Consumed by the promote/scaffold phase (prototype-first, D-493): the promoted prototype screens
+# ConfiguracoesComponent (T05) and EditorDeLayoutPreviewComponent (T06) are wired to the facades below,
+# the mock imports (shared/mock-data) are stripped, and T06's structural toolbar (add/insert/remove page)
+# is removed — only image alignment remains (api-contract §0 D-H).
+# Schema reference: libs/internal-nx-plugin/src/generator-config.schema.json (canonical field set).
+# Project conventions: scope @cordele, Nx module entry as library @cordele/comp (ADR-006),
+# signals-first, no NgRx. COMP is NOT home (deep-linked with projetoId). Reconciled with comp-service
+# api-contract (M3): nested routes, single preview-context read, cover optional.
+
+service: comp
+issue_prefix: COMP
+shell_route: /comp                     # module identity; screens deep-link under /projetos/:projetoId/...
+is_home: false                         # mid-pipeline step, reached from PROJ/IMP (not a landing)
+npm_scope: "@cordele"
+app_name: cordele-web
+module_entry: "@cordele/comp"          # libs/comp/shell-entry (importPath), ADR-006
+prototype_first: true                  # D-493 — promote prototype screens, do not re-invent UI
+
+features:
+  - name: metadata
+    routes:
+      - /projetos/:projetoId/config
+    components:
+      - ConfiguracoesComponent         # promoted from prototype screens/configuracoes
+    facade: MetadataFacade
+    prototype_source: apps/cordele-web/src/app/screens/configuracoes/configuracoes.component.ts
+  - name: layout
+    routes:
+      - /projetos/:projetoId/editor-de-layout-preview
+    components:
+      - EditorDeLayoutPreviewComponent # promoted from prototype screens/editor-de-layout-preview
+    facade: LayoutFacade
+    prototype_source: apps/cordele-web/src/app/screens/editor-de-layout-preview/editor-de-layout-preview.component.ts
+
+data_access:
+  - resource: Metadados
+    base_path: /api/comp/projetos/{projetoId}/metadados
+    operations: [get, upsert]          # get=Metadados (default if materialized=false); upsert=PUT (idempotent)
+  - resource: Capa
+    base_path: /api/comp/projetos/{projetoId}/capa
+    operations: [upload, remove]       # upload=POST multipart → {capaUrl}; remove=DELETE (idempotent). Optional (D-L)
+  - resource: ConfiguracaoLayout
+    base_path: /api/comp/projetos/{projetoId}/layout
+    operations: [get, upsert]          # upsert body carries typography + non-stale image-alignment overrides (D-H)
+  - resource: PreviewContext
+    base_path: /api/comp/projetos/{projetoId}/preview-context
+    operations: [get]                  # single read: content tree + layout + overrides as DATA (client renders, D-K)
+
+backend_contract: ../../../../../backend/services/comp-service/contracts/api-contract.md
+
+state_management: signals
+
+guards:
+  - authGuard
+  - empresaGuard
+  - accessGuard('comp.view')
+  - compProjetoGuard
+  - compStatusGuard
+
+permissions:
+  - comp.view                          # BE comp:read — GET metadata/layout/preview-context
+  - comp.edit                          # BE comp:write — PUT metadata/layout, POST/DELETE capa
+
+feature_flags:
+  - name: comp.coverUpload
+    default: on
+  - name: comp.imageAlignment
+    default: on
+
+ui_libs_used:
+  - "@cordele/shared/ui-layout"
+  - "@cordele/shared/ui-feedback"
+  - "@cordele/shared/ui-theme"
+  - "@cordele/shared/access-http-base"
+  - "@cordele/shared/access-decision"
+  - "@cordele/shared/empresa-context"
+  - "@cordele/shared/auth-session"
+
+libs:
+  - path: libs/comp/shell-entry
+    tags: [scope:comp, type:app]
+  - path: libs/comp/access
+    tags: [scope:comp, type:domain]
+  - path: libs/comp/data-access
+    tags: [scope:comp, type:data-access]
+  - path: libs/comp/feature-metadata
+    tags: [scope:comp, type:feature]
+  - path: libs/comp/feature-layout
+    tags: [scope:comp, type:feature]
+  - path: libs/comp/integration
+    tags: [scope:comp, type:domain]
+  - path: libs/comp/navigation
+    tags: [scope:comp, type:domain]
+  - path: libs/comp/ui
+    tags: [scope:comp, type:ui]
+
+extra_dependencies: []
+
+e2e:
+  runner: playwright
+  project: apps/comp-e2e
+  features_path: docs/architecture/frontend/modules/comp/frontend/e2e/

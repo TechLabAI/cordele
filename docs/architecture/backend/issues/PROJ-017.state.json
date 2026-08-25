@@ -1,0 +1,98 @@
+{
+  "issue": "PROJ-017",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:10:43",
+  "checklist": {
+    "total": 7,
+    "done": 0,
+    "partial": 0,
+    "missing": 7,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/infrastructure/health/proj-health.controller.ts` — `GET /api/proj/health` (or shared monolith health endpoint if already registered); uses `@nestjs/terminus` `HealthCheckService` + `PrismaHealthIndicator`; returns 200 `{ status: 'ok' }` or 503 on DB unavailability",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/health/proj-health.controller.ts"
+      },
+      {
+        "text": "`src/infrastructure/middleware/correlation-id.middleware.ts` — NestJS middleware: reads `X-Correlation-Id` from request or generates UUID v4; stores in `AsyncLocalStorage<{ correlationId }>`; sets response header `X-Correlation-Id`; applies to all routes in `ProjModule`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/middleware/correlation-id.middleware.ts"
+      },
+      {
+        "text": "Logger configuration (if not already shared) — structured JSON logger with fields: `correlationId`, `port` (when `degraded:true`), `level` (`WARN` on degraded), `module: 'proj'`",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`GET /api/proj/health` returns 200 `{ status: 'ok' }` when DB reachable",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Every response includes `X-Correlation-Id` header matching the request header (or a new UUID if absent)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "When `ManuscriptSummaryPort` stub emits `degraded:true`, a `WARN` log entry contains `port=ManuscriptSummaryPort` and `correlationId` (verifiable via logger spy in integration test)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm build` exits 0 with health controller registered",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "skip",
+    "e2e": "skip"
+  },
+  "score": {
+    "total": 15,
+    "provisional": true,
+    "range": [
+      15,
+      25
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 15,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 0,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

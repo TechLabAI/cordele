@@ -1,0 +1,45 @@
+{
+  "issue": "PROJ-011",
+  "layer": "be",
+  "computedAt": "2026-08-25T17:12:28",
+  "checklist": {
+    "total": 7,
+    "done": 1,
+    "partial": 0,
+    "missing": 6,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PROJ.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [
+      "`src/modules/proj/proj.controller.ts` — wire `GET /projetos/:projetoId` to use case (update PROJ-001 stub); 404 on not found"
+    ],
+    "partial": [],
+    "notStarted": [
+      "`src/modules/proj/use-cases/get-projeto-detail.use-case.ts` — loads project via repository (returns 404 if absent or cross-tenant); calls 3 ports individually; assembles `ProjetoDetail`; each port wrapped in try/catch; `degraded=true` if any port fails; `manuscriptSummary=null` when IMP unavailable, `publicationHistory=[]` when PUB unavailable, `metadata={autor:null}` when COMP unavailable",
+      "`src/modules/proj/use-cases/get-projeto-detail.use-case.spec.ts` — full compose; PUB unavailable → `publicationHistory=[]`, `degraded=true`; unknown projetoId → 404; cross-tenant projetoId → 404",
+      "`GET /projetos/{id}` returns `ProjetoDetail` with `status` from PROJ own row always present",
+      "When PUB unavailable, returns `publicationHistory=[]` and `degraded=true` — no 500",
+      "Cross-tenant projetoId returns 404 (never leaks cross-tenant existence)",
+      "`pnpm test` on use case spec exits 0"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "PROJ-008",
+      "PROJ-009",
+      "PROJ-012"
+    ],
+    "notes": [
+      "- PROJ-009 (precede — outbound port stubs)",
+      "- PROJ-012 (follows — publication history list is a sibling endpoint, separate use case)"
+    ]
+  },
+  "suggestedPlanType": "CONTINUACAO",
+  "needsAgentConfirm": true
+}
