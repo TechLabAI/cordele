@@ -29,11 +29,11 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] `pnpm build` exits 0 with ProjModule present
-- [ ] All 7 route handlers exist in ProjController (verified by controller unit test listing route metadata)
-- [ ] `@nestjs/swagger` decorators present on each route for OpenAPI generation
-- [ ] DI tokens declared: `CREATE_PROJETO_USE_CASE`, `ADVANCE_PROJETO_STATUS_USE_CASE`, `REOPEN_PROJECT_USE_CASE`, `GET_PROJETO_LIBRARY_USE_CASE`, `GET_PROJETO_DETAIL_USE_CASE`, `GET_PUBLICATION_HISTORY_USE_CASE`, `GET_SIGNED_DOWNLOAD_URL_USE_CASE`, `DELETE_PROJETO_USE_CASE`, `MANUSCRIPT_SUMMARY_PORT`, `PROJECT_METADATA_PORT`, `PUBLICATION_HISTORY_PORT`, `PUBLICATION_ERASURE_PORT`, `COMPOSITION_ERASURE_PORT`, `MANUSCRIPT_ERASURE_PORT`
-- [ ] `pnpm test` on the controller spec exits 0
+- [x] `pnpm build` exits 0 with ProjModule present
+- [x] All 7 route handlers exist in ProjController (verified by controller unit test listing route metadata)
+- [x] `@nestjs/swagger` decorators present on each route for OpenAPI generation
+- [x] DI tokens declared: `CREATE_PROJETO_USE_CASE`, `ADVANCE_PROJETO_STATUS_USE_CASE`, `REOPEN_PROJECT_USE_CASE`, `GET_PROJETO_LIBRARY_USE_CASE`, `GET_PROJETO_DETAIL_USE_CASE`, `GET_PUBLICATION_HISTORY_USE_CASE`, `GET_SIGNED_DOWNLOAD_URL_USE_CASE`, `DELETE_PROJETO_USE_CASE`, `MANUSCRIPT_SUMMARY_PORT`, `PROJECT_METADATA_PORT`, `PUBLICATION_HISTORY_PORT`, `PUBLICATION_ERASURE_PORT`, `COMPOSITION_ERASURE_PORT`, `MANUSCRIPT_ERASURE_PORT`
+- [x] `pnpm test` on the controller spec exits 0
 
 ## Dependencias
 

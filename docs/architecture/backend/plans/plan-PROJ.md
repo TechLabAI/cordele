@@ -1,9 +1,19 @@
-# Plano -- PROJ (proj-service, Projetos Editoriais)
+﻿<!-- OUTPUT-SCHEMA
+- Status das prioridades
+- §0 Leitura executiva
+- §1 Achados
+- §2 Estrategia
+- §3 Prioridades
+- §4 Riscos
+- §5 Criterios de aceite globais
+-->
+
+# Plano - PROJ (proj-service, Projetos Editoriais)
 
 ## Status das prioridades
 
-- P1 -- pendente
-- P2 -- pendente
+- P1 -- DONE (2026-08-25) — fechada com evidencia medida do disco: PROJ-001 10/10 itens, score 80 (Maduro). Gates: build exit 0, lint exit 0, test exit 0 (20 testes, 2 suites), arch-conformance exit 0 (5 regras limpas). Foi reaberta apos a reconciliacao dos state.json mostrar 2/10 sob um DONE anterior baseado em auto-relato.
+- P2 -- DONE quanto ao escopo de dominio (2026-08-25) — VO de status, 3 use cases e registry DI entregues; 68 testes / 6 suites; build, lint, test e arch-conformance todos exit 0. PROJ-002 fechada 10/10 (score 80). PROJ-003 6/10, PROJ-004 7/9, PROJ-005 5/8, PROJ-006 7/8: os 10 criterios restantes exigem transacao/historico (P3), respostas HTTP do controller (P4) e JWT (P5) — nao sao lacunas de P2.
 - P3 -- pendente
 - P4 -- pendente
 - P5 -- pendente
@@ -11,434 +21,735 @@
 - P7 -- pendente
 - P8 -- pendente
 
----
-
-## 0. Leitura executiva
-
-### Papel do serviço
-
-`proj-service` is the **Projects** module of the Cordelê modular monolith: it owns the
-`ProjetoEditorial` aggregate — the identity every other context (IMP, COMP, PUB) binds to —
-and is the **sole authority** over project lifecycle status (ADR-002). It is the cascade root
-for LGPD erasure and the source of the cross-context read composition that powers the editorial
-library (T02) and the download/history screen (T08).
-
-Key architectural constraints:
-- Status transitions (`rascunho → em_composicao → publicado|com_erros`) are driven by the
-  `ProjectStatus` value object; IMP and PUB trigger transitions via the `AdvanceProjetoStatusUseCase`
-  inbound port; the one deliberate backward edge (`reopen`) is a separate use case (ADR-002 / D-D).
-- Publication history (T08) is a **read-model over PUB** via `PublicationHistoryPort` — PROJ stores
-  no publication rows (ADR-003 / D-E).
-- Download URLs are signed by PUB; PROJ never proxies bytes (D-F).
-- LGPD deletion is an orchestrated, **leaf-first, idempotent** in-process cascade (PUB → COMP →
-  IMP → projeto_editorial), aborting before the identity row on failure (D-G / SPEC-11).
-- Cross-context reads (library cards, detail) are **batched by projetoId set** — never N+1 — and
-  degrade gracefully with `degraded=true` when sibling ports are unavailable (SPEC-03 / SPEC-07).
-- `messaging.enabled = false`; all cross-context signals are in-process events.
-
-### MVP scope
-
-Create project (`rascunho`) → advance lifecycle via port (`em_composicao`, `publicado`,
-`com_erros`) → reopen (`em_composicao`) → list library (T02, batched cross-context read) →
-project detail with history (T08) → download signed URL → LGPD delete (leaf-first cascade).
-
-### Diagnóstico inicial (gaps mapeados em doc 06)
-
-- **G5 (pagination/filters):** `?status`, `?limit`, `?cursor` reserved in `GET /projetos`; POC
-  returns all — implementation deferred. DB-side `?status` filter is implemented in PROJ-010.
-- **A1 (schema-per-tenant provisioning):** shared platform concern; `EmpresaContext` wired in
-  PROJ-014; Prisma schema-targeting in PROJ-008.
-- **G3 (LGPD cross-context cascade):** fully specified in SPEC-11; implemented in PROJ-016 backed
-  by PROJ-015 stubs and PROJ-INT-004..006 real adapters.
-- **G2 (PublicationHistoryPort field set):** fixed in api-contract §6.3 (D-E); implemented in
-  PROJ-009 stub and PROJ-INT-003 real adapter.
+**Tipo:** Incremental
+**Resumo:** P1 DONE (2026-08-25) com PROJ-001 10/10 e score 80, verificada contra o disco. Pronto para P2 (domain use cases).
 
 ---
 
-## 1. Estratégia geral
+## §0 Leitura executiva
+
+P1 DONE (2026-08-25), fechada com evidencia medida do disco: PROJ-001 10/10 itens, score 80 (Maduro). Scaffold hexagonal + API surface OK; domain 8/8 OK; RULE-04 corrigido; build/lint/test exit 0 (20 testes); arch-conformance exit 0, 5 regras limpas (o defeito de escopo do gate foi corrigido em `_iter_files`). P1 chegou a ser marcada DONE por auto-relato quando estava em 2/10; foi reaberta e so fechou apos medicao. Pronto para P2.
+
+### Papel do servico
+
+proj-service e o modulo **Projetos** do monolito modular Cordele: possui o agregado
+ProjetoEditorial - a identidade a qual todos os outros contextos (IMP, COMP, PUB) se ligam -
+e e a **unica autoridade** sobre o status do ciclo de vida do projeto (ADR-002). E a raiz da
+cascata LGPD e a fonte da composicao de leitura cross-context que alimenta a biblioteca editorial
+(T02) e a tela de historico/download (T08).
+
+### Estado atual observado (BASELINE 2026-08-25)
+
+Score: **45/100** (Parcial - Structure 30/30, Functionality 10/30, Tests_lint 10/20, E2E 0/10, Soft 5/10).
+
+Gates:
+- lint: OK
+- build: OK
+- testes domain: OK (8/8 ProjEntity)
+- arch-conformance: **FAIL exit 2** - 4 violacoes RULE-04 (modules/ importando infrastructure/ diretamente)
+
+Violacoes RULE-04 identificadas:
+1. src/modules/proj/proj.controller.ts:28 importa JwtAuthGuard, CurrentUser, AuthenticatedUser de ../../infrastructure/auth/jwt-auth.guard
+2. src/modules/proj/proj.module.ts:3 importa PersistenceModule de ../../infrastructure/persistence/persistence.module
+3. src/modules/proj/proj.module.ts:6 importa PrismaProjRepository de ../../infrastructure/persistence/prisma-proj.repository
+4. src/modules/proj/proj.service.ts:10 importa type AuthenticatedUser de ../../infrastructure/auth/jwt-auth.guard
+
+### Continuidade da ultima rodada
+
+Nenhuma implementacao anterior (last_implement: null). O scaffold foi gerado pela fase de
+arquitetura (M2/M3). O BASELINE e o primeiro ciclo de execucao. O plano original (P1-P8) foi
+redigido antes da deteccao das violacoes RULE-04 - este replanejamento incremental adiciona a
+Fase 0 de correcao em P1 sem alterar a sequencia P2-P8.
+
+### Estado multi-empresa
+
+EmpresaContext ainda nao esta wired (gap confirmado no BASELINE). A propagacao ocorre via
+AsyncLocalStorage e deve ser injetada na Fase 4 de P1 (modulo compilando) e completada em P5
+(seguranca). Schemas alvo: cordele_global (autenticacao, RBAC) + emp_aetos (dados editoriais).
+Nenhuma escrita de dados de empresa em cordele_global.
+
+---
+
+## §1 Achados
+
+Domain puro compilando; scaffold correto; lint/build OK. Gap bloqueante: 4x RULE-04. Gaps funcionais: use cases stub, model Prisma errado, migrations ausentes, EmpresaContext nao propagado.
+
+### Pontos fortes
+
+- Domain puro compilando com 8/8 testes (ProjEntity) - base solida para use cases.
+- Scaffold hexagonal estruturalmente correto (domain/, modules/, infrastructure/).
+- build e lint passam - so as violacoes de boundaries estao bloqueando.
+
+### Gaps e inconsistencias
+
+- **G0 (bloqueante):** 4 violacoes RULE-04 impedem arch-conformance exit 0.
+- **G1 (funcionalidade):** 7 rotas retornam stubs vazios; nenhum use case implementado.
+- **G2 (model errado):** PrismaProjRepository referencia model Proj em vez de ProjetoEditorial.
+- **G3 (AuthenticatedUser no dominio):** tipo de infrastructure/auth/ usado no ProjService - viola RULE-04; substituir por interface UsuarioContext em domain/shared/.
+- **G4 (migrations nao versionadas):** prisma/migrations/ ausente.
+- **G5 (EmpresaContext):** nao propagado para repository e ports.
+
+### Aderencia as regras (RULE-01..09)
+
+| Regra | Estado |
+|---|---|
+| RULE-01 (domain sem @prisma/client) | OK |
+| RULE-02 (domain sem @nestjs) | OK |
+| RULE-03 (transacoes so no application service) | OK |
+| RULE-04 (modules nao importa infrastructure diretamente) | FAIL - 4 violacoes |
+| RULE-05 (infrastructure nao importa modules) | OK |
+| RULE-06 (HTTP clients so em infrastructure/clients) | N/A ainda |
+| RULE-08 (sem console.log) | OK |
+| RULE-09 (DDL so em migrations) | Pendente |
+
+---
+
+## §2 Estrategia
+
+Incremental em 8 prioridades sequenciais. P1 obrigatoriamente corrige RULE-04 (gate bloqueante); P2-P8 entregam funcionalidade incremental com gates passando em cada prioridade.
 
 ### Objetivo macro
 
-Deliver a compilable, testable NestJS `ProjModule` with full lifecycle orchestration, batched
-cross-context read composition (with graceful degradation), schema-per-tenant persistence, the
-complete LGPD leaf-first erasure cascade, JWT security, and BDD coverage — in 8 priorities that
-the `be-implement` agent can execute one at a time.
+Entregar ProjModule compilavel e testavel com: ciclo de vida completo (ProjetoEditorial),
+composicao de leitura cross-context batched (com degradacao graciosa), persistencia
+schema-per-tenant, cascata LGPD leaf-first, seguranca JWT, e cobertura BDD - em 8 prioridades
+executadas uma por vez pelo be-implement, comecando com a correcao obrigatoria de RULE-04.
 
 ### Ordem das prioridades
 
-| P | Título | Motivo |
-|---|---|---|
-| P1 | Scaffold + API surface | Module must compile before use cases can be implemented |
-| P2 | Domain + use cases (lifecycle) | Status authority VO + create/advance/reopen — all callers depend on these ports |
-| P3 | Persistence + migrations | Prisma schema, repository, schema-per-tenant adapter |
-| P4 | Cross-context read composition | Library and detail endpoints; degraded fallback; G5 filter reservation |
-| P5 | Security | JWT guard + EmpresaContext — blocks integration testing without it |
-| P6 | LGPD erasure cascade | Erasure port stubs + orchestrated DELETE — safety concern |
-| P7 | Observability | Health endpoint + correlation ID + degraded logging |
-| P8 | BDD end-to-end | Cucumber step definitions for 8 features (44 scenarios) |
+| P | Titulo | Motivo | Issues PROJ-NNN |
+|---|---|---|---|
+| P1 | Corrigir RULE-04 + API surface | Gate arch-conformance bloqueante; modulo deve compilar limpo | PROJ-001 |
+| P2 | Domain + use cases (ciclo de vida) | VO de status + create/advance/reopen - base de todos os callers | PROJ-002..006 |
+| P3 | Persistence + migrations | Schema Prisma, repository adapter, schema-per-tenant | PROJ-007..008 |
+| P4 | Composicao de leitura cross-context | Biblioteca e detalhe; batching; degraded fallback | PROJ-009..013, PROJ-INT-001..003 |
+| P5 | Seguranca | JWT guard + EmpresaContext - bloqueia testes de integracao | PROJ-014 |
+| P6 | Cascata LGPD | Stubs de erasure port + DELETE orquestrado leaf-first | PROJ-015..016, PROJ-INT-004..006 |
+| P7 | Observabilidade | Health endpoint + correlation ID + log degraded | PROJ-017 |
+| P8 | BDD end-to-end | Step definitions para 8 features (44 cenarios) | PROJ-018 |
 
 ---
 
-## 2. Plano por prioridade
+## §3 Prioridades
 
-### Prioridade 1 -- Scaffold + API surface
+P1..P8 detalhadas abaixo, cada uma com objetivo, problemas, correcoes, alvos, contrato operacional, sequencia de execucao, politica de testes, multi-empresa, migracoes e criterios de aceite.
+
+### Prioridade 1 - Corrigir RULE-04 + API surface
 
 Status: pendente
 
-#### Objetivo / Resultado esperado
+Issues cobertas: PROJ-001
 
-`ProjModule` compiles, all 7 REST routes registered under `/api/proj`, `pnpm build` exits 0.
-All DI tokens declared for use cases and the 6 outbound ports. Stub responses serve the smoke
-route before P2 use cases are implemented.
+#### Objetivo
 
-#### Issues vinculadas
-- PROJ-001
+arch-conformance.py check --layer be --target backend/services/proj-service exit 0.
+ProjModule compila com 7 rotas REST sob /api/proj, respostas stub. DI tokens declarados.
+pnpm build exit 0.
 
-#### Specs cobertas
-- SPEC-01 (api-surface)
+#### Problema identificado
 
-#### Sequencia de execucao
-- Fase 1: Create `ProjModule` + DTOs + 7 route stubs in `ProjController`
-- Fase 2: Controller spec verifying all 7 routes and DI token declarations
+O scaffold viola RULE-04 em 4 pontos: modules/ importa diretamente infrastructure/auth/ e
+infrastructure/persistence/. Enquanto o gate arch-conformance falhar com exit 2, nenhuma
+validacao de feature pode ser concluida.
+
+#### Correcoes mandatorias
+
+**Fase 0 - remover todas as violacoes RULE-04 (pre-requisito bloqueante):**
+
+A. backend/services/proj-service/src/modules/proj/proj.controller.ts
+   - Remover import { CurrentUser, JwtAuthGuard, type AuthenticatedUser } de ../../infrastructure/auth/jwt-auth.guard
+   - Remover @UseGuards(JwtAuthGuard) de todos os handlers (guards serao wired em P5)
+   - Remover @CurrentUser() dos parametros dos handlers
+   - Substituir AuthenticatedUser nos tipos por unknown nos stubs de P1
+
+B. backend/services/proj-service/src/modules/proj/proj.module.ts
+   - Remover import PersistenceModule de ../../infrastructure/persistence/persistence.module
+   - Remover import PrismaProjRepository de ../../infrastructure/persistence/prisma-proj.repository
+   - Remover PersistenceModule do array imports:
+   - Substituir { provide: ProjRepositoryPort, useClass: PrismaProjRepository } por { provide: ProjRepositoryPort, useValue: {} }
+
+C. backend/services/proj-service/src/modules/proj/proj.service.ts
+   - Remover import type AuthenticatedUser de ../../infrastructure/auth/jwt-auth.guard
+   - Criar interface UsuarioContext em src/domain/shared/usuario-context.interface.ts (id: string; empresaId: string; scopes: string[])
+   - Substituir AuthenticatedUser por UsuarioContext em todos os metodos do ProjService
+
+**Fase 1 - API surface (apos Fase 0 com arch-conformance exit 0):**
+- Criar src/modules/proj/proj.tokens.ts com constantes DI para todos os use cases e ports
+- Criar DTOs em src/modules/proj/dto/: CreateProjetoDto, UpdateProjetoDto, ProjetoResponseDto
+- Registrar 7 rotas em ProjController conforme api-contract §4 (paths exatos, verbos HTTP)
+
+**Fase 2 - verificacao:**
+- python scripts/arch-conformance.py check --layer be --target backend/services/proj-service (exit 0)
+- pnpm build (exit 0)
+- pnpm lint (exit 0)
+
+#### Alvos de alteracao (caminhos completos)
+
+- backend/services/proj-service/src/modules/proj/proj.controller.ts
+- backend/services/proj-service/src/modules/proj/proj.module.ts
+- backend/services/proj-service/src/modules/proj/proj.service.ts
+- backend/services/proj-service/src/modules/proj/proj.tokens.ts (criar)
+- backend/services/proj-service/src/modules/proj/dto/create-projeto.dto.ts (criar)
+- backend/services/proj-service/src/modules/proj/dto/update-projeto.dto.ts (criar)
+- backend/services/proj-service/src/modules/proj/dto/projeto-response.dto.ts (criar)
+- backend/services/proj-service/src/domain/shared/usuario-context.interface.ts (criar)
+
+#### Contrato operacional
+
+- Deve existir: interface UsuarioContext em src/domain/shared/ (zero imports de @nestjs ou @prisma)
+- Deve existir: proj.tokens.ts exportando constantes string para todos os providers
+- Nao deve existir: qualquer import de ../../infrastructure/ em arquivos de src/modules/
+- Verificacao objetiva: python scripts/arch-conformance.py check --layer be --target backend/services/proj-service exit 0
+- Condicao de bloqueio: exit 2 do arch-conformance impede validacao de qualquer P subsequente
+
+#### Politica de testes
+
+- Unit obrigatorio: spec do ProjController verificando que as 7 rotas respondem 2xx com dados stub
+- Nao escrever testes de integracao em P1 (sem DB real ainda)
+
+#### Multi-empresa
+
+P1 nao wira EmpresaContext - apenas declara o DI token EMPRESA_CONTEXT_TOKEN em proj.tokens.ts
+para que P5 possa injeta-lo. Nenhum dado de empresa e lido ou escrito em P1.
+
+#### Migracoes Prisma Migrate
+
+Nenhuma em P1. O schema Prisma e responsabilidade de P3.
 
 #### Criterios de aceite
-- `pnpm build` exits 0
-- All 7 routes registered and return stub responses
-- DI tokens declared for all use cases and ports
+
+1. python scripts/arch-conformance.py check --layer be --target backend/services/proj-service exit 0
+2. pnpm build exit 0
+3. pnpm lint exit 0
+4. Todas as 7 rotas /api/proj acessiveis (retornam stub 200/201/204)
+5. Nenhum arquivo em src/modules/ importa de src/infrastructure/
+6. UsuarioContext existe em src/domain/shared/ e e usado por ProjService
 
 #### Riscos
-- DI token naming must not collide with IMP tokens
+
+- Provider stub { provide: ProjRepositoryPort, useValue: {} } causara erro em runtime se chamado - resolver em P3.
+- Verificar se existe JwtAuthGuard compartilhado (de IMP) antes de criar novo em P5.
 
 #### Instrucao para implementador
 
-Create `src/modules/proj/` following the same pattern as `src/modules/imp/`. DI tokens go in
-`src/modules/proj/proj.tokens.ts`. Routes follow api-contract §4 exactly (paths, HTTP verbs,
-scopes — guards wired as stubs that allow all in P1). See IMP-001 for the exact scaffold pattern.
+Executar as correcoes na ordem Fase 0 -> Fase 1 -> Fase 2. Nao avancar para Fase 1 sem
+arch-conformance exit 0. UsuarioContext e um tipo puro em domain/shared/ - zero decorators,
+zero imports externos. ProjController em P1 nao usa guards; @UseGuards serao adicionados em P5.
 
 ---
 
-### Prioridade 2 -- Domain + use cases (lifecycle)
+### Prioridade 2 - Domain + use cases (ciclo de vida)
 
 Status: pendente
 
-#### Objetivo / Resultado esperado
+Issues cobertas: PROJ-002, PROJ-003, PROJ-004, PROJ-005, PROJ-006
 
-`ProjectStatus` VO with full legal-transition table. Four use cases: create (with ProjectCreated
-event), advanceTo (idempotent + audit), reopen (backward edge), and inbound port DI registry
-(exported for IMP/PUB). All backed by unit tests.
+#### Objetivo
 
-#### Issues vinculadas
-- PROJ-002 (ProjectStatus VO)
-- PROJ-003 (CreateProjetoEditorialUseCase)
-- PROJ-004 (AdvanceProjetoStatusUseCase.advanceTo)
-- PROJ-005 (ReopenProjectForRevisionUseCase + REST handler)
-- PROJ-006 (inbound port DI export registry)
+ProjetoStatus VO com tabela completa de transicoes legais. Quatro use cases: criar (com evento
+ProjectCreated), avancar status (idempotente + auditoria), reabrir (aresta retroativa), e
+registry de inbound ports DI exportado para IMP/PUB. Todos com testes unitarios.
 
-#### Specs cobertas
-- SPEC-02 (lifecycle + idempotency)
-- SPEC-05 (idempotency + concurrent safety)
-- integration-contracts.md §1
+#### Correcoes mandatorias
+
+- Criar src/domain/proj/projeto-status.vo.ts com enum e metodo transitionTo(next) que lanca IllegalStatusTransitionError
+- Criar src/domain/proj/errors/illegal-status-transition.error.ts
+- Criar src/domain/proj/ports/inbound/create-projeto.use-case.ts (interface + impl)
+- Criar src/domain/proj/ports/inbound/advance-projeto-status.use-case.ts (interface + impl)
+- Criar src/domain/proj/ports/inbound/reopen-projeto.use-case.ts (interface + impl)
+- Registrar os 4 inbound ports em proj.tokens.ts e proj.module.ts
+
+#### Alvos de alteracao
+
+- backend/services/proj-service/src/domain/proj/projeto-status.vo.ts (criar)
+- backend/services/proj-service/src/domain/proj/errors/illegal-status-transition.error.ts (criar)
+- backend/services/proj-service/src/domain/proj/ports/inbound/create-projeto.use-case.ts (criar)
+- backend/services/proj-service/src/domain/proj/ports/inbound/advance-projeto-status.use-case.ts (criar)
+- backend/services/proj-service/src/domain/proj/ports/inbound/reopen-projeto.use-case.ts (criar)
+- backend/services/proj-service/src/modules/proj/proj.module.ts (atualizar providers)
+- backend/services/proj-service/src/modules/proj/proj.tokens.ts (atualizar com tokens de use cases)
+
+#### Contrato operacional
+
+- Deve existir: 7 transicoes legais passando; todas as ilegais lancando IllegalStatusTransitionError
+- Deve existir: advanceTo retornando { changed: false } quando status ja e o alvo (idempotencia)
+- Deve existir: eventos ProjectCreated e ProjectStatusChanged com eventId UUID unico
+- Nao deve existir: logica de status em ProjService ou ProjController
 
 #### Sequencia de execucao
-- Fase 1: PROJ-002 (VO first — all use cases depend on it)
-- Fase 2: PROJ-003 + PROJ-004 in parallel (both depend on VO and repository)
-- Fase 3: PROJ-005 (reopen — builds on advanceTo pattern)
-- Fase 4: PROJ-006 (DI registry — wires all 4 providers)
+
+- Fase 1: PROJ-002 (VO - todos os use cases dependem dele)
+- Fase 2: PROJ-003 + PROJ-004 (create + advance, em paralelo, mockando repository)
+- Fase 3: PROJ-005 (reopen - estende o padrao de advanceTo)
+- Fase 4: PROJ-006 (registry DI - wire todos os 4 providers)
+
+#### Politica de testes
+
+- Unit obrigatorio: spec do VO com todas as 7 transicoes legais e todas as ilegais
+- Unit obrigatorio: spec de cada use case com repository mockado via jest.fn()
+
+#### Multi-empresa
+
+Use cases recebem UsuarioContext (dominio puro) com empresaId - o repository port propaga para
+o adapter. Nenhum acesso direto a EmpresaContext nesta camada.
+
+#### Migracoes Prisma Migrate
+
+Nenhuma em P2.
 
 #### Criterios de aceite
-- All 7 legal transitions pass; all illegal transitions throw `IllegalStatusTransitionError`
-- Idempotent `advanceTo` returns `changed=false` without event or history row
-- `ProjectCreated` and `ProjectStatusChanged` events emitted with unique `eventId`
-- 4 inbound ports exported via DI tokens (IMP can inject `CREATE_PROJETO_USE_CASE`)
+
+1. 7 transicoes legais passam; todas ilegais lancam IllegalStatusTransitionError
+2. advanceTo com status ja existente retorna changed=false sem evento
+3. Eventos emitidos com eventId UUID unico e idempotencia verificada
+4. 4 inbound ports exportados via DI tokens
 
 #### Riscos
-- Use cases depend on `ProjetoEditorialRepository` (P3) — unit tests must use mocks; integration
-  tests must run after P3
+
+- Use cases dependem de ProjetoEditorialRepository (P3) - testes unitarios devem usar mocks
 
 #### Instrucao para implementador
 
-Implement PROJ-002 first. For PROJ-003..005, use `jest.fn()` for the repository mock in unit tests.
-The repository is a constructor-injected interface — never import the Prisma adapter directly in use
-cases. See IMP-002 for the event-emitter pattern (post-commit hook via NestJS `EventEmitter2`).
+Implementar PROJ-002 primeiro. Para PROJ-003..005, usar jest.fn() para o mock do repository.
+O repository e uma interface injetada via construtor - nunca importar o adapter Prisma nos use cases.
+Padrao de eventos: EventEmitter2 post-commit (listener async fora da transacao).
 
 ---
 
-### Prioridade 3 -- Persistence + migrations
+### Prioridade 3 - Persistence + migrations
 
 Status: pendente
 
-#### Objetivo / Resultado esperado
+Issues cobertas: PROJ-007, PROJ-008
 
-`schema.prisma` with `ProjetoEditorial` and `ProjetoStatusHistorico` models. Initial migrations.
-`ProjetoEditorialRepository` Prisma adapter with schema-per-tenant resolution from `EmpresaContext`.
+#### Objetivo
 
-#### Issues vinculadas
-- PROJ-007 (Prisma schema + migrations)
-- PROJ-008 (ProjetoEditorialRepository adapter)
+schema.prisma com models ProjetoEditorial e ProjetoStatusHistorico. Migrations iniciais
+versionadas. ProjetoEditorialRepository adapter Prisma com resolucao schema-per-tenant via EmpresaContext.
 
-#### Specs cobertas
-- SPEC-04 (data-model-migrations)
+#### Correcoes mandatorias
+
+- Renomear model no schema.prisma de Proj para ProjetoEditorial
+- Criar ProjetoStatusHistorico no schema.prisma com FK para ProjetoEditorial
+- Gerar migrations: 0001_create_projeto_editorial e 0002_create_projeto_status_historico
+- Reescrever PrismaProjRepository para usar model ProjetoEditorial e resolver schema via EmpresaContext
+
+#### Alvos de alteracao
+
+- backend/services/proj-service/prisma/schema.prisma
+- backend/services/proj-service/prisma/migrations/0001_create_projeto_editorial/migration.sql (criar)
+- backend/services/proj-service/prisma/migrations/0002_create_projeto_status_historico/migration.sql (criar)
+- backend/services/proj-service/src/infrastructure/persistence/prisma-proj.repository.ts
+- backend/services/proj-service/src/modules/proj/proj.module.ts (substituir stub por adapter real)
+
+#### Contrato operacional
+
+- Deve existir: findById retornando null para projeto de outro tenant (isolamento)
+- Deve existir: updateStatus escrevendo em projeto_editorial e projeto_status_historico em uma $transaction
+- Nao deve existir: DDL fora de prisma/migrations/
 
 #### Sequencia de execucao
-- Fase 1: PROJ-007 (schema + migrations — Prisma client must be generated before adapter)
-- Fase 2: PROJ-008 (repository adapter)
+
+- Fase 1: PROJ-007 (schema + migrations - Prisma client gerado antes do adapter)
+- Fase 2: PROJ-008 (adapter do repository)
+
+#### Politica de testes
+
+- Integration obrigatorio (toca DB): findById com tenant isolation e updateStatus com transacao
+
+#### Multi-empresa
+
+EmpresaContext.getEmpresaId() deve ser chamado no adapter para selecionar o schema Postgres.
+Padrao identico ao imp-service (PROJ-008 referencia IMP-006 como template).
+
+#### Migracoes Prisma Migrate
+
+- pnpm prisma migrate dev --name create_projeto_editorial em backend/services/proj-service/
+- pnpm prisma migrate dev --name create_projeto_status_historico
 
 #### Criterios de aceite
-- `prisma migrate dev` creates both tables with CHECKs, FK cascade, and indexes
-- `findById` returns `null` for cross-tenant project (isolation)
-- `updateStatus` writes both tables in one `$transaction`
+
+1. pnpm prisma migrate dev cria as duas tabelas com CHECKs, FK cascade e indexes
+2. findById retorna null para projeto de outro tenant
+3. updateStatus grava nas duas tabelas em uma transacao
 
 #### Riscos
-- Schema-per-tenant requires `PrismaClient` instantiated with `schema` option from `EmpresaContext`;
-  reference IMP-006 for the pattern used in the monolith
+
+- Schema-per-tenant exige PrismaClient instanciado com opcao schema de EmpresaContext; referenciar IMP-006
 
 #### Instrucao para implementador
 
-Add PROJ models to the shared `prisma/schema.prisma`. Migration files must match the reserved names
-`0001_create_projeto_editorial` and `0002_create_projeto_status_historico`. The `EmpresaContext`
-resolver pattern (schema switching) must match the one in `imp-service` to stay consistent.
+Adicionar models PROJ ao prisma/schema.prisma do servico. Nomes de migration devem seguir o
+padrao 0001_create_projeto_editorial e 0002_create_projeto_status_historico.
 
 ---
 
-### Prioridade 4 -- Cross-context read composition
+### Prioridade 4 - Composicao de leitura cross-context
 
 Status: pendente
 
-#### Objetivo / Resultado esperado
+Issues cobertas: PROJ-009, PROJ-010, PROJ-011, PROJ-012, PROJ-013, PROJ-INT-001, PROJ-INT-002, PROJ-INT-003
 
-Outbound read port stubs (ManuscriptSummaryPort, ProjectMetadataPort, PublicationHistoryPort).
-Four read use cases: library (T02, batched, degraded), detail (T08, composed), publication history
-list, and signed download URL. G5 query params reserved. Real adapters (PROJ-INT-001..003) replace
-stubs once IMP/COMP/PUB are scaffolded.
+#### Objetivo
 
-#### Issues vinculadas
-- PROJ-009 (outbound read port stubs — batched, degraded:true)
-- PROJ-010 (GetProjetoLibraryUseCase — T02, G5 reservation)
-- PROJ-011 (GetProjetoDetailUseCase — T08)
-- PROJ-012 (GetPublicationHistoryUseCase)
-- PROJ-013 (GetSignedDownloadUrlUseCase)
-- PROJ-INT-001 (ManuscriptSummaryPort real adapter → IMP)
-- PROJ-INT-002 (ProjectMetadataPort real adapter → COMP)
-- PROJ-INT-003 (PublicationHistoryPort real adapter → PUB)
+Stubs dos ports outbound de leitura (ManuscriptSummaryPort, ProjectMetadataPort, PublicationHistoryPort).
+Quatro use cases de leitura: biblioteca (T02, batched, degraded), detalhe (T08), historico, URL de download.
+Parametros ?status, ?limit, ?cursor reservados. Adapters reais substituem stubs apos IMP/COMP/PUB scaffolded.
 
-#### Specs cobertas
-- SPEC-03 (no-N+1 batching)
-- SPEC-07 (degraded:true)
-- api-contract §4.2..4.5, §6.2..6.4
+#### Alvos de alteracao
+
+- backend/services/proj-service/src/domain/proj/ports/outbound/manuscript-summary.port.ts (criar)
+- backend/services/proj-service/src/domain/proj/ports/outbound/project-metadata.port.ts (criar)
+- backend/services/proj-service/src/domain/proj/ports/outbound/publication-history.port.ts (criar)
+- backend/services/proj-service/src/infrastructure/stubs/manuscript-summary.stub.ts (criar)
+- backend/services/proj-service/src/infrastructure/stubs/project-metadata.stub.ts (criar)
+- backend/services/proj-service/src/infrastructure/stubs/publication-history.stub.ts (criar)
+- backend/services/proj-service/src/domain/proj/use-cases/get-projeto-library.use-case.ts (criar)
+- backend/services/proj-service/src/domain/proj/use-cases/get-projeto-detail.use-case.ts (criar)
+- backend/services/proj-service/src/domain/proj/use-cases/get-publication-history.use-case.ts (criar)
+- backend/services/proj-service/src/domain/proj/use-cases/get-signed-download-url.use-case.ts (criar)
+- backend/services/proj-service/src/infrastructure/clients/imp-manuscript-summary.adapter.ts (criar - PROJ-INT-001)
+- backend/services/proj-service/src/infrastructure/clients/comp-project-metadata.adapter.ts (criar - PROJ-INT-002)
+- backend/services/proj-service/src/infrastructure/clients/pub-publication-history.adapter.ts (criar - PROJ-INT-003)
+
+#### Contrato operacional
+
+- Deve existir: exatamente 3 chamadas de port por requisicao de biblioteca (invariante de batching)
+- Deve existir: degraded=true quando qualquer port lanca excecao; endpoint retorna campos proprios
+- Deve existir: ?status, ?limit, ?cursor aceitos por GET /projetos sem 400 (reserva G5)
+- Nao deve existir: N+1 queries (cada port chamado uma vez por request com array de IDs)
 
 #### Sequencia de execucao
-- Fase 1: PROJ-009 (port stubs — use cases depend on them)
-- Fase 2: PROJ-010, PROJ-011, PROJ-012, PROJ-013 (use cases, in parallel)
-- Fase 3: PROJ-INT-001..003 (real adapters, after sibling modules are scaffolded)
+
+- Fase 1: PROJ-009 (stubs dos ports - use cases dependem deles)
+- Fase 2: PROJ-010, PROJ-011, PROJ-012, PROJ-013 (use cases, em paralelo)
+- Fase 3: PROJ-INT-001..003 (adapters reais, apos modulos irmaos scaffolded)
+
+#### Politica de testes
+
+- Unit obrigatorio: spec com mock de port verificando contagem de chamadas (batching)
+- Unit obrigatorio: spec verificando degraded=true quando port lanca
+
+#### Multi-empresa
+
+EmpresaContext.getEmpresaId() propagado para todos os ports e repository calls em P4.
+
+#### Migracoes Prisma Migrate
+
+Nenhuma em P4.
 
 #### Criterios de aceite
-- Three port calls total per library request (batching invariant, verified by mock call count)
-- `degraded=true` when any read port throws, library/detail endpoint still returns own fields
-- `?status`, `?limit`, `?cursor` accepted by `GET /projetos` without 400 (G5 reservation)
-- Download endpoint returns 409 for `erros_criticos|pendente` publications
+
+1. 3 chamadas de port por request de biblioteca (verificado por mock call count)
+2. degraded=true quando port lanca; endpoint responde com campos proprios
+3. ?status, ?limit, ?cursor aceitos sem 400
+4. Download retorna 409 para publicacoes erros_criticos|pendente
 
 #### Riscos
-- PROJ-INT-001..003 depend on IMP/COMP/PUB being scaffolded; stubs (PROJ-009) are the fallback
-  during PROJ development
+
+- PROJ-INT-001..003 dependem de IMP/COMP/PUB scaffolded; stubs (PROJ-009) sao o fallback
 
 #### Instrucao para implementador
 
-Implement PROJ-009 stubs before the use cases. The batching invariant (one call per port per
-request) is the hardest constraint to verify — write the port mock call count assertion in the
-use case spec explicitly. The `?status` DB-side filter in PROJ-010 is a `where` clause on the
-repository `findAll`; `?limit`/`?cursor` params are accepted but not applied in the POC (pass
-through as `undefined`).
+Implementar PROJ-009 antes dos use cases. O invariante de batching (uma chamada por port por
+request) - escrever assercao de contagem de chamadas mock explicitamente no spec. O filtro ?status
+e uma clausula where no findAll; ?limit/?cursor sao aceitos mas nao aplicados no POC.
 
 ---
 
-### Prioridade 5 -- Security
+### Prioridade 5 - Seguranca
 
 Status: pendente
 
-#### Objetivo / Resultado esperado
+Issues cobertas: PROJ-014
 
-JWT guard, `EmpresaContext` populated from JWT claim, scope guards per endpoint. All PROJ routes
-return 401/403 without a valid token and scope.
+#### Objetivo
 
-#### Issues vinculadas
-- PROJ-014
+JWT guard, EmpresaContext populado a partir do claim JWT, guards de scope por endpoint. Todas
+as rotas PROJ retornam 401/403 sem token valido e scope correto.
 
-#### Specs cobertas
-- SPEC-06 (security)
+#### Alvos de alteracao
+
+- backend/services/proj-service/src/modules/proj/proj.controller.ts (adicionar @UseGuards, @Scopes, @CurrentUser)
+- backend/services/proj-service/src/modules/proj/proj.module.ts (registrar guard e estrategia JWT)
+- backend/services/proj-service/src/infrastructure/auth/jwt.strategy.ts (verificar/criar)
+- backend/services/proj-service/src/infrastructure/auth/jwt-auth.guard.ts (verificar/criar)
+
+#### Contrato operacional
+
+- Deve existir: 401 em token ausente; 403 em scope ausente
+- Deve existir: EmpresaContext.getEmpresaId() derivado apenas do claim JWT
+- Nao deve existir: guard duplicado se ja existir de IMP
 
 #### Sequencia de execucao
-- Fase 1: PROJ-014 (guard, EmpresaContext, scope decorators applied to all 7 routes)
+
+- Fase 1: PROJ-014 (guard + EmpresaContext + decorators de scope em todas as 7 rotas)
+
+#### Politica de testes
+
+- Unit: spec do controller com token mockado verificando 401/403
+
+#### Multi-empresa
+
+EmpresaContext wired via AsyncLocalStorage do claim empresaId do JWT.
+
+#### Migracoes Prisma Migrate
+
+Nenhuma em P5.
 
 #### Criterios de aceite
-- 401 on missing token; 403 on missing scope
-- `EmpresaContext.getEditoraId()` sourced from JWT claim only
+
+1. 401 em token ausente; 403 em scope ausente
+2. EmpresaContext.getEmpresaId() sourced exclusivamente do JWT claim
 
 #### Riscos
-- If a monolith-wide JWT guard already exists (from IMP), reuse it and apply PROJ scopes;
-  do not create a duplicate guard
+
+- Se JwtAuthGuard compartilhado ja existe (de IMP), reutilizar - nao duplicar
 
 #### Instrucao para implementador
 
-Check if a shared `JwtAuthGuard` and `ScopesGuard` exist from IMP-008. If so, apply them to
-`ProjController` by adding `@UseGuards(JwtAuthGuard, ScopesGuard)` and
-`@Scopes('proj:read'|'proj:write'|'proj:delete')` decorators per route. If not, create in
-`src/infrastructure/auth/`.
+Verificar se JwtAuthGuard e ScopesGuard existem em imp-service ou shared. Se sim, aplicar ao
+ProjController com @UseGuards(JwtAuthGuard, ScopesGuard) e @Scopes por rota.
 
 ---
 
-### Prioridade 6 -- LGPD erasure cascade
+### Prioridade 6 - Cascata LGPD
 
 Status: pendente
 
-#### Objetivo / Resultado esperado
+Issues cobertas: PROJ-015, PROJ-016, PROJ-INT-004, PROJ-INT-005, PROJ-INT-006
 
-Three erasure port stubs (PUB/COMP/IMP). `DeleteProjetoEditorialUseCase` orchestrating leaf-first
-idempotent cascade. `DELETE /projetos/{id}` returning 204 on success, 502 on any port failure.
-`ProjectDeleted` event emitted after commit.
+#### Objetivo
 
-#### Issues vinculadas
-- PROJ-015 (erasure port stubs)
-- PROJ-016 (DeleteProjetoEditorialUseCase leaf-first orchestration)
-- PROJ-INT-004 (ManuscriptErasurePort real adapter → IMP)
-- PROJ-INT-005 (CompositionErasurePort real adapter → COMP)
-- PROJ-INT-006 (PublicationErasurePort real adapter → PUB)
+Tres stubs de erasure port (PUB/COMP/IMP). DeleteProjetoEditorialUseCase orquestrando cascata
+leaf-first idempotente. DELETE /projetos/{id} retornando 204 em sucesso, 502 em falha de port.
+Evento ProjectDeleted emitido apos commit.
 
-#### Specs cobertas
-- SPEC-11 (cross-context-deletion-lgpd-erasure)
-- api-contract §4.6
+#### Alvos de alteracao
+
+- backend/services/proj-service/src/domain/proj/ports/outbound/publication-erasure.port.ts (criar)
+- backend/services/proj-service/src/domain/proj/ports/outbound/composition-erasure.port.ts (criar)
+- backend/services/proj-service/src/domain/proj/ports/outbound/manuscript-erasure.port.ts (criar)
+- backend/services/proj-service/src/infrastructure/stubs/publication-erasure.stub.ts (criar)
+- backend/services/proj-service/src/infrastructure/stubs/composition-erasure.stub.ts (criar)
+- backend/services/proj-service/src/infrastructure/stubs/manuscript-erasure.stub.ts (criar)
+- backend/services/proj-service/src/domain/proj/use-cases/delete-projeto.use-case.ts (criar)
+- backend/services/proj-service/src/infrastructure/clients/pub-publication-erasure.adapter.ts (criar - PROJ-INT-006)
+- backend/services/proj-service/src/infrastructure/clients/comp-composition-erasure.adapter.ts (criar - PROJ-INT-005)
+- backend/services/proj-service/src/infrastructure/clients/imp-manuscript-erasure.adapter.ts (criar - PROJ-INT-004)
+
+#### Contrato operacional
+
+- Deve existir: ordem de purge PUB -> COMP -> IMP -> DB delete (verificada por spy call order)
+- Deve existir: falha em PUB nao deleta projeto_editorial; retorna 502
+- Deve existir: retry de delete parcialmente falho completa sem erro (idempotente)
+- Nao deve existir: Promise.all na cascata (sequencial e abort-on-failure)
 
 #### Sequencia de execucao
-- Fase 1: PROJ-015 (stubs — use case depends on them)
+
+- Fase 1: PROJ-015 (stubs)
 - Fase 2: PROJ-016 (use case)
-- Fase 3: PROJ-INT-004..006 (real adapters, after sibling modules are scaffolded)
+- Fase 3: PROJ-INT-004..006 (adapters reais, apos modulos irmaos scaffolded)
+
+#### Politica de testes
+
+- Unit obrigatorio: spec verificando ordem de purge e comportamento abort-on-failure
+
+#### Multi-empresa
+
+EmpresaContext propagado a cada port de erasure com empresaId.
+
+#### Migracoes Prisma Migrate
+
+Nenhuma em P6.
 
 #### Criterios de aceite
-- Purge order: PUB → COMP → IMP → DB delete (verified by spy call order in spec)
-- PUB purge failure: `projeto_editorial` row NOT deleted; 502 returned
-- Retry of a partially-failed delete completes without error (idempotent)
+
+1. Ordem: PUB -> COMP -> IMP -> DB delete (spy call order no spec)
+2. Falha em PUB: linha projeto_editorial NAO deletada; 502 retornado
+3. Retry de delete parcial completa sem erro
 
 #### Riscos
-- Real adapters (PROJ-INT-004..006) require sibling erasure ports to be exported — coordinate
-  with IMP/COMP/PUB scaffold phases
+
+- Adapters reais (PROJ-INT-004..006) requerem ports de erasure exportados pelos modulos irmaos
 
 #### Instrucao para implementador
 
-Implement PROJ-016 with a strict try/catch around each port call. Do NOT use Promise.all — the
-purge must be sequential and stop before step 4 on any failure. The mock call-order assertion in
-the spec must use `jest.fn().mockResolvedValue(undefined)` with spy sequence tracking.
+Implementar PROJ-016 com try/catch estrito em cada chamada de port. Nao usar Promise.all - o
+purge deve ser sequencial e parar antes do passo 4 em qualquer falha.
 
 ---
 
-### Prioridade 7 -- Observability
+### Prioridade 7 - Observabilidade
 
 Status: pendente
 
-#### Objetivo / Resultado esperado
+Issues cobertas: PROJ-017
 
-`GET /api/proj/health` returns 200. `X-Correlation-Id` propagated on all responses. `WARN`
-log entry emitted with `port=<PortName>` when `degraded=true`.
+#### Objetivo
 
-#### Issues vinculadas
-- PROJ-017
+GET /api/proj/health retorna 200. X-Correlation-Id propagado em todas as respostas. Entrada
+WARN emitida com port=<PortName> quando degraded=true.
 
-#### Specs cobertas
-- SPEC-07 (observability-health)
+#### Alvos de alteracao
+
+- backend/services/proj-service/src/modules/proj/proj.health.controller.ts (criar)
+- backend/services/proj-service/src/modules/proj/correlation-id.middleware.ts (verificar/criar)
+- backend/services/proj-service/src/modules/proj/proj.module.ts (registrar middleware)
+
+#### Contrato operacional
+
+- Deve existir: health 200 quando DB acessivel; X-Correlation-Id sempre no header de resposta
+- Deve existir: WARN degraded:true port=ManuscriptSummaryPort capturado pelo spy de logger
 
 #### Sequencia de execucao
-- Fase 1: PROJ-017 (health controller + correlation ID middleware + logger config)
+
+- Fase 1: PROJ-017 (health controller + middleware de correlation ID + configuracao de logger)
+
+#### Politica de testes
+
+- Unit: spy no logger verificando WARN degraded:true
+- Integration: health endpoint com DB real
+
+#### Multi-empresa
+
+Nenhuma dependencia de empresa em P7.
+
+#### Migracoes Prisma Migrate
+
+Nenhuma em P7.
 
 #### Criterios de aceite
-- Health 200 when DB reachable; `X-Correlation-Id` always in response header
-- `WARN degraded:true port=ManuscriptSummaryPort` captured by logger spy in integration test
+
+1. Health 200 quando DB acessivel
+2. X-Correlation-Id sempre no header de resposta
+3. WARN degraded:true port=<PortName> capturado pelo spy de logger em integration test
 
 #### Riscos
-- Correlation ID middleware ordering: must run before all guards and use cases
+
+- Ordering do middleware de correlation ID: deve rodar antes de todos os guards e use cases
 
 #### Instrucao para implementador
 
-Check if a shared correlation-ID middleware exists from IMP. If so, register it in `ProjModule`
-without duplicating. The `PROJ-017` health indicator uses `@nestjs/terminus` `PrismaHealthIndicator`;
-add PROJ-specific indicator if not already present in the monolith health endpoint.
+Verificar se middleware de correlation ID ja existe de IMP. Se sim, registrar em ProjModule sem
+duplicar. O health indicator usa @nestjs/terminus com PrismaHealthIndicator.
 
 ---
 
-### Prioridade 8 -- BDD end-to-end
+### Prioridade 8 - BDD end-to-end
 
 Status: pendente
 
-#### Objetivo / Resultado esperado
+Issues cobertas: PROJ-018
 
-Step definitions for all 8 Cucumber feature files (44 scenarios). Cucumber runner exits 0
-(pending is acceptable for steps requiring unavailable infra; error is not).
+#### Objetivo
 
-#### Issues vinculadas
-- PROJ-018
+Step definitions para todos os 8 arquivos Cucumber feature (44 cenarios). Cucumber runner exit 0
+(pending aceitavel para steps que exigem infra indisponivel; error nao e aceitavel).
 
-#### Specs cobertas
-- SPEC-08 (bdd-test-scenarios)
-- tests/cucumber/ (8 feature files)
+#### Alvos de alteracao
+
+- backend/services/proj-service/tests/cucumber/steps/ (criar 8 arquivos de step definitions)
+- backend/services/proj-service/tests/cucumber/cucumber.config.ts (verificar/criar)
+
+#### Contrato operacional
+
+- Deve existir: Cucumber runner exit 0 para todos os 8 features
+- Deve existir: spy de logger capturando WARN degraded:true port=<PortName> nos cenarios SPEC-07
+- Deve existir: mock call count = 1 nos cenarios de biblioteca batched
 
 #### Sequencia de execucao
-- Fase 1: PROJ-018 (all 8 step definition files + cucumber config)
+
+- Fase 1: PROJ-018 (todos os 8 arquivos de step definitions + config do cucumber)
+
+#### Politica de testes
+
+- BDD obrigatorio: todos os 44 cenarios executados; pending aceitavel, error nao
+
+#### Multi-empresa
+
+Step definitions passam empresaId nos headers de request ou via fixture de contexto.
+
+#### Migracoes Prisma Migrate
+
+Nenhuma em P8.
 
 #### Criterios de aceite
-- `pnpm test` Cucumber runner exits 0 for all 8 features
-- Logger spy correctly captures `WARN degraded:true port=<PortName>` scenarios
-- Port mock call count = 1 for batched library scenarios
+
+1. pnpm test Cucumber runner exit 0 para todos os 8 features
+2. Spy de logger captura WARN degraded:true port=<PortName>
+3. Mock call count = 1 para cenarios de biblioteca batched
 
 #### Riscos
-- SPEC-07 logging scenarios are non-standard BDD (they assert logger behavior, not HTTP responses);
-  step defs must use `jest.spyOn(logger, 'warn')` pattern
+
+- Cenarios SPEC-07 (logging) sao BDD nao-padrao; step defs devem usar jest.spyOn(logger, 'warn')
 
 #### Instrucao para implementador
 
-Reference M2.5 handoff warnings: SPEC-07 cls 3/5 require logger spy, not HTTP assertions;
-SPEC-10 cls 3 requires port call count assertion, not DB query inspection. Implement these step
-definition patterns before the straightforward HTTP/status scenarios.
+Referenciar avisos do handoff M2.5: SPEC-07 cls 3/5 requerem spy de logger; SPEC-10 cls 3 requer
+assercao de call count de port. Implementar esses padroes antes dos cenarios HTTP/status diretos.
 
 ---
 
-## 3. Dependencias externas
+## §4 Riscos
 
-- IMP module: exports `ManuscritoQueryPort` (for PROJ-INT-001) and `ManuscritoErasurePort`
-  (for PROJ-INT-004). Also provides stubs in IMP-INT-001 (CreateProjetoEditorialUseCase +
-  ProjetoEditorialLookup) that are replaced by PROJ-006.
-- COMP module: exports `MetadataQueryPort` (PROJ-INT-002) and `MetadataErasurePort` (PROJ-INT-005).
-- PUB module: exports `PublicacaoQueryPort` + `FileStoragePort` (PROJ-INT-003) and
-  `PublicacaoErasurePort` (PROJ-INT-006).
-- Shared `EmpresaContext`, `JwtAuthGuard`, `ScopesGuard`: check for existing impls from IMP
-  before creating new ones.
-
----
-
-## 4. Restricoes arquiteturais (node stack)
-
-- **eslint-plugin-boundaries**: layer enforcement (`modules` → `domain` → `infrastructure` —
-  never skip; `modules` never imports other `modules` directly, only via DI token; see
-  `docs/architecture/backend/adr/ADR-001-hexagonal-node.md` node-hexagonal-patterns).
-- **Layer boundaries**: `src/modules/proj/` → imports from `src/domain/proj/` (ports, VOs, errors)
-  and via DI tokens from `infrastructure/`; never imports sibling module internals (IMP/COMP/PUB
-  injected exclusively via DI token).
-- **Prisma transactions**: `$transaction` only in the infrastructure layer (repository adapter);
-  use cases receive the repository port, not the Prisma client.
-- **EmpresaContext**: resolved from JWT claim only (RULE-07); never from request body, path, or
-  query param; propagated to all repository and port calls via `AsyncLocalStorage`.
-- **Event emission**: post-commit (EventEmitter2 `async` listener) — never inside a transaction.
+| Risco | Mitigacao |
+|---|---|
+| Provider stub useValue {} causa erro em runtime se chamado | Stubs P1 respondem antes de chegar ao repo; resolver em P3 |
+| Guard duplicado (JwtAuthGuard ja existe em IMP) | Verificar antes de criar em P5; reutilizar se existir |
+| Adapters reais PROJ-INT-001..006 dependem de modulos irmaos | Stubs cobrem o gap durante desenvolvimento paralelo de PROJ |
+| Middleware de correlation ID duplicado | Verificar existencia em IMP antes de criar em P7 |
+| Cenarios BDD SPEC-07 (logger spy) nao-padrao | Implementar spy pattern antes dos cenarios HTTP simples em P8 |
 
 ---
 
-## 5. Referencias
+## §5 Criterios de aceite globais
 
-- `docs/architecture/backend/services/proj-service/contracts/api-contract.md` (§4, §6, §7)
-- `docs/architecture/backend/services/proj-service/contracts/data-model.md`
-- `docs/architecture/backend/services/proj-service/contracts/integration-contracts.md`
-- `docs/architecture/backend/services/proj-service/contracts/event-contracts.md`
-- `docs/architecture/backend/services/proj-service/spec/backend/SPEC-01..11`
-- `docs/architecture/backend/services/proj-service/tests/cucumber/` (8 feature files)
-- `docs/architecture/backend/adr/ADR-001-hexagonal-node.md` (shared hexagonal boundary)
-- `docs/architecture/backend/adr/ADR-002-modular-monolith.md`
-- `docs/architecture/backend/adr/ADR-003-multi-tenancy.md`
-- `docs/architecture/backend/services/proj-service/adr/ADR-001-service-boundary.md`
-- `docs/architecture/backend/services/proj-service/adr/ADR-002-project-status-authority.md`
-- `docs/architecture/backend/services/proj-service/adr/ADR-003-publication-history-read-model.md`
-- `docs/architecture/backend/plans/plan-IMP.md` (reference for implementation patterns)
+1. python scripts/arch-conformance.py check --layer be --target backend/services/proj-service exit 0 (apos P1)
+2. pnpm build exit 0 em todas as prioridades
+3. pnpm lint exit 0 em todas as prioridades
+4. pnpm test exit 0 com 8/8 testes domain + specs unitarios de todos os use cases
+5. 7 rotas REST /api/proj funcionando com respostas corretas (apos P2+P3)
+6. Batching invariant: 3 chamadas de port por request de biblioteca (apos P4)
+7. 401/403 corretos em rotas protegidas (apos P5)
+8. Cascata LGPD na ordem PUB->COMP->IMP->DB (apos P6)
+9. Health 200 + correlation ID em todos os responses (apos P7)
+10. Cucumber runner exit 0 para 44 cenarios (apos P8)
+
+---
+
+## Dependencias externas
+
+- IMP module: exporta ManuscritoQueryPort (PROJ-INT-001) e ManuscritoErasurePort (PROJ-INT-004)
+- COMP module: exporta MetadataQueryPort (PROJ-INT-002) e MetadataErasurePort (PROJ-INT-005)
+- PUB module: exporta PublicacaoQueryPort + FileStoragePort (PROJ-INT-003) e PublicacaoErasurePort (PROJ-INT-006)
+- Shared EmpresaContext, JwtAuthGuard, ScopesGuard: verificar existencia de IMP antes de criar
+
+---
+
+## Restricoes arquiteturais (node stack)
+
+- modules/ importa apenas domain/ (ports, VOs, errors) e providers via DI tokens - nunca infrastructure/ diretamente (RULE-04)
+- domain/ nao importa @prisma/client nem @nestjs/common decorators (RULE-01, RULE-02)
+- Transacoes $transaction apenas no infrastructure/persistence (RULE-03)
+- EmpresaContext resolvido apenas do JWT claim (nunca body/path/query)
+- Emissao de eventos pos-commit (EventEmitter2 async listener, fora de transacao)
+
+---
+
+## Referencias
+
+- docs/architecture/backend/services/proj-service/contracts/api-contract.md (§4, §6, §7)
+- docs/architecture/backend/services/proj-service/contracts/data-model.md
+- docs/architecture/backend/services/proj-service/contracts/integration-contracts.md
+- docs/architecture/backend/services/proj-service/contracts/event-contracts.md
+- docs/architecture/backend/services/proj-service/spec/backend/SPEC-01..11
+- docs/architecture/backend/services/proj-service/tests/cucumber/ (8 feature files)
+- docs/architecture/backend/adr/ADR-001-hexagonal-node.md
+- docs/architecture/backend/adr/ADR-002-modular-monolith.md
+- docs/architecture/backend/adr/ADR-003-multi-tenancy.md
+- docs/architecture/backend/services/proj-service/adr/ADR-001-service-boundary.md
+- docs/architecture/backend/services/proj-service/adr/ADR-002-project-status-authority.md
+- docs/architecture/backend/services/proj-service/adr/ADR-003-publication-history-read-model.md
+- docs/architecture/backend/plans/plan-IMP.md (referencia de padroes de implementacao)
+- docs/architecture/backend/standards/node-hexagonal-patterns.md

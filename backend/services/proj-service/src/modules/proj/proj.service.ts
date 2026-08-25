@@ -7,7 +7,7 @@ import {
   type ProjPage,
   type PageRequest,
 } from '../../domain/proj.repository.interface';
-import { type AuthenticatedUser } from '../../infrastructure/auth/jwt-auth.guard';
+import { type UsuarioContext } from '../../domain/shared/usuario-context.interface';
 import { CreateProjDto } from './dto/create-proj.dto';
 import { UpdateProjDto } from './dto/update-proj.dto';
 
@@ -28,7 +28,7 @@ export class ProjService {
     private readonly domainService: ProjDomainService,
   ) {}
 
-  async create(dto: CreateProjDto, user: AuthenticatedUser): Promise<ProjEntity> {
+  async create(dto: CreateProjDto, user: UsuarioContext): Promise<ProjEntity> {
     const entity = this.domainService.createFrom({
       name: dto.name,
       description: dto.description,
@@ -41,11 +41,11 @@ export class ProjService {
     return saved;
   }
 
-  async findAll(user: AuthenticatedUser, page: PageRequest): Promise<ProjPage> {
+  async findAll(user: UsuarioContext, page: PageRequest): Promise<ProjPage> {
     return this.repository.findAll(page, user.empresaId);
   }
 
-  async findOne(id: string, user: AuthenticatedUser): Promise<ProjEntity> {
+  async findOne(id: string, user: UsuarioContext): Promise<ProjEntity> {
     const found = await this.repository.findById(id, user.empresaId);
     if (!found) {
       throw new NotFoundException(`PROJ ${id} not found`);
@@ -56,7 +56,7 @@ export class ProjService {
   async update(
     id: string,
     dto: UpdateProjDto,
-    user: AuthenticatedUser,
+    user: UsuarioContext,
   ): Promise<ProjEntity> {
     const current = await this.findOne(id, user);
     const next = this.domainService.applyChanges(current, dto);
@@ -64,7 +64,7 @@ export class ProjService {
     return saved;
   }
 
-  async remove(id: string, user: AuthenticatedUser): Promise<void> {
+  async remove(id: string, user: UsuarioContext): Promise<void> {
     await this.findOne(id, user);
     await this.repository.deleteById(id, user.empresaId);
     this.logger.log(`PROJ deleted: ${id}`);

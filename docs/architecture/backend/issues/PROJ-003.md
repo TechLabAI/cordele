@@ -32,8 +32,8 @@ Files to create (relative to monolith root `backend/`):
 - [ ] `projeto_status_historico` row appended in same transaction (`status_de=null, status_para=rascunho`)
 - [ ] `ProjectCreated` event emitted with unique `eventId` (UUID v4), never on rollback
 - [ ] 400 `urn:cordele:proj:validation` when `nome` is missing or empty; nothing persisted
-- [ ] In-process port `CreateProjetoEditorialUseCase.create({ titulo })` returns `{ projetoId }` for IMP
-- [ ] `pnpm test` on use case spec exits 0
+- [x] In-process port `CreateProjetoEditorialUseCase.create({ titulo })` returns `{ projetoId }` for IMP
+- [x] `pnpm test` on use case spec exits 0
 
 ## Dependencias
 

@@ -27,12 +27,12 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] All 7 legal transitions in api-contract §7 pass without throwing
-- [ ] `advanceTo` with `targetStatus === currentStatus` returns `changed=false` without throwing
-- [ ] `advanceTo(em_composicao, em_composicao)` returns `changed=false` (IMP idempotency rule)
-- [ ] `advanceTo(rascunho, publicado)` throws `IllegalStatusTransitionError`
-- [ ] `reopen(rascunho)` throws `IllegalStatusTransitionError`
-- [ ] `reopen(publicado)` returns `{ newStatus: em_composicao, changed: true }`
+- [x] All 7 legal transitions in api-contract §7 pass without throwing
+- [x] `advanceTo` with `targetStatus === currentStatus` returns `changed=false` without throwing
+- [x] `advanceTo(em_composicao, em_composicao)` returns `changed=false` (IMP idempotency rule)
+- [x] `advanceTo(rascunho, publicado)` throws `IllegalStatusTransitionError`
+- [x] `reopen(rascunho)` throws `IllegalStatusTransitionError`
+- [x] `reopen(publicado)` returns `{ newStatus: em_composicao, changed: true }`
 - [ ] `pnpm test src/domain/proj/value-objects/project-status.vo.spec.ts` exits 0
 
 ## Dependencias

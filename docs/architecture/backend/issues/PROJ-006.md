@@ -34,10 +34,10 @@ Files to create/modify (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] `ProjModule.exports` includes all 4 DI tokens: `CREATE_PROJETO_USE_CASE`, `PROJETO_EDITORIAL_LOOKUP`, `ADVANCE_PROJETO_STATUS_USE_CASE`, `REOPEN_PROJECT_USE_CASE`
-- [ ] IMP can inject `CREATE_PROJETO_USE_CASE` via `@Inject(CREATE_PROJETO_USE_CASE)` and call `create({ titulo })` returning `{ projetoId }`
+- [x] `ProjModule.exports` includes all 4 DI tokens: `CREATE_PROJETO_USE_CASE`, `PROJETO_EDITORIAL_LOOKUP`, `ADVANCE_PROJETO_STATUS_USE_CASE`, `REOPEN_PROJECT_USE_CASE`
+- [x] IMP can inject `CREATE_PROJETO_USE_CASE` via `@Inject(CREATE_PROJETO_USE_CASE)` and call `create({ titulo })` returning `{ projetoId }`
 - [ ] `ProjetoEditorialLookup.exists(projetoId)` returns `false` for a project of another empresa (cross-tenant safety)
-- [ ] `pnpm build` exits 0 with ProjModule exporting all 4 providers
+- [x] `pnpm build` exits 0 with ProjModule exporting all 4 providers
 
 ## Dependencias
 
