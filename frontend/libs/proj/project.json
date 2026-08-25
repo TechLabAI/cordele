@@ -1,0 +1,43 @@
+{
+  "name": "proj",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/proj/src",
+  "prefix": "proj",
+  "projectType": "library",
+  "tags": [
+    "scope:proj",
+    "type:feature"
+  ],
+  "targets": {
+    "build": {
+      "executor": "@nx/angular:ng-packagr-lite",
+      "outputs": [
+        "{workspaceRoot}/dist/{projectRoot}"
+      ],
+      "options": {
+        "project": "libs/proj/ng-package.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "libs/proj/tsconfig.lib.prod.json"
+        },
+        "development": {
+          "tsConfig": "libs/proj/tsconfig.lib.json"
+        }
+      },
+      "defaultConfiguration": "production"
+    },
+    "test": {
+      "executor": "@nx/vitest:test",
+      "outputs": [
+        "{options.reportsDirectory}"
+      ],
+      "options": {
+        "reportsDirectory": "coverage/libs/proj"
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

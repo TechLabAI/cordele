@@ -1,0 +1,21 @@
+{
+  "name": "proj-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/proj-e2e/src",
+  "projectType": "application",
+  "tags": [
+    "scope:proj",
+    "type:e2e"
+  ],
+  "implicitDependencies": [
+    "proj"
+  ],
+  "targets": {
+    "e2e": {
+      "executor": "@nx/playwright:playwright",
+      "options": {
+        "config": "apps/proj-e2e/playwright.config.ts"
+      }
+    }
+  }
+}
