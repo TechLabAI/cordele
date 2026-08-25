@@ -1,0 +1,6 @@
+{
+  "lint": "pass",
+  "test": "fail",
+  "build": "pass",
+  "e2e": "fail"
+}

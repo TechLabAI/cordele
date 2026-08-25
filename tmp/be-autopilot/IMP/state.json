@@ -1,0 +1,13 @@
+{
+  "id": "IMP",
+  "module": "IMP",
+  "service": "imp-service",
+  "pipeline": "implement",
+  "currentStep": "decision",
+  "nextStep": "implement",
+  "progressUnit": "P8-FIX-e2e",
+  "iteration": 0,
+  "timestamp": "2026-08-25T20:15:21",
+  "capReached": false,
+  "notes": "B6: test/build/lint/arch PASS; e2e FAIL por DI (CREATE_PROJETO_EDITORIAL_PORT provido em AppModule nao-global, invisivel ao ImpModule) + e2e spec ainda testa CRUD do scaffold. Bloqueio separado: migrations com FK projeto_editorial aguardam decisao. Safety cap atingido."
+}

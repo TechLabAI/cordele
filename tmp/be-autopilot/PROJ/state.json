@@ -1,0 +1,13 @@
+{
+  "id": "PROJ",
+  "module": "PROJ",
+  "service": "proj-service",
+  "pipeline": "implement",
+  "currentStep": "validate-partial",
+  "nextStep": "decision",
+  "progressUnit": "P3",
+  "notes": "P2 entregue: 4 gates exit 0, 68 testes. PROJ-002 10/10 fechada; 003/004/005/006 com 10 criterios abertos que dependem de P3 (transacao/historico) e P4-P5 (HTTP/JWT) - fronteira de issue nao alinhada a fronteira de prioridade",
+  "iteration": 4,
+  "timestamp": "2026-08-25T19:59:53",
+  "capReached": false
+}

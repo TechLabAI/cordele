@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python scripts/hooks/stop_token_capture.py"
+            "command": "python .claude/hooks/stop_token_capture.py"
           }
         ]
       }

@@ -19,6 +19,11 @@
 
 - **Ator:** C:/Program Files/Git/be-architect-specs-validate
 
+### 10:32:00 UTC — [VALIDATOR-BASELINE] IMP (imp-service) consolidado: scaffold CRUD presente; RULE-04 bloqueante; plano 26 issues IMP pendente; score 16/100 Inicial
 
+- **Ator:** /be-validator
+- **Estado:** Scaffold NestJS com hexagonal structure; JWT security implementado; controlador não conforme ao plano (CRUD genérico vs. 7 endpoints manuscritos)
+- **Bloqueadores:** RULE-04 violations (4), endpoints não começados, use cases ausentes
+- **Próxima ação:** PLANNER (reorder P1 para resolver RULE-04, refatorar endpoints)
 
 
