@@ -43,7 +43,7 @@ data_access:
     base_path: /api/imp/projetos/{projetoId}/manuscritos
     operations: [list]
 
-backend_contract: ../../../../backend/services/imp-service/contracts/api-contract.md
+backend_contract: ../../../../../backend/services/imp-service/contracts/api-contract.md
 
 state_management: signals
 
