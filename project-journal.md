@@ -13,6 +13,12 @@
 ### 13:10:08 UTC — [PROJECT-INIT] Projeto pronto para desenvolvimento (P0..P6; Pg skipped)
 
 - **Ator:** C:/Program Files/Git/new-project
+## 2026-08-25
+
+### 11:31:38 UTC — [PHASE-END] M2.5 specs-validate PROJ: Gate1=0 violacoes hard (4 advisory); Gate2=43/43 testaveis cobertas; 15 cenarios gerados (4 features novas + 2 atualizadas); SPEC-11 clausula 5 corrigida (ponto final)
+
+- **Ator:** C:/Program Files/Git/be-architect-specs-validate
+
 
 
 

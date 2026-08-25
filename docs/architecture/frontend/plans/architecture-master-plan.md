@@ -30,3 +30,5 @@ Legenda de status: `pendente` | `em andamento` | `OK` | `bloqueado` | `N/A`
 - 2026-08-25T08:44:00 -- PROJ -- M4 FE specs-validate -- OK -- Gate1 0 violacoes / 7 SPECs / 40 clausulas EARS; Gate2 40/40 cobertas (29 cenarios, 15 orfaos defensivos); # language: pt confirmado nos 2 features
 - 2026-08-25T09:19:41 -- PROJ -- M5 FE backlog -- OK -- 26 issues funcionais + 6 INT = 32; plan-FE-PROJ.md; issues de Promote (D-493), nao de scaffold
 - 2026-08-25T00:00:00 -- PROJ -- M6 FE promote -- OK -- Track D; 2 ports (ProjetoPort + PublicacaoPort); 4 adapters (mock+http x2); 2 facades (LibraryFacade + HistoryFacade); 2 telas promovidas (T02 + T08); proj.routes.ts; proj.providers.ts; apps/proj-e2e registado (D-487) 2 features 29 cenarios; master-plan Promote=OK
+- 2026-08-25T09:34:24 -- PROJ -- M7 e2e-validate -- OK (pending) -- gate EXECUTADO: nx e2e proj-e2e --list = 29 tests em 2 ficheiros, 0 erros
+- 2026-08-25T09:34:24 -- PROJ -- M7 feChecks -- OK -- gate EXECUTADO: nx run-many lint+test+build -p proj verde apos corrigir import nao usado (LibraryStatus) deixado pela promocao

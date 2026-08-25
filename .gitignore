@@ -40,6 +40,7 @@ test-results/
 .nx/
 
 # Autopilot checkpoints (ephemeral runtime state — F-CKPT, D-326)
+tmp/architecture-autopilot/
 tmp/be-architecture-autopilot/
 tmp/fe-architecture-autopilot/
 
