@@ -2,15 +2,15 @@
 
 ## Status das prioridades
 
-- P1 -- pendente
-- P2 -- pendente
-- P3 -- pendente
-- P4 -- pendente
-- P5 -- pendente
-- P6 -- pendente
-- P7 -- pendente
-- P8 -- pendente
-- P9 -- pendente
+- P1 -- DONE
+- P2 -- DONE
+- P3 -- DONE
+- P4 -- DONE
+- P5 -- DONE
+- P6 -- PARTIAL (PUB-014 DONE, PUB-015 DONE; INT-PUB-001/002/003 BLOCKED [requer IMP/COMP/PROJ]; PUB-016 BLOCKED [aguarda ratificação FE])
+- P7 -- DONE (PUB-017: Correlation interceptor + structured logging. PUB-018: Health endpoint com epubcheck liveness check. 2026-08-26 17:59)
+- P8 -- pendente (PUB-019: BDD step definitions manuais + execução dos 3 feature files)
+- P9 -- pendente (PUB-020: Runbook de reconciliação de build órfão)
 
 ---
 
@@ -238,7 +238,7 @@ explícito para `PublicationBuildJob.run`.
 ---
 
 ### Prioridade 6 -- Ports exportadas + integrações
-Status: pendente
+Status: PARTIAL (PUB-014 DONE, PUB-015 DONE; INT-PUB-001/002/003 BLOCKED por dependência externa; PUB-016 BLOCKED por ratificação FE)
 
 #### Objetivo / Resultado esperado
 `PublicationHistoryPort` e `PublicationErasurePort` injetáveis em PROJ; adapters reais de IMP/COMP/PROJ.
