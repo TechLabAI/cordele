@@ -96,10 +96,13 @@ python scripts/pipeline-context.py decision-context --tags backend,planner,pipel
 python scripts/pipeline-context.py spec-context --module <MODULE> --pack --semantic
 # D-460: issues relacionadas (cross-modulo, implementacoes semelhantes) — opcional
 python scripts/pipeline-context.py issue-context --module <MODULE> --query "<tema da issue>" --semantic
+# D-611: known pitfalls (rework_pattern) desta camada — consulte ANTES de sequenciar prioridades
+python scripts/pipeline-context.py learning-context --module <MODULE> --layer be
 ```
 
 - Retorna as decisoes ativas do framework (`D-NNN`) relevantes para o planejamento BE — guarda-corpos arquiteturais ja decididos.
 - Respeitar as decisoes ao sequenciar prioridades e escolher o tipo de planejamento (ex.: convencoes de pipeline, padroes de scaffold, RAG-first).
+- `learning-context` (D-611/D-498/D-497) devolve **known pitfalls** cross-client agrupados por `defect_signature`: ao priorizar uma issue que toca a mesma camada de um pitfall recorrente, mencione o `recommended_generator_fix` no plano para o `be-implement` aplicar proativamente.
 - `available: false` (ES indisponivel) → prosseguir sem o pacote de decisoes; **nunca bloquear**.
 - Nao reler o consolidation doc — o indice ES e a fonte consultavel.
 

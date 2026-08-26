@@ -198,11 +198,47 @@ python scripts/pipeline-context.py decision-context --tags frontend,implementer,
 python scripts/pipeline-context.py spec-context --module <MODULE> --pack --semantic
 # D-460: issues relacionadas (cross-modulo, implementacoes semelhantes) — opcional
 python scripts/pipeline-context.py issue-context --module <MODULE> --query "<tema da issue>" --semantic
+# D-611: known pitfalls (rework_pattern) desta camada — consulte ANTES de codar e NAO os reproduza
+python scripts/pipeline-context.py learning-context --module <MODULE> --layer fe
 ```
 
 - Retorna decisoes ativas do framework (`D-NNN`) que restringem **como** implementar — mesma categoria das regras Nx/Angular acima.
+- `learning-context` (D-611/D-498/D-497) devolve um bloco de **known pitfalls** (defeitos recorrentes cross-client agrupados por `defect_signature`): para cada um, aplique o `recommended_generator_fix` de forma proativa em vez de re-resolver o mesmo defeito. Best-effort: `available:false` → prossiga.
 - **Nao e fonte de escopo:** o *que* implementar vem exclusivamente do plano. As decisoes apenas restringem padroes (ex.: boundaries Nx, signals, RAG-first).
 - `available: false` (ES indisponivel) → prosseguir com as regras deste arquivo + CLAUDE.md; **nunca bloquear**.
+
+### Registrar sinal de aprendizado ao corrigir um defeito recorrente (D-611 / D-498 / D-497)
+
+Quando, durante a implementação, voce **corrige uma classe de defeito recorrente**
+(um pitfall conhecido — p.ex. `standalone: true` ou `ChangeDetectionStrategy.OnPush`
+ausente num component novo, subscription sem `takeUntilDestroyed()`, `HttpClient`
+usado direto em vez do access-http-base, ou tags `type:*`/`scope:<module>` ausentes
+num `project.json` novo), registre **um sinal de aprendizado** `rework_pattern`. E o que alimenta
+o loop: depois que o mesmo `defect_signature` recorre N>=5 vezes (cross-modulo /
+cross-client), ele e promovido a um ajuste de template do gerador e o agente para de
+reproduzi-lo. Best-effort — nunca bloqueia a implementacao.
+
+Anexe uma linha JSON (append-only) ao ledger local do projeto
+`.techlab/learning/signals.jsonl`:
+
+```json
+{"event_type":"rework_pattern","project_id":"cordele","created_at":"<ISO-8601-UTC>","defect_signature":"<slug>","module":"<MODULO>","layer":"<fe/component|fe/state|fe/e2e|...>","root_cause":"...","recommended_generator_fix":"...","generator_target":"<arquivo/template alvo>","fix_ref":"<commit-sha-ou-arquivo>"}
+```
+
+Quando o indexer estiver disponível (workspace de arquitetura), o mesmo evento pode ser
+emitido direto:
+
+```bash
+python scripts/learning-index.py emit --client cordele --event-type rework_pattern \
+  --json '{"defect_signature":"<slug>","module":"<MODULO>","layer":"<...>","root_cause":"...","recommended_generator_fix":"...","generator_target":"<...>","fix_ref":"<...>"}'
+```
+
+**`defect_signature` e um slug deterministico** (`<area>:<local>:<sintoma>`, ex.:
+`fe-component:standalone-import-missing` ou `fe-e2e:playwright-config-baseurl`).
+**Reuse o slug existente** de correcoes anteriores quando o mesmo defeito recorrer —
+e isso que faz as N ocorrencias colapsarem em UM candidato promovivel em vez de N
+look-alikes. Granularidade = um evento por modulo afetado (mesma convencao do
+self-journal via `pipeline_events.py`).
 
 ---
 

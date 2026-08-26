@@ -92,10 +92,13 @@ python scripts/pipeline-context.py decision-context --tags backend,validator,pip
 python scripts/pipeline-context.py spec-context --module <MODULE> --pack --semantic
 # D-460: issues relacionadas (cross-modulo, implementacoes semelhantes) — opcional
 python scripts/pipeline-context.py issue-context --module <MODULE> --query "<tema da issue>" --semantic
+# D-611: known pitfalls (rework_pattern) desta camada — consulte ANTES de decidir/rotear
+python scripts/pipeline-context.py learning-context --module <MODULE> --layer be
 ```
 
 - Retorna as decisões ativas do framework (`D-NNN`) relevantes para este agente — guarda-corpos arquiteturais já decididos.
 - Respeitar as decisões listadas ao avaliar maturidade e rotear (ex.: convenções de pipeline, RAG-first, padrões de validação).
+- `learning-context` (D-611/D-498/D-497) devolve **known pitfalls** (defeitos recorrentes cross-client agrupados por `defect_signature`): se um padrão conhecido explica a causa de um score baixo ou de um gap detectado, cite-o na decisão/README em vez de re-diagnosticar do zero. Não é responsabilidade do validator emitir sinal — isso acontece no `be-implement` quando o defeito é de fato corrigido.
 - `available: false` (ES indisponível) → prosseguir sem o pacote de decisões; **nunca bloquear**.
 - Não reler o consolidation doc — o índice ES é a fonte consultável.
 

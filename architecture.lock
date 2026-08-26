@@ -2,11 +2,11 @@
   "_schema_version": 1,
   "techlab_architecture": {
     "version": "1.1.0",
-    "source_sha": "8dfa764"
+    "source_sha": "84eda83"
   },
   "architecture": {
     "version": "1.0.0",
-    "applied_at": "2026-08-24T13:06:34Z"
+    "applied_at": "2026-08-26T11:28:38Z"
   },
   "aspects": {
     "arch/decisions/entity-scope.arch.json": {
@@ -239,9 +239,9 @@
     },
     "docs/architecture/shared/modelo-dados/README.md": {
       "source": "templates/architecture/shared/modelo-dados/README.md.j2",
-      "source_sha": "19230cf106154ff6cc02907fa89ac3a7970547efdabb540498e660ed9c990797",
+      "source_sha": "9606e64002764f1c6cfac2a28f9fad4b8536092b37e86a53744326ba5f946179",
       "output": "docs/architecture/shared/modelo-dados/README.md",
-      "output_sha": "e07e25db15a644a0a10c6445dbef433ae2a20dbe27d6ba3172e949a1bbc87532"
+      "output_sha": "be891d3de01b8e7d367e1c20545d437816174ae890a9c0a28d7dde237f43e43c"
     },
     "docs/architecture/shared/modelo-dados/persistence-conventions.md": {
       "source": "templates/architecture/shared/modelo-dados/persistence-conventions.md.j2",
@@ -398,6 +398,90 @@
       "source_sha": "8c46a398f6d9f6bc51e129a135663e58ad3b8d636deb72a8d7a9664a56c372b5",
       "output": "docs/architecture/constitution.md",
       "output_sha": "90ce3976ac9aa20c8b1e479d8e1c40aca8fb98746e254058eea049a561da109d"
+    },
+    ".claude/commands/be-autopilot.md": {
+      "source": "templates/operational/claude-folder/commands/be-autopilot.md.j2",
+      "source_sha": "ec6d1d5f3667ef89f975a662606be75d83ae7ae3924661879358403643ed448e",
+      "output": ".claude/commands/be-autopilot.md",
+      "output_sha": "377e08a3a6164df041422a10abcf297c0ede6d5b016ef17b73800f163db5aec9"
+    },
+    ".claude/commands/be-implement.md": {
+      "source": "templates/operational/claude-folder/commands/be-implement.md.j2",
+      "source_sha": "32078845973f75af41c307e2452ae0c79a4ba42e640382f2cfea45e1d671dbaf",
+      "output": ".claude/commands/be-implement.md",
+      "output_sha": "344ad46448f5ddac42a54ff390fa38e3b628a874d4220f157d0a7daade264024"
+    },
+    ".claude/commands/be-planner.md": {
+      "source": "templates/operational/claude-folder/commands/be-planner.md.j2",
+      "source_sha": "344afa3a622c9cc508488266cedb278c3cead18bd095a49163420a1cfa4d3b5b",
+      "output": ".claude/commands/be-planner.md",
+      "output_sha": "e39712e40cd7a9dfe0d399b7c878bd36b5fdec24ecb5bcc04c0df65f58c2aaa6"
+    },
+    ".claude/commands/be-validator.md": {
+      "source": "templates/operational/claude-folder/commands/be-validator.md.j2",
+      "source_sha": "4afddfcea1b34e017e16debd275e03e52e6349fb625aded274b3f67acbe5c35e",
+      "output": ".claude/commands/be-validator.md",
+      "output_sha": "4b17ea0857ed14a7527ccb479cd481b85ca6b483bda5122ce9e85603141ef6e2"
+    },
+    ".claude/commands/fe-autopilot.md": {
+      "source": "templates/operational/claude-folder/commands/fe-autopilot.md.j2",
+      "source_sha": "e0e95ddaa5d2ad73af8e0c06a4d740552f9ecf92f822b431ae425a1a995d8f91",
+      "output": ".claude/commands/fe-autopilot.md",
+      "output_sha": "fffdc8494b5cfc5f6f83f986a02d54d23c0ed280f31ae27653de873bbfcaf578"
+    },
+    ".claude/commands/fe-implement.md": {
+      "source": "templates/operational/claude-folder/commands/fe-implement.md.j2",
+      "source_sha": "3b2b240dc2d5c082a21fdbd703506007ea3f3bac5841a78ad3909707da7ff677",
+      "output": ".claude/commands/fe-implement.md",
+      "output_sha": "950d4431a4396334dbed5693614779f665cb4032fe6895820ee4f50d10afdcaa"
+    },
+    ".claude/commands/fe-planner.md": {
+      "source": "templates/operational/claude-folder/commands/fe-planner.md.j2",
+      "source_sha": "f0a1ad2c077bf0167e1937e622fa134fde5979e2ae2b348cab6a823b6520c79f",
+      "output": ".claude/commands/fe-planner.md",
+      "output_sha": "e19d3a3b5f20ae620c95daaf1d0d6ed3c37c3c274867eaa2484b07f07bde4295"
+    },
+    ".claude/commands/fe-validator.md": {
+      "source": "templates/operational/claude-folder/commands/fe-validator.md.j2",
+      "source_sha": "b20bcacda55555c5cb7ad3ed56690b219dae3560e58db63783f066b1c2104cf6",
+      "output": ".claude/commands/fe-validator.md",
+      "output_sha": "96dddf4b45e9ddca867b683533b8f5225005eafc49acc6ed0ed9f4dc935d77d5"
+    },
+    ".claude/agents/fe-implementer-agent.md": {
+      "source": "templates/operational/claude-folder/agents/fe-implementer-agent.md.j2",
+      "source_sha": "566035ef99aa4c33e6eb28ca659248eac69bdb2678c895f1015871795c8dc56d",
+      "output": ".claude/agents/fe-implementer-agent.md",
+      "output_sha": "0213f21ebbf38d6c469c3dac556f94631ff202daf1a659353e4437790a1b6671"
+    },
+    ".claude/agents/fe-planner-agent.md": {
+      "source": "templates/operational/claude-folder/agents/fe-planner-agent.md.j2",
+      "source_sha": "87ad4b1284211a12d698a163bd18167cd4d51bd436c09db77928a9bd1b0772bc",
+      "output": ".claude/agents/fe-planner-agent.md",
+      "output_sha": "9f02e40ace2c00ef11b53f0539cfd5287ab36d416f0206a859911b294da90b90"
+    },
+    ".claude/agents/fe-validator-agent.md": {
+      "source": "templates/operational/claude-folder/agents/fe-validator-agent.md.j2",
+      "source_sha": "6e7cc5077dc8d05a6c987a53ce962e4a9cc2e94b97aa66d8571dc8407df32c09",
+      "output": ".claude/agents/fe-validator-agent.md",
+      "output_sha": "d9777ffe81940618a1f787cd62cfceeecd54d3093779809a6b7bf22ad8fc0ad5"
+    },
+    ".claude/agents/implementer-agent.md": {
+      "source": "templates/operational/claude-folder/agents/implementer-agent.md.j2",
+      "source_sha": "b2be4801dccb6614b2a2779dd510e3568b00ff6d7529119aa9fd2c3d9c4d8f27",
+      "output": ".claude/agents/implementer-agent.md",
+      "output_sha": "3922a62647c24546ae3f32d7592bc01d155661d607a3ba595148eb1c823ada9a"
+    },
+    ".claude/agents/planner-agent.md": {
+      "source": "templates/operational/claude-folder/agents/planner-agent.md.j2",
+      "source_sha": "d21cc9a4250cb2e4503e5392e428f977564cc412a04f1c1190c41304e1210758",
+      "output": ".claude/agents/planner-agent.md",
+      "output_sha": "ad35950d7c406d70d98677aacdd3d2319201c3918bc61bc69f0f0f0f3712a659"
+    },
+    ".claude/agents/validator-agent.md": {
+      "source": "templates/operational/claude-folder/agents/validator-agent.md.j2",
+      "source_sha": "f8f4bed549f0341017e95a5dfc77018f5e1d8c3746fe5484ec97dd0507927098",
+      "output": ".claude/agents/validator-agent.md",
+      "output_sha": "e394c9dfacb70aa7d625a96e71048225a3dde9b5508ab19c7597f4d52ce06f2a"
     }
   }
 }
