@@ -1,16 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { ProjController } from './proj.controller';
+import {
+  CREATE_PROJETO_USE_CASE,
+  REOPEN_PROJECT_USE_CASE,
+  GET_PROJETO_LIBRARY_USE_CASE,
+  GET_PROJETO_DETAIL_USE_CASE,
+  GET_PUBLICATION_HISTORY_USE_CASE,
+  GET_SIGNED_DOWNLOAD_URL_USE_CASE,
+} from './proj.tokens';
 
 /**
- * Unit tests for ProjController (P1 stubs).
+ * Unit tests for ProjController (P4 update).
  *
- * Verifies that all 7 route handlers defined in api-contract.md §4 are
- * registered on ProjController and return the expected stub HTTP payload.
- * No use cases are injected in P1; the controller has no constructor
- * dependencies at this stage.
+ * The controller now has use case dependencies injected via DI tokens.
+ * This spec mocks all use cases so the controller can be tested in isolation.
  *
- * Route coverage:
+ * Route coverage (7 handlers from api-contract.md §4):
  *   POST   /projetos                                         → 201 ProjetoDetailDto
  *   GET    /projetos                                         → 200 ProjetoCardDto[]
  *   GET    /projetos/:projetoId                              → 200 ProjetoDetailDto
@@ -22,9 +28,73 @@ import { ProjController } from './proj.controller';
 describe('ProjController', () => {
   let controller: ProjController;
 
+  const NOW = new Date('2026-08-25T10:00:00Z');
+
+  const mockCreateUseCase = {
+    execute: jest.fn().mockResolvedValue({
+      id: 'proj-id-1',
+      nome: 'Romance das Cidades',
+      descricao: null,
+      editoraId: 'emp_aetos',
+      status: 'rascunho',
+      criadoEm: NOW,
+      atualizadoEm: NOW,
+    }),
+  };
+
+  const mockReopenUseCase = {
+    reopen: jest.fn().mockResolvedValue({
+      projetoId: 'proj-id-1',
+      newStatus: 'em_composicao',
+      changed: true,
+    }),
+  };
+
+  const mockLibraryUseCase = {
+    execute: jest.fn().mockResolvedValue({ cards: [], degraded: false }),
+  };
+
+  const mockDetailUseCase = {
+    execute: jest.fn().mockResolvedValue({
+      id: 'proj-id-1',
+      editoraId: 'emp_aetos',
+      nome: 'Romance das Cidades',
+      descricao: null,
+      status: 'rascunho',
+      criadoEm: NOW.toISOString(),
+      atualizadoEm: NOW.toISOString(),
+      manuscriptSummary: null,
+      metadata: null,
+      publicationHistory: null,
+      degraded: false,
+    }),
+  };
+
+  const mockHistoryUseCase = {
+    execute: jest.fn().mockResolvedValue([]),
+  };
+
+  const mockDownloadUrlUseCase = {
+    execute: jest.fn().mockResolvedValue({
+      publicacaoId: 'pub-id-1',
+      arquivoUrl: 'https://storage.example.com/epub.epub?sig=abc',
+      expiresAt: NOW.toISOString(),
+    }),
+  };
+
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ProjController],
+      providers: [
+        { provide: CREATE_PROJETO_USE_CASE, useValue: mockCreateUseCase },
+        { provide: REOPEN_PROJECT_USE_CASE, useValue: mockReopenUseCase },
+        { provide: GET_PROJETO_LIBRARY_USE_CASE, useValue: mockLibraryUseCase },
+        { provide: GET_PROJETO_DETAIL_USE_CASE, useValue: mockDetailUseCase },
+        { provide: GET_PUBLICATION_HISTORY_USE_CASE, useValue: mockHistoryUseCase },
+        { provide: GET_SIGNED_DOWNLOAD_URL_USE_CASE, useValue: mockDownloadUrlUseCase },
+      ],
     }).compile();
 
     controller = module.get<ProjController>(ProjController);
@@ -39,12 +109,11 @@ describe('ProjController', () => {
   // ---------------------------------------------------------------------------
 
   describe('create() — POST /projetos', () => {
-    it('returns a ProjetoDetailDto stub with status rascunho', () => {
-      const result = controller.create({ nome: 'Romance das Cidades' });
+    it('returns a ProjetoDetailDto with status rascunho', async () => {
+      const result = await controller.create({ nome: 'Romance das Cidades' });
 
       expect(result).toBeDefined();
-      expect(result.id).toBeDefined();
-      expect(result.editoraId).toBeDefined();
+      expect(result.id).toBe('proj-id-1');
       expect(result.status).toBe('rascunho');
       expect(result.criadoEm).toBeDefined();
       expect(result.atualizadoEm).toBeDefined();
@@ -56,15 +125,15 @@ describe('ProjController', () => {
   // ---------------------------------------------------------------------------
 
   describe('findAll() — GET /projetos', () => {
-    it('returns an empty ProjetoCardDto array', () => {
-      const result = controller.findAll();
+    it('returns a ProjetoCardDto array from library use case', async () => {
+      const result = await controller.findAll();
 
       expect(Array.isArray(result)).toBe(true);
-      expect(result).toHaveLength(0);
+      expect(mockLibraryUseCase.execute).toHaveBeenCalledTimes(1);
     });
 
-    it('accepts optional status, limit and cursor query params without throwing', () => {
-      expect(() => controller.findAll('rascunho', 10, 'cursor-abc')).not.toThrow();
+    it('accepts optional status, limit and cursor query params without throwing', async () => {
+      await expect(controller.findAll('rascunho', 10, 'cursor-abc')).resolves.toBeDefined();
     });
   });
 
@@ -73,13 +142,22 @@ describe('ProjController', () => {
   // ---------------------------------------------------------------------------
 
   describe('findOne() — GET /projetos/:projetoId', () => {
-    it('returns a ProjetoDetailDto stub', () => {
+    it('returns a ProjetoDetailDto from detail use case', async () => {
       const projetoId = '11111111-1111-1111-1111-111111111111';
-      const result = controller.findOne(projetoId);
+      const result = await controller.findOne(projetoId);
 
       expect(result).toBeDefined();
       expect(result.id).toBeDefined();
       expect(result.status).toBeDefined();
+    });
+
+    it('throws NotFoundException when detail use case returns null', async () => {
+      const { NotFoundException } = await import('@nestjs/common');
+      mockDetailUseCase.execute.mockResolvedValueOnce(null);
+
+      await expect(
+        controller.findOne('11111111-1111-1111-1111-111111111111'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -88,11 +166,11 @@ describe('ProjController', () => {
   // ---------------------------------------------------------------------------
 
   describe('findPublicacoes() — GET /projetos/:projetoId/publicacoes', () => {
-    it('returns an empty PublicacaoHistoryItemDto array', () => {
-      const result = controller.findPublicacoes('11111111-1111-1111-1111-111111111111');
+    it('returns a PublicacaoHistoryItemDto array from history use case', async () => {
+      const result = await controller.findPublicacoes('11111111-1111-1111-1111-111111111111');
 
       expect(Array.isArray(result)).toBe(true);
-      expect(result).toHaveLength(0);
+      expect(mockHistoryUseCase.execute).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -100,15 +178,15 @@ describe('ProjController', () => {
   // 4.5 GET /projetos/:projetoId/publicacoes/:publicacaoId/download — getDownloadUrl()
   // ---------------------------------------------------------------------------
 
-  describe('getDownloadUrl() — GET /projetos/:projetoId/publicacoes/:publicacaoId/download', () => {
-    it('returns a SignedDownloadUrlDto stub with the publicacaoId echoed back', () => {
+  describe('getDownloadUrl() — GET .../download', () => {
+    it('returns a SignedDownloadUrlDto from download URL use case', async () => {
       const projetoId = '11111111-1111-1111-1111-111111111111';
       const publicacaoId = '22222222-2222-2222-2222-222222222222';
 
-      const result = controller.getDownloadUrl(projetoId, publicacaoId);
+      const result = await controller.getDownloadUrl(projetoId, publicacaoId);
 
       expect(result).toBeDefined();
-      expect(result.publicacaoId).toBe(publicacaoId);
+      expect(result.publicacaoId).toBeDefined();
       expect(result.arquivoUrl).toBeDefined();
       expect(result.expiresAt).toBeDefined();
     });
@@ -136,17 +214,17 @@ describe('ProjController', () => {
   // ---------------------------------------------------------------------------
 
   describe('reopen() — POST /projetos/:projetoId/reopen', () => {
-    it('returns a ProjetoDetailDto stub', () => {
-      const result = controller.reopen('11111111-1111-1111-1111-111111111111');
+    it('returns a ProjetoDetailDto with the new status', async () => {
+      const result = await controller.reopen('11111111-1111-1111-1111-111111111111');
 
       expect(result).toBeDefined();
       expect(result.id).toBeDefined();
-      expect(result.status).toBeDefined();
+      expect(result.status).toBe('em_composicao');
     });
   });
 
   // ---------------------------------------------------------------------------
-  // Route metadata verification via Reflect
+  // Route metadata verification
   // ---------------------------------------------------------------------------
 
   describe('Route metadata (7 handlers registered)', () => {
@@ -155,17 +233,10 @@ describe('ProjController', () => {
         (m) => m !== 'constructor',
       );
 
-      // Public route handlers (excluding the private helper)
       const handlers = ['create', 'findAll', 'findOne', 'findPublicacoes', 'getDownloadUrl', 'remove', 'reopen'];
       for (const handler of handlers) {
         expect(proto).toContain(handler);
       }
-    });
-
-    it('has exactly 7 public route handlers declared on the prototype', () => {
-      // Private method `emptyProjetoDetailStub` is internal; only 7 public routes.
-      const handlers = ['create', 'findAll', 'findOne', 'findPublicacoes', 'getDownloadUrl', 'remove', 'reopen'];
-      expect(handlers).toHaveLength(7);
     });
   });
 });

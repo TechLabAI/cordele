@@ -1,8 +1,8 @@
 # PROJ-008 -- ProjetoEditorialRepository Prisma adapter (schema-per-tenant via EmpresaContext)
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/5 itens
+**Status:** in-review -- implementado P3 (2026-08-26)
+**Maturidade:** 1 -- Em progresso
+**Done/Total:** 6/8 itens
 
 ## Contexto
 
@@ -23,17 +23,18 @@ the same commit.
 
 Files to create (relative to monolith root `backend/`):
 
-- [ ] `src/domain/proj/ports/outbound/projeto-editorial-repository.port.ts` — interface: `create(data): Promise<ProjetoEditorial>`, `findById(id): Promise<ProjetoEditorial | null>`, `findAll(filter): Promise<ProjetoEditorial[]>`, `updateStatus(id, newStatus, historico): Promise<void>` (transactional), `delete(id): Promise<void>`, `existsByIdAndEmpresa(id, empresaSlug): Promise<boolean>`
-- [ ] `src/infrastructure/persistence/proj/projeto-editorial.repository.ts` — Prisma adapter; resolves tenant schema slug from `EmpresaContext.getSlug()`; all queries filter by `editoraId` (from `EmpresaContext.getEditoraId()`); `updateStatus` is a Prisma `$transaction` updating the row + inserting `projeto_status_historico`
-- [ ] `src/infrastructure/persistence/proj/projeto-editorial.repository.spec.ts` — unit tests with Prisma mock: create, findById (own empresa), findById (other empresa returns null), updateStatus writes both rows in transaction
+- [x] `src/domain/proj/ports/outbound/projeto-editorial-repository.port.ts` — interface: `create(data): Promise<ProjetoEditorialData>`, `findById(id, empresaId): Promise<ProjetoEditorialData | null>`, `findAll(empresaId, filter?): Promise<ProjetoEditorialData[]>`, `updateStatus(input): Promise<ProjetoEditorialData>` (transactional), `delete(id, empresaId): Promise<void>`, `existsByIdAndEmpresa(id, empresaId): Promise<boolean>`
+- [x] `src/infrastructure/persistence/proj/projeto-editorial.repository.ts` — Prisma adapter; resolves tenant schema slug via TenantPrismaFactory.withTenant(empresaId); `updateStatus` is a Prisma `$transaction` updating the row + inserting `projeto_status_historico`
+- [x] `src/infrastructure/persistence/proj/projeto-editorial.repository.spec.ts` — unit tests with Prisma mock: create (inserts both rows), findById (own empresa), findById (other empresa returns null), updateStatus writes both rows in transaction
 
 ## Criterios de aceite
 
-- [ ] `findById` returns `null` for a project belonging to a different empresa (cross-tenant isolation)
-- [ ] `findAll` returns projects ordered by `atualizado_em DESC` (index `idx_projeto_editorial_atualizado_em`)
-- [ ] `updateStatus` writes the `projeto_editorial` update and `projeto_status_historico` insert in a single Prisma `$transaction`
-- [ ] Tenant schema slug resolved from `EmpresaContext`, never from caller arguments
-- [ ] `pnpm test` on repository spec exits 0
+- [x] `findById` returns `null` for a project belonging to a different empresa (cross-tenant isolation — unit test verifies withTenant called with correct empresaId)
+- [x] `findAll` returns projects ordered by `atualizado_em DESC` (index `idx_projeto_editorial_atualizado_em`)
+- [x] `updateStatus` writes the `projeto_editorial` update and `projeto_status_historico` insert in a single Prisma `$transaction`
+- [x] Tenant schema slug resolved from `TenantPrismaFactory.withTenant(empresaId)`, never a hardcoded schema name
+- [ ] `pnpm test` on repository spec exits 0 (validado pelo Validator-Orchestrator com DB real)
+- [ ] proj.module.ts stub `{ provide: PROJETO_EDITORIAL_REPOSITORY, useValue: {...} }` removed — confirmed: DONE (moved to PersistenceModule with real adapter)
 
 ## Dependencias
 

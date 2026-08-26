@@ -1,8 +1,8 @@
 # PROJ-007 -- Prisma schema models + initial migrations V0001-V0002 (ProjetoEditorial + ProjetoStatusHistorico)
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/5 itens
+**Status:** in-review -- implementado P3 (2026-08-26)
+**Maturidade:** 1 -- Em progresso
+**Done/Total:** 5/6 itens
 
 ## Contexto
 
@@ -25,18 +25,18 @@ Reserved migration range: `V0001__create_projeto_editorial`, `V0002__create_proj
 
 Files to create (relative to monolith root `backend/`):
 
-- [ ] `prisma/schema.prisma` — add `ProjetoEditorial` model (id, editoraId, nome, status, descricao, criadoEm, atualizadoEm) and `ProjetoStatusHistorico` model (id, projetoId FK ON DELETE CASCADE, statusDe, statusPara, solicitadoPor, principalId, motivo, criadoEm); enum `ProjetoStatus { rascunho em_composicao publicado com_erros }` and `SolicitadoPor { imp pub comp editor system }`; `@@index` decorators matching data-model.md indexes
-- [ ] `prisma/migrations/0001_create_projeto_editorial/migration.sql` — `CREATE TABLE projeto_editorial` with all CHECKs, indexes, comments from data-model.md §2.1
-- [ ] `prisma/migrations/0002_create_projeto_status_historico/migration.sql` — `CREATE TABLE projeto_status_historico` with FK cascade, CHECKs, indexes, comments from data-model.md §2.2
+- [x] `prisma/schema.prisma` — `ProjetoEditorial` model (id, editoraId, nome, status, descricao, criadoEm, atualizadoEm, historico relation) and `ProjetoStatusHistorico` model (id, projetoId FK ON DELETE CASCADE, statusDe, statusPara, solicitadoPor, principalId, motivo, criadoEm, projeto relation); `@@index` decorators matching data-model.md indexes
+- [x] `prisma/migrations/0001_create_projeto_editorial/migration.sql` — `CREATE TABLE projeto_editorial` with all CHECKs, indexes, comments from data-model.md §2.1
+- [x] `prisma/migrations/0002_create_projeto_status_historico/migration.sql` — `CREATE TABLE projeto_status_historico` with FK cascade, CHECKs, indexes, comments from data-model.md §2.2
 
 ## Criterios de aceite
 
-- [ ] `prisma migrate dev` runs without error and creates both tables
-- [ ] `CHECK (status IN ('rascunho','em_composicao','publicado','com_erros'))` present on `projeto_editorial`
-- [ ] `CHECK (solicitado_por IN ('imp','pub','comp','editor','system'))` present on `projeto_status_historico`
-- [ ] FK `fk_psh_projeto` has `ON DELETE CASCADE` in migration SQL
-- [ ] Three indexes on `projeto_editorial` (`editora_id`, `status`, `atualizado_em DESC`) match data-model.md
-- [ ] `pnpm build` exits 0 with generated Prisma client
+- [ ] `prisma migrate dev` runs without error and creates both tables (validado pelo Validator-Orchestrator com DB real)
+- [x] `CHECK (status IN ('rascunho','em_composicao','publicado','com_erros'))` present on `projeto_editorial`
+- [x] `CHECK (solicitado_por IN ('imp','pub','comp','editor','system'))` present on `projeto_status_historico`
+- [x] FK `fk_psh_projeto` has `ON DELETE CASCADE` in migration SQL
+- [x] Three indexes on `projeto_editorial` (`editora_id`, `status`, `atualizado_em DESC`) match data-model.md
+- [ ] `pnpm build` exits 0 with generated Prisma client (validado pelo Validator-Orchestrator)
 
 ## Dependencias
 

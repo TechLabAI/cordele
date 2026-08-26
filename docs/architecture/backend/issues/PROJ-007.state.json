@@ -1,56 +1,56 @@
 {
   "issue": "PROJ-007",
   "layer": "be",
-  "computedAt": "2026-08-25T17:10:42",
+  "computedAt": "2026-08-26T07:16:36",
   "checklist": {
     "total": 9,
-    "done": 1,
+    "done": 7,
     "partial": 0,
-    "missing": 8,
+    "missing": 2,
     "blocked": 0,
     "items": [
       {
-        "text": "`prisma/schema.prisma` — add `ProjetoEditorial` model (id, editoraId, nome, status, descricao, criadoEm, atualizadoEm) and `ProjetoStatusHistorico` model (id, projetoId FK ON DELETE CASCADE, statusDe, statusPara, solicitadoPor, principalId, motivo, criadoEm); enum `ProjetoStatus { rascunho em_composicao publicado com_erros }` and `SolicitadoPor { imp pub comp editor system }`; `@@index` decorators matching data-model.md indexes",
+        "text": "`prisma/schema.prisma` — `ProjetoEditorial` model (id, editoraId, nome, status, descricao, criadoEm, atualizadoEm, historico relation) and `ProjetoStatusHistorico` model (id, projetoId FK ON DELETE CASCADE, statusDe, statusPara, solicitadoPor, principalId, motivo, criadoEm, projeto relation); `@@index` decorators matching data-model.md indexes",
         "state": "DONE",
         "evidence": "arquivo(s) presente(s) e nao-stub: prisma/schema.prisma"
       },
       {
         "text": "`prisma/migrations/0001_create_projeto_editorial/migration.sql` — `CREATE TABLE projeto_editorial` with all CHECKs, indexes, comments from data-model.md §2.1",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: prisma/migrations/0001_create_projeto_editorial/migration.sql"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: prisma/migrations/0001_create_projeto_editorial/migration.sql"
       },
       {
         "text": "`prisma/migrations/0002_create_projeto_status_historico/migration.sql` — `CREATE TABLE projeto_status_historico` with FK cascade, CHECKs, indexes, comments from data-model.md §2.2",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: prisma/migrations/0002_create_projeto_status_historico/migration.sql"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: prisma/migrations/0002_create_projeto_status_historico/migration.sql"
       },
       {
-        "text": "`prisma migrate dev` runs without error and creates both tables",
+        "text": "`prisma migrate dev` runs without error and creates both tables (validado pelo Validator-Orchestrator com DB real)",
         "state": "MISSING",
         "evidence": "desmarcado (sem arquivo verificavel)"
       },
       {
         "text": "`CHECK (status IN ('rascunho','em_composicao','publicado','com_erros'))` present on `projeto_editorial`",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`CHECK (solicitado_por IN ('imp','pub','comp','editor','system'))` present on `projeto_status_historico`",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "FK `fk_psh_projeto` has `ON DELETE CASCADE` in migration SQL",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "Three indexes on `projeto_editorial` (`editora_id`, `status`, `atualizado_em DESC`) match data-model.md",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
-        "text": "`pnpm build` exits 0 with generated Prisma client",
+        "text": "`pnpm build` exits 0 with generated Prisma client (validado pelo Validator-Orchestrator)",
         "state": "MISSING",
         "evidence": "desmarcado (sem arquivo verificavel)"
       }
@@ -59,25 +59,25 @@
   "gates": {
     "build": "pass",
     "lint": "pass",
-    "test": "skip",
-    "e2e": "skip"
+    "test": "deferred",
+    "e2e": "deferred"
   },
   "score": {
-    "total": 23,
+    "total": 53,
     "provisional": true,
     "range": [
-      23,
-      33
+      53,
+      63
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 20,
+        "value": 30,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 3,
+        "value": 23,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -98,11 +98,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Inicial",
-    "statusTag": "REDUCED"
+    "band": "Parcial",
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 3/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 23/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

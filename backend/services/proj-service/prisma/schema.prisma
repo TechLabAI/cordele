@@ -61,19 +61,30 @@ model ProjetoEditorial {
   criadoEm      DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
   atualizadoEm  DateTime  @default(now()) @map("atualizado_em") @db.Timestamptz(6)
 
+  /// Back-reference for cascade delete of status history rows.
+  historico     ProjetoStatusHistorico[]
+
+  @@index([editoraId])
+  @@index([status])
+  @@index([atualizadoEm(sort: Desc)])
   @@map("projeto_editorial")
 }
 
 model ProjetoStatusHistorico {
-  id             String    @id @default(uuid()) @db.Uuid
-  projetoId      String    @map("projeto_id") @db.Uuid
-  statusDe       String?   @map("status_de")
-  statusPara     String    @map("status_para")
-  solicitadoPor  String    @map("solicitado_por")
-  principalId    String?   @map("principal_id")
+  id             String            @id @default(uuid()) @db.Uuid
+  projetoId      String            @map("projeto_id") @db.Uuid
+  statusDe       String?           @map("status_de")
+  statusPara     String            @map("status_para")
+  solicitadoPor  String            @map("solicitado_por")
+  principalId    String?           @map("principal_id")
   motivo         String?
-  criadoEm       DateTime  @default(now()) @map("criado_em") @db.Timestamptz(6)
+  criadoEm       DateTime          @default(now()) @map("criado_em") @db.Timestamptz(6)
 
+  /// FK with cascade: deleting a ProjetoEditorial removes all its history rows.
+  projeto        ProjetoEditorial  @relation(fields: [projetoId], references: [id], onDelete: Cascade)
+
+  @@index([projetoId])
+  @@index([projetoId, criadoEm(sort: Desc)])
   @@map("projeto_status_historico")
 }
 // <<< techlab:models

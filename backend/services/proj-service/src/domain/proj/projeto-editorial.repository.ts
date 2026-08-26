@@ -11,6 +11,12 @@
 
 import { ProjetoStatus } from './value-objects/project-status.vo';
 
+/** Filter for findAll (cursored listing — cursor not enforced in POC). */
+export interface ProjetoEditorialFilter {
+  readonly status?: ProjetoStatus;
+  readonly limit?: number;
+}
+
 /** Read model returned by all repository operations. */
 export interface ProjetoEditorialData {
   readonly id: string;
@@ -49,6 +55,16 @@ export interface ProjetoEditorialRepository {
 
   /** Returns null when id does not exist OR belongs to a different empresa. */
   findById(id: string, empresaId: string): Promise<ProjetoEditorialData | null>;
+
+  /**
+   * Returns all projects for the empresa ordered by atualizadoEm DESC.
+   * Optional filter narrows by status; limit and cursor are reserved for POC
+   * (accepted without enforcing pagination).
+   */
+  findAll(
+    empresaId: string,
+    filter?: ProjetoEditorialFilter,
+  ): Promise<ProjetoEditorialData[]>;
 
   /**
    * Applies a status change in a single $transaction (P3) that also appends

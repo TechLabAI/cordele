@@ -3,11 +3,11 @@
   "module": "IMP",
   "service": "imp-service",
   "pipeline": "implement",
-  "currentStep": "decision",
-  "nextStep": "implement",
-  "progressUnit": "P8-FIX-e2e",
-  "iteration": 0,
-  "timestamp": "2026-08-25T20:15:21",
+  "currentStep": "implement-P7-A",
+  "nextStep": "implement-P7-B",
+  "progressUnit": "P7-B",
+  "iteration": 1,
+  "timestamp": "2026-08-26T07:31:22",
   "capReached": false,
-  "notes": "B6: test/build/lint/arch PASS; e2e FAIL por DI (CREATE_PROJETO_EDITORIAL_PORT provido em AppModule nao-global, invisivel ao ImpModule) + e2e spec ainda testa CRUD do scaffold. Bloqueio separado: migrations com FK projeto_editorial aguardam decisao. Safety cap atingido."
+  "notes": "PARADO A PEDIDO DO UTILIZADOR para limpeza de contexto. Feito: P7-A fechou os 8 cenarios de manuscript-upload-sync-parse (bdd 13 passed = 5 import + 8 upload). Gates verificados por execucao direta: lint/typecheck/test 120/e2e 14/bdd/build/arch todos exit 0. RETOMAR EM: bloco B = test/bdd/lossless-parse-unparsed-segments.steps.ts (5 cenarios skip: enum fechado de 7 razoes, sourceLocation kind docx, raw verbatim, determinismo, accounting completo). Depois bloco C = test/bdd/manuscript-immutability-and-tenancy.steps.ts (5 cenarios skip: imutabilidade, historico criadoEm desc, 404 cross-empresa, 403 sem scope, cascade delete + purge). Total restante: 16 cenarios skip."
 }

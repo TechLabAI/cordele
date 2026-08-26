@@ -83,24 +83,27 @@ export const GET_SIGNED_DOWNLOAD_URL_USE_CASE = Symbol('GetSignedDownloadUrlUseC
 export const DELETE_PROJETO_USE_CASE = Symbol('DeleteProjetoUseCase');
 
 // --- Outbound read port tokens (wired in P4) ---
+// Re-exported from the domain port files so that infrastructure/ can import
+// the same Symbol from domain/ without depending on modules/ (RULE-05).
 
 /**
  * Injection token for ManuscriptSummaryPort (IMP cross-context read).
  * Stub adapter registered in P4 (PROJ-009); real adapter in PROJ-INT-001.
+ * Token is the Symbol exported by the domain port file (structural consistency).
  */
-export const MANUSCRIPT_SUMMARY_PORT = Symbol('ManuscriptSummaryPort');
+export { ManuscriptSummaryPort as MANUSCRIPT_SUMMARY_PORT } from '../../domain/proj/ports/outbound/manuscript-summary.port';
 
 /**
  * Injection token for ProjectMetadataPort (COMP cross-context read).
  * Stub adapter registered in P4 (PROJ-009); real adapter in PROJ-INT-002.
  */
-export const PROJECT_METADATA_PORT = Symbol('ProjectMetadataPort');
+export { ProjectMetadataPort as PROJECT_METADATA_PORT } from '../../domain/proj/ports/outbound/project-metadata.port';
 
 /**
  * Injection token for PublicationHistoryPort (PUB cross-context read).
  * Stub adapter registered in P4 (PROJ-009); real adapter in PROJ-INT-003.
  */
-export const PUBLICATION_HISTORY_PORT = Symbol('PublicationHistoryPort');
+export { PublicationHistoryPort as PUBLICATION_HISTORY_PORT } from '../../domain/proj/ports/outbound/publication-history.port';
 
 // --- Infrastructure port tokens (P2) ---
 

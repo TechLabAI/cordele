@@ -1,7 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 
 import { ProjDomainService } from '../../domain/proj.domain-service';
-import { ProjRepositoryPort } from '../../domain/proj.repository.interface';
 import { EmpresaContextMiddleware } from './middleware/empresa-context.middleware';
 import { ProjController } from './proj.controller';
 import { ProjService } from './proj.service';
@@ -15,13 +14,9 @@ import {
   GET_PUBLICATION_HISTORY_USE_CASE,
   GET_SIGNED_DOWNLOAD_URL_USE_CASE,
   MANUSCRIPT_ERASURE_PORT,
-  MANUSCRIPT_SUMMARY_PORT,
   PROJECT_EVENT_PUBLISHER,
-  PROJECT_METADATA_PORT,
   PROJETO_EDITORIAL_LOOKUP,
-  PROJETO_EDITORIAL_REPOSITORY,
   PUBLICATION_ERASURE_PORT,
-  PUBLICATION_HISTORY_PORT,
   REOPEN_PROJECT_USE_CASE,
 } from './proj.tokens';
 
@@ -30,21 +25,27 @@ import { CreateProjetoEditorialUseCase } from './use-cases/create-projeto-editor
 import { AdvanceProjetoStatusUseCase } from './use-cases/advance-projeto-status.use-case';
 import { ReopenProjectForRevisionUseCase } from './use-cases/reopen-project-for-revision.use-case';
 
-// NOTE: ProjetoEditorialLookupAdapter (infrastructure/proj/lookup/) is NOT imported
-// here — modules/ must not import infrastructure/ directly (RULE-04). The adapter
-// class exists on disk and will be wired in P3 via a factory provider in
-// PersistenceModule. For P2 we bind a cross-tenant-safe stub (exists → false).
+// P4 use case implementations (PROJ-010..013)
+import { GetProjetoLibraryUseCase } from './use-cases/get-projeto-library.use-case';
+import { GetProjetoDetailUseCase } from './use-cases/get-projeto-detail.use-case';
+import { GetPublicationHistoryUseCase } from './use-cases/get-publication-history.use-case';
+import { GetSignedDownloadUrlUseCase } from './use-cases/get-signed-download-url.use-case';
 
 /**
  * PROJ — Projetos Editoriais bounded context module.
  *
- * P2 update: wires the three P2 use cases (PROJ-003, PROJ-004, PROJ-005) and
- * the lookup adapter (PROJ-006). Repository and event publisher are still stubs
- * in P2 — real adapters arrive in P3 (Prisma) and future priorities.
+ * P4 update: the four P4 use cases (PROJ-010..013) are registered with
+ * useClass so Nest's DI resolves their injected port dependencies.
  *
- * RULE-04: modules/ must not import infrastructure/ directly for use cases.
- * The lookup adapter IS in infrastructure/ but it is wired here via a factory
- * provider, keeping the DI token as the only coupling point.
+ * Read port tokens (MANUSCRIPT_SUMMARY_PORT, PROJECT_METADATA_PORT,
+ * PUBLICATION_HISTORY_PORT) are provided globally by ReadPortsModule
+ * (@Global()) imported in AppModule. ProjModule never imports
+ * infrastructure/ directly (RULE-04 compliant).
+ *
+ * P3 note: PROJETO_EDITORIAL_REPOSITORY and ProjRepositoryPort are provided
+ * globally by PersistenceModule (@Global()); same pattern applies here.
+ *
+ * RULE-04: modules/ must not import infrastructure/ directly. ✓
  */
 @Module({
   controllers: [ProjController],
@@ -59,21 +60,9 @@ import { ReopenProjectForRevisionUseCase } from './use-cases/reopen-project-for-
       useFactory: () => new ProjDomainService(),
     },
 
-    // P1 repository stub — real Prisma adapter bound in P3 (PROJ-007, PROJ-008).
-    { provide: ProjRepositoryPort, useValue: {} },
-
-    // --- ProjetoEditorial repository stub (P2) —
-    // Real Prisma adapter (PrismaProjRepository renamed + updateStatus added) in P3.
-    // RULE-04: useValue stub avoids any direct import from infrastructure/persistence.
-    {
-      provide: PROJETO_EDITORIAL_REPOSITORY,
-      useValue: {
-        create: async () => null,
-        findById: async () => null,
-        updateStatus: async () => null,
-        existsByIdAndEmpresa: async () => false,
-      },
-    },
+    // NOTE: ProjRepositoryPort and PROJETO_EDITORIAL_REPOSITORY are provided
+    // globally by PersistenceModule (P3). No stubs here — AppModule imports
+    // PersistenceModule which is @Global(), making both tokens available.
 
     // --- Event publisher stub (P2) —
     // Real binding to EventEmitter2 added when @nestjs/event-emitter is configured.
@@ -113,38 +102,56 @@ import { ReopenProjectForRevisionUseCase } from './use-cases/reopen-project-for-
 
     // --- PROJ-006: ProjetoEditorialLookup inbound port ---
     // P2 stub: returns false (cross-tenant safe default).
-    // P3 will replace with a factory that wires ProjetoEditorialLookupAdapter
-    // from PersistenceModule without violating RULE-04.
+    // P3+ will replace with the real adapter from PersistenceModule.
     {
       provide: PROJETO_EDITORIAL_LOOKUP,
       useValue: { exists: async (_projetoId: string) => false },
     },
 
-    /** P4 (PROJ-010): GetProjetoLibraryUseCase */
-    { provide: GET_PROJETO_LIBRARY_USE_CASE, useValue: null },
+    // NOTE: MANUSCRIPT_SUMMARY_PORT, PROJECT_METADATA_PORT, PUBLICATION_HISTORY_PORT
+    // are provided globally by ReadPortsModule (@Global()) imported in AppModule.
+    // ProjModule never references them here (RULE-04 compliant).
 
-    /** P4 (PROJ-011): GetProjetoDetailUseCase */
-    { provide: GET_PROJETO_DETAIL_USE_CASE, useValue: null },
+    // --- P4 use cases (PROJ-010..013) ---
 
-    /** P4 (PROJ-012): GetPublicationHistoryUseCase */
-    { provide: GET_PUBLICATION_HISTORY_USE_CASE, useValue: null },
+    /**
+     * PROJ-010: GetProjetoLibraryUseCase
+     * Batches 3 port calls; degrades gracefully when any port throws.
+     */
+    {
+      provide: GET_PROJETO_LIBRARY_USE_CASE,
+      useClass: GetProjetoLibraryUseCase,
+    },
 
-    /** P4 (PROJ-013): GetSignedDownloadUrlUseCase */
-    { provide: GET_SIGNED_DOWNLOAD_URL_USE_CASE, useValue: null },
+    /**
+     * PROJ-011: GetProjetoDetailUseCase
+     * Composes cross-context fields for one project.
+     */
+    {
+      provide: GET_PROJETO_DETAIL_USE_CASE,
+      useClass: GetProjetoDetailUseCase,
+    },
 
-    /** P6 (PROJ-016): DeleteProjetoUseCase */
+    /**
+     * PROJ-012: GetPublicationHistoryUseCase
+     * Returns publication list ordered newest-first.
+     */
+    {
+      provide: GET_PUBLICATION_HISTORY_USE_CASE,
+      useClass: GetPublicationHistoryUseCase,
+    },
+
+    /**
+     * PROJ-013: GetSignedDownloadUrlUseCase
+     * Returns 409 for erros_criticos/pendente; mints URL for valido/avisos.
+     */
+    {
+      provide: GET_SIGNED_DOWNLOAD_URL_USE_CASE,
+      useClass: GetSignedDownloadUrlUseCase,
+    },
+
+    /** P6 (PROJ-016): DeleteProjetoUseCase — not yet implemented */
     { provide: DELETE_PROJETO_USE_CASE, useValue: null },
-
-    // --- Outbound read port stubs (P1) — real adapters wired in P4 ---
-
-    /** P4 (PROJ-009 / PROJ-INT-001): ManuscriptSummaryPort → IMP adapter */
-    { provide: MANUSCRIPT_SUMMARY_PORT, useValue: null },
-
-    /** P4 (PROJ-009 / PROJ-INT-002): ProjectMetadataPort → COMP adapter */
-    { provide: PROJECT_METADATA_PORT, useValue: null },
-
-    /** P4 (PROJ-009 / PROJ-INT-003): PublicationHistoryPort → PUB adapter */
-    { provide: PUBLICATION_HISTORY_PORT, useValue: null },
 
     // --- Outbound erasure port stubs (P1) — real adapters wired in P6 ---
 

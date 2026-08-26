@@ -10,20 +10,35 @@ that file, so each gate event (VALIDATOR-VALIDATION, PLANNER, IMPLEMENTER,
 
 Structure of .techlab/token-delta.json:
   {
-    "pending_input":    <accumulated since last emit, consumed by next emit>,
-    "pending_output":   <idem>,
-    "watermark_input":  <transcript total at time of last Stop firing>,
-    "watermark_output": <idem>
+    "pending_input":  <accumulated since last emit, consumed by next emit>,
+    "pending_output": <idem>,
+    "watermarks": {
+      "<transcript key>": {"input": <total>, "output": <total>, "seq": <n>}
+    },
+    "seq": <monotonic counter used to prune the watermark map>
   }
+
+The watermark is keyed BY TRANSCRIPT, not global. Totals are read from a
+per-session transcript, so a single global watermark carries the previous
+session's total into the next session: the new session's smaller total yields a
+negative delta, the guard below discards it, and the hook silently records
+nothing until the new session outgrows the old one. Keying by transcript is what
+makes the delta meaningful across concurrent and successive sessions.
+
+An unseen transcript starts at watermark 0, so a brand-new session's first turn
+is counted in full. (One-time artifact when migrating off the old global format:
+the in-flight session's backlog lands in the next emit.)
 
 Best-effort: any failure exits 0 — never blocks the session.
 """
 import json
+import os
 import sys
 from pathlib import Path
 
 TRACE_DIR        = ".techlab"
 TOKEN_DELTA_FILE = "token-delta.json"
+MAX_WATERMARKS   = 50   # bound the per-session watermark map
 
 
 def _parse_transcript_tokens(path: str) -> tuple[int, int]:
@@ -66,15 +81,69 @@ def _parse_transcript_tokens(path: str) -> tuple[int, int]:
     return input_total, output_total
 
 
+def _project_root(payload_cwd: str) -> str:
+    """Project root, immune to cwd drift into a sub-package (D-609).
+
+    The Stop payload's `cwd` is the session's *current* directory, which moves
+    when the work happens inside a service folder (backend/services/<svc>/).
+    `.techlab/token-delta.json` must always land at the project root, because
+    that is where `pipeline_events.py emit` reads and resets it.
+    """
+    env_root = (os.environ.get("CLAUDE_PROJECT_DIR") or "").strip()
+    if env_root and Path(env_root).is_dir():
+        return env_root
+    try:
+        start = Path(payload_cwd).resolve()
+    except Exception:
+        return payload_cwd
+    for candidate in (start, *start.parents):
+        if (candidate / "project-context.json").is_file():
+            return str(candidate)
+        if (candidate / ".claude" / "hooks").is_dir():
+            return str(candidate)
+    return payload_cwd
+
+
+def _transcript_key(transcript_path: str) -> str:
+    """Stable per-session key: the transcript filename stem (the session id)."""
+    try:
+        stem = Path(transcript_path).stem
+        if stem:
+            return stem
+    except Exception:
+        pass
+    return transcript_path
+
+
 def _read_delta_file(project_cwd: str) -> dict:
     f = Path(project_cwd) / TRACE_DIR / TOKEN_DELTA_FILE
+    state = {"pending_input": 0, "pending_output": 0, "watermarks": {}, "seq": 0}
     if f.is_file():
         try:
-            return json.loads(f.read_text(encoding="utf-8"))
+            loaded = json.loads(f.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                state.update(loaded)
         except Exception:
             pass
-    return {"pending_input": 0, "pending_output": 0,
-            "watermark_input": 0, "watermark_output": 0}
+    if not isinstance(state.get("watermarks"), dict):
+        state["watermarks"] = {}
+    # Migrate off the legacy global watermark: it cannot be attributed to a
+    # transcript, so it is dropped rather than misapplied to an unrelated session.
+    state.pop("watermark_input", None)
+    state.pop("watermark_output", None)
+    return state
+
+
+def _prune_watermarks(watermarks: dict, keep: int = MAX_WATERMARKS) -> dict:
+    """Keep only the `keep` most recently touched sessions, so the map is bounded."""
+    if len(watermarks) <= keep:
+        return watermarks
+    ordered = sorted(
+        watermarks.items(),
+        key=lambda kv: kv[1].get("seq", 0) if isinstance(kv[1], dict) else 0,
+        reverse=True,
+    )
+    return dict(ordered[:keep])
 
 
 def _write_delta_file(project_cwd: str, data: dict) -> None:
@@ -94,7 +163,7 @@ def main() -> None:
         sys.exit(0)
 
     transcript_path = payload.get("transcript_path", "")
-    project_cwd     = payload.get("cwd", "")
+    project_cwd     = _project_root(payload.get("cwd", ""))
 
     if not transcript_path or not project_cwd:
         sys.exit(0)
@@ -104,21 +173,32 @@ def main() -> None:
     if curr_in == 0 and curr_out == 0:
         sys.exit(0)
 
-    # Delta since previous Stop firing
+    # Delta since this transcript's previous Stop firing.
     state = _read_delta_file(project_cwd)
-    wm_in  = state.get("watermark_input",  0)
-    wm_out = state.get("watermark_output", 0)
-    new_in  = curr_in  - wm_in
-    new_out = curr_out - wm_out
+    key   = _transcript_key(transcript_path)
+    prev  = state["watermarks"].get(key)
+    if not isinstance(prev, dict):
+        prev = {}
+    wm_in  = prev.get("input",  0)
+    wm_out = prev.get("output", 0)
 
-    if new_in <= 0 and new_out <= 0:
+    # Clamp each component independently: a transcript that was rewritten or
+    # truncated can move one counter backwards while the other advances, and a
+    # single combined guard would let the negative one corrupt `pending`.
+    new_in  = max(0, curr_in  - wm_in)
+    new_out = max(0, curr_out - wm_out)
+
+    if new_in == 0 and new_out == 0:
         sys.exit(0)  # no new tokens this turn
 
     # Accumulate into pending (may span multiple turns before next emit)
-    state["pending_input"]   = state.get("pending_input",  0) + new_in
-    state["pending_output"]  = state.get("pending_output", 0) + new_out
-    state["watermark_input"]  = curr_in
-    state["watermark_output"] = curr_out
+    state["pending_input"]  = state.get("pending_input",  0) + new_in
+    state["pending_output"] = state.get("pending_output", 0) + new_out
+
+    seq = int(state.get("seq", 0)) + 1
+    state["seq"] = seq
+    state["watermarks"][key] = {"input": curr_in, "output": curr_out, "seq": seq}
+    state["watermarks"] = _prune_watermarks(state["watermarks"])
 
     try:
         _write_delta_file(project_cwd, state)

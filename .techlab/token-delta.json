@@ -1,6 +1,22 @@
 {
-  "pending_input": 185276,
-  "pending_output": 1047,
-  "watermark_input": 14205337,
-  "watermark_output": 65597
+  "pending_input": 439250,
+  "pending_output": 2226,
+  "watermarks": {
+    "695a150f-7620-46cf-b347-80c6aaa696eb": {
+      "input": 2145696,
+      "output": 14681,
+      "seq": 5
+    },
+    "ed73bf27-e7be-4f39-8c2a-88c574a2ad19": {
+      "input": 13387666,
+      "output": 62813,
+      "seq": 4
+    },
+    "3de1ab6a-f1b9-45c9-ae59-af141d5880d0": {
+      "input": 66010,
+      "output": 138,
+      "seq": 6
+    }
+  },
+  "seq": 6
 }

@@ -3,9 +3,10 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
-import { DatabaseModule } from './infrastructure/persistence/database.module';
+import { PersistenceModule } from './infrastructure/persistence/persistence.module';
 import { AuthModule } from './infrastructure/auth/auth.module';
 import { HealthModule } from './infrastructure/health/health.module';
+import { ReadPortsModule } from './infrastructure/proj/read-ports.module';
 import { ProjModule } from './modules/proj/proj.module';
 
 /**
@@ -24,7 +25,8 @@ import { ProjModule } from './modules/proj/proj.module';
     }),
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
     HealthModule,
-    DatabaseModule,
+    PersistenceModule,
+    ReadPortsModule,
     AuthModule,
     ProjModule,
   ],
