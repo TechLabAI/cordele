@@ -2,11 +2,11 @@
   "_schema_version": 1,
   "techlab_architecture": {
     "version": "1.1.0",
-    "source_sha": "84eda83"
+    "source_sha": "c8d1c68"
   },
   "architecture": {
     "version": "1.0.0",
-    "applied_at": "2026-08-26T11:28:38Z"
+    "applied_at": "2026-08-26T12:23:21Z"
   },
   "aspects": {
     "arch/decisions/entity-scope.arch.json": {
@@ -482,6 +482,30 @@
       "source_sha": "f8f4bed549f0341017e95a5dfc77018f5e1d8c3746fe5484ec97dd0507927098",
       "output": ".claude/agents/validator-agent.md",
       "output_sha": "e394c9dfacb70aa7d625a96e71048225a3dde9b5508ab19c7597f4d52ce06f2a"
+    },
+    ".claude/skills/dev-context-load/SKILL.md": {
+      "source": "templates/operational/root/.claude/skills/dev-context-load/SKILL.md",
+      "source_sha": "5c0a5fb0e8e08681f81c133a6f85c3e2fe16d858cd3d246e88219bccb4b4cb33",
+      "output": ".claude/skills/dev-context-load/SKILL.md",
+      "output_sha": "5c0a5fb0e8e08681f81c133a6f85c3e2fe16d858cd3d246e88219bccb4b4cb33"
+    },
+    ".claude/skills/dev-phase-emit/SKILL.md": {
+      "source": "templates/operational/root/.claude/skills/dev-phase-emit/SKILL.md",
+      "source_sha": "9e798bf0641a0b93342c3e412fc5d16bef52bf7bb31e95ecb068e15f823fd83b",
+      "output": ".claude/skills/dev-phase-emit/SKILL.md",
+      "output_sha": "9e798bf0641a0b93342c3e412fc5d16bef52bf7bb31e95ecb068e15f823fd83b"
+    },
+    ".claude/skills/master-plan-status/SKILL.md": {
+      "source": "templates/operational/root/.claude/skills/master-plan-status/SKILL.md",
+      "source_sha": "7fa71dbde65db904f1e6a18a0686311c1a168a89b4ae428a6718bfb60447d165",
+      "output": ".claude/skills/master-plan-status/SKILL.md",
+      "output_sha": "09df76efaa1fedc943c65850c5ebc7c06441758490244918328b0de5b1d96fdc"
+    },
+    ".claude/skills/pipeline-status/SKILL.md": {
+      "source": "templates/operational/root/.claude/skills/pipeline-status/SKILL.md",
+      "source_sha": "3e1b957d11893e1ba3747165bf924a8475f6968f153e725269735c5c3ebab573",
+      "output": ".claude/skills/pipeline-status/SKILL.md",
+      "output_sha": "3e1b957d11893e1ba3747165bf924a8475f6968f153e725269735c5c3ebab573"
     }
   }
 }
