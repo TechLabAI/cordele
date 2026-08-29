@@ -76,10 +76,10 @@ export class PrismaProjetoEditorialRepository
     input: CreateProjetoEditorialInput,
   ): Promise<ProjetoEditorialData> {
     this.logger.log(
-      `Creating ProjetoEditorial ${input.id} for empresa ${input.editoraId}`,
+      `Creating ProjetoEditorial ${input.id} for empresa ${input.empresaId}`,
     );
 
-    return this.tenantFactory.withTenant(input.editoraId, async (tx) => {
+    return this.tenantFactory.withTenant(input.empresaId, async (tx) => {
       const row = await tx.projetoEditorial.create({
         data: {
           id: input.id,

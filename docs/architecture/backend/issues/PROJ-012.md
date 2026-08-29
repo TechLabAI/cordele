@@ -1,8 +1,8 @@
 # PROJ-012 -- GetPublicationHistoryUseCase (GET /projetos/{id}/publicacoes via PublicationHistoryPort.history)
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/4 itens
+**Status:** REDUCED -- pos-validacao 2026-08-28
+**Maturidade:** 73 -- Consistente
+**Done/Total:** 3/7 itens
 
 ## Contexto
 

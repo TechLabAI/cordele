@@ -1,8 +1,8 @@
 # PROJ-008 -- ProjetoEditorialRepository Prisma adapter (schema-per-tenant via EmpresaContext)
 
-**Status:** in-review -- implementado P3 (2026-08-26)
-**Maturidade:** 1 -- Em progresso
-**Done/Total:** 6/8 itens
+**Status:** NEAR-CLOSED -- pos-validacao 2026-08-28
+**Maturidade:** 83 -- Maduro
+**Done/Total:** 7/9 itens
 
 ## Contexto
 

@@ -7,8 +7,10 @@
  *  3. Cards reflect cross-context data when all ports succeed.
  *  4. ?status filter propagated to repository (DB-level filter, not in-memory).
  *  5. Empty project list short-circuits port calls (no wasted round-trips).
+ *  6. WARN emitted with degraded:true port=<PortName> when any port degrades (PROJ-017).
  */
 
+import { Logger } from '@nestjs/common';
 import { GetProjetoLibraryUseCase } from './get-projeto-library.use-case';
 import type { ProjetoEditorialRepository } from '../../../domain/proj/projeto-editorial.repository';
 import type { ManuscriptSummaryPort } from '../../../domain/proj/ports/outbound/manuscript-summary.port';
@@ -52,6 +54,7 @@ describe('GetProjetoLibraryUseCase', () => {
       findAll: jest.fn(),
       updateStatus: jest.fn(),
       existsByIdAndEmpresa: jest.fn(),
+      delete: jest.fn(),
     } as unknown as jest.Mocked<ProjetoEditorialRepository>;
 
     manuscriptPort = {
@@ -217,6 +220,78 @@ describe('GetProjetoLibraryUseCase', () => {
         'emp-aetos',
         expect.objectContaining({ status: ProjetoStatus.rascunho }),
       );
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // PROJ-017: structured WARN log on degraded port (observability)
+  // ---------------------------------------------------------------------------
+
+  describe('degraded WARN logging (PROJ-017)', () => {
+    let loggerWarnSpy: jest.SpiedFunction<typeof Logger.prototype.warn>;
+
+    beforeEach(() => {
+      loggerWarnSpy = jest
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+      loggerWarnSpy.mockRestore();
+    });
+
+    it('emits WARN with degraded:true port=ManuscriptSummaryPort when that port throws', async () => {
+      const project = makeProject('id-1', ProjetoStatus.publicado);
+      repository.findAll.mockResolvedValue([project]);
+      manuscriptPort.summaries.mockRejectedValue(new Error('IMP unavailable'));
+      metadataPort.metadata.mockResolvedValue(new Map());
+      publicationPort.latest.mockResolvedValue(new Map());
+
+      await useCase.execute({ empresaId: 'emp-aetos' });
+
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('degraded:true port=ManuscriptSummaryPort'),
+      );
+    });
+
+    it('emits WARN with degraded:true port=ProjectMetadataPort when that port throws', async () => {
+      const project = makeProject('id-1', ProjetoStatus.publicado);
+      repository.findAll.mockResolvedValue([project]);
+      manuscriptPort.summaries.mockResolvedValue(new Map());
+      metadataPort.metadata.mockRejectedValue(new Error('COMP unavailable'));
+      publicationPort.latest.mockResolvedValue(new Map());
+
+      await useCase.execute({ empresaId: 'emp-aetos' });
+
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('degraded:true port=ProjectMetadataPort'),
+      );
+    });
+
+    it('emits WARN with degraded:true port=PublicationHistoryPort when that port throws', async () => {
+      const project = makeProject('id-1', ProjetoStatus.publicado);
+      repository.findAll.mockResolvedValue([project]);
+      manuscriptPort.summaries.mockResolvedValue(new Map());
+      metadataPort.metadata.mockResolvedValue(new Map());
+      publicationPort.latest.mockRejectedValue(new Error('PUB unavailable'));
+
+      await useCase.execute({ empresaId: 'emp-aetos' });
+
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('degraded:true port=PublicationHistoryPort'),
+      );
+    });
+
+    it('does NOT emit WARN when all ports succeed', async () => {
+      const project = makeProject('id-1', ProjetoStatus.publicado);
+      repository.findAll.mockResolvedValue([project]);
+      manuscriptPort.summaries.mockResolvedValue(new Map());
+      metadataPort.metadata.mockResolvedValue(new Map());
+      publicationPort.latest.mockResolvedValue(new Map());
+
+      await useCase.execute({ empresaId: 'emp-aetos' });
+
+      expect(loggerWarnSpy).not.toHaveBeenCalled();
     });
   });
 });

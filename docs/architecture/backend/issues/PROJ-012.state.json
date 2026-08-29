@@ -1,23 +1,23 @@
 {
   "issue": "PROJ-012",
   "layer": "be",
-  "computedAt": "2026-08-25T17:10:42",
+  "computedAt": "2026-08-28T10:36:29",
   "checklist": {
     "total": 7,
-    "done": 1,
+    "done": 3,
     "partial": 0,
-    "missing": 6,
+    "missing": 4,
     "blocked": 0,
     "items": [
       {
         "text": "`src/modules/proj/use-cases/get-publication-history.use-case.ts` — validates projetoId exists + belongs to active empresa (repository lookup); calls `PublicationHistoryPort.history(projetoId)`; enforces `arquivoUrl=null` for `erros_criticos|pendente` statuses; returns `PublicacaoHistoryItem[]` ordered by `criadoEm DESC`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/proj/use-cases/get-publication-history.use-case.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/use-cases/get-publication-history.use-case.ts"
       },
       {
         "text": "`src/modules/proj/use-cases/get-publication-history.use-case.spec.ts` — unknown projetoId → 404; known projetoId → full list returned; `erros_criticos` item has `arquivoUrl=null`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/proj/use-cases/get-publication-history.use-case.spec.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/use-cases/get-publication-history.use-case.spec.ts"
       },
       {
         "text": "`src/modules/proj/proj.controller.ts` — wire `GET /projetos/:projetoId/publicacoes` (update PROJ-001 stub); 200 with `PublicacaoHistoryItem[]`",
@@ -49,36 +49,36 @@
   "gates": {
     "build": "pass",
     "lint": "pass",
-    "test": "skip",
-    "e2e": "skip"
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 24,
+    "total": 73,
     "provisional": true,
     "range": [
-      24,
-      34
+      73,
+      83
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 20,
+        "value": 30,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 4,
+        "value": 13,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
@@ -88,11 +88,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Inicial",
+    "band": "Consistente",
     "statusTag": "REDUCED"
   },
   "agentTodo": [
-    "Confirmar functionality 4/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 13/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

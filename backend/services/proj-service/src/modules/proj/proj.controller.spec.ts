@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { ProjController } from './proj.controller';
+import { REQUIRED_SCOPES_KEY } from './decorators/require-scope.decorator';
 import {
   CREATE_PROJETO_USE_CASE,
   REOPEN_PROJECT_USE_CASE,
@@ -8,13 +9,18 @@ import {
   GET_PROJETO_DETAIL_USE_CASE,
   GET_PUBLICATION_HISTORY_USE_CASE,
   GET_SIGNED_DOWNLOAD_URL_USE_CASE,
+  DELETE_PROJETO_USE_CASE,
 } from './proj.tokens';
 
 /**
- * Unit tests for ProjController (P4 update).
+ * Unit tests for ProjController (P5 update).
  *
  * The controller now has use case dependencies injected via DI tokens.
  * This spec mocks all use cases so the controller can be tested in isolation.
+ * `@CurrentUser()` is not exercised at the decorator level here (Nest resolves
+ * it via `JwtAuthGuard` + Passport at the HTTP layer, covered by
+ * `jwt-auth.guard.spec.ts`); every handler call below passes a plain
+ * `UsuarioContext` object to simulate what the decorator would inject.
  *
  * Route coverage (7 handlers from api-contract.md §4):
  *   POST   /projetos                                         → 201 ProjetoDetailDto
@@ -29,6 +35,7 @@ describe('ProjController', () => {
   let controller: ProjController;
 
   const NOW = new Date('2026-08-25T10:00:00Z');
+  const user = { id: 'user-1', empresaId: 'emp_aetos', scopes: ['proj:read', 'proj:write'] };
 
   const mockCreateUseCase = {
     execute: jest.fn().mockResolvedValue({
@@ -82,6 +89,10 @@ describe('ProjController', () => {
     }),
   };
 
+  const mockDeleteUseCase = {
+    execute: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -94,6 +105,7 @@ describe('ProjController', () => {
         { provide: GET_PROJETO_DETAIL_USE_CASE, useValue: mockDetailUseCase },
         { provide: GET_PUBLICATION_HISTORY_USE_CASE, useValue: mockHistoryUseCase },
         { provide: GET_SIGNED_DOWNLOAD_URL_USE_CASE, useValue: mockDownloadUrlUseCase },
+        { provide: DELETE_PROJETO_USE_CASE, useValue: mockDeleteUseCase },
       ],
     }).compile();
 
@@ -110,7 +122,7 @@ describe('ProjController', () => {
 
   describe('create() — POST /projetos', () => {
     it('returns a ProjetoDetailDto with status rascunho', async () => {
-      const result = await controller.create({ nome: 'Romance das Cidades' });
+      const result = await controller.create({ nome: 'Romance das Cidades' }, user);
 
       expect(result).toBeDefined();
       expect(result.id).toBe('proj-id-1');
@@ -126,14 +138,16 @@ describe('ProjController', () => {
 
   describe('findAll() — GET /projetos', () => {
     it('returns a ProjetoCardDto array from library use case', async () => {
-      const result = await controller.findAll();
+      const result = await controller.findAll(user);
 
       expect(Array.isArray(result)).toBe(true);
       expect(mockLibraryUseCase.execute).toHaveBeenCalledTimes(1);
     });
 
     it('accepts optional status, limit and cursor query params without throwing', async () => {
-      await expect(controller.findAll('rascunho', 10, 'cursor-abc')).resolves.toBeDefined();
+      await expect(
+        controller.findAll(user, 'rascunho', 10, 'cursor-abc'),
+      ).resolves.toBeDefined();
     });
   });
 
@@ -144,7 +158,7 @@ describe('ProjController', () => {
   describe('findOne() — GET /projetos/:projetoId', () => {
     it('returns a ProjetoDetailDto from detail use case', async () => {
       const projetoId = '11111111-1111-1111-1111-111111111111';
-      const result = await controller.findOne(projetoId);
+      const result = await controller.findOne(projetoId, user);
 
       expect(result).toBeDefined();
       expect(result.id).toBeDefined();
@@ -156,7 +170,7 @@ describe('ProjController', () => {
       mockDetailUseCase.execute.mockResolvedValueOnce(null);
 
       await expect(
-        controller.findOne('11111111-1111-1111-1111-111111111111'),
+        controller.findOne('11111111-1111-1111-1111-111111111111', user),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -167,7 +181,10 @@ describe('ProjController', () => {
 
   describe('findPublicacoes() — GET /projetos/:projetoId/publicacoes', () => {
     it('returns a PublicacaoHistoryItemDto array from history use case', async () => {
-      const result = await controller.findPublicacoes('11111111-1111-1111-1111-111111111111');
+      const result = await controller.findPublicacoes(
+        '11111111-1111-1111-1111-111111111111',
+        user,
+      );
 
       expect(Array.isArray(result)).toBe(true);
       expect(mockHistoryUseCase.execute).toHaveBeenCalledTimes(1);
@@ -183,7 +200,7 @@ describe('ProjController', () => {
       const projetoId = '11111111-1111-1111-1111-111111111111';
       const publicacaoId = '22222222-2222-2222-2222-222222222222';
 
-      const result = await controller.getDownloadUrl(projetoId, publicacaoId);
+      const result = await controller.getDownloadUrl(projetoId, publicacaoId, user);
 
       expect(result).toBeDefined();
       expect(result.publicacaoId).toBeDefined();
@@ -197,14 +214,12 @@ describe('ProjController', () => {
   // ---------------------------------------------------------------------------
 
   describe('remove() — DELETE /projetos/:projetoId', () => {
-    it('returns void without throwing (204 stub)', () => {
-      expect(() =>
-        controller.remove('11111111-1111-1111-1111-111111111111'),
-      ).not.toThrow();
-    });
+    it('delegates to DeleteProjetoUseCase and returns undefined (no body for 204)', async () => {
+      const projetoId = '11111111-1111-1111-1111-111111111111';
 
-    it('returns undefined (no body for 204)', () => {
-      const result = controller.remove('11111111-1111-1111-1111-111111111111');
+      const result = await controller.remove(projetoId, user);
+
+      expect(mockDeleteUseCase.execute).toHaveBeenCalledWith({ projetoId }, user);
       expect(result).toBeUndefined();
     });
   });
@@ -215,7 +230,7 @@ describe('ProjController', () => {
 
   describe('reopen() — POST /projetos/:projetoId/reopen', () => {
     it('returns a ProjetoDetailDto with the new status', async () => {
-      const result = await controller.reopen('11111111-1111-1111-1111-111111111111');
+      const result = await controller.reopen('11111111-1111-1111-1111-111111111111', user);
 
       expect(result).toBeDefined();
       expect(result.id).toBeDefined();
@@ -237,6 +252,28 @@ describe('ProjController', () => {
       for (const handler of handlers) {
         expect(proto).toContain(handler);
       }
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // P5 (PROJ-014): @RequiredScopes metadata — enforced by JwtAuthGuard (403)
+  // ---------------------------------------------------------------------------
+
+  describe('@RequiredScopes metadata', () => {
+    const scopesOf = (handler: keyof ProjController): string[] =>
+      Reflect.getMetadata(REQUIRED_SCOPES_KEY, ProjController.prototype[handler]);
+
+    it('requires proj:write for mutating routes', () => {
+      expect(scopesOf('create')).toEqual(['proj:write']);
+      expect(scopesOf('remove')).toEqual(['proj:write']);
+      expect(scopesOf('reopen')).toEqual(['proj:write']);
+    });
+
+    it('requires proj:read for read routes', () => {
+      expect(scopesOf('findAll')).toEqual(['proj:read']);
+      expect(scopesOf('findOne')).toEqual(['proj:read']);
+      expect(scopesOf('findPublicacoes')).toEqual(['proj:read']);
+      expect(scopesOf('getDownloadUrl')).toEqual(['proj:read']);
     });
   });
 });

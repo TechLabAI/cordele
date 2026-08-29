@@ -1,28 +1,28 @@
 {
   "issue": "PROJ-INT-003",
   "layer": "be",
-  "computedAt": "2026-08-25T17:10:49",
+  "computedAt": "2026-08-28T10:36:36",
   "checklist": {
     "total": 8,
-    "done": 0,
-    "partial": 1,
-    "missing": 7,
+    "done": 3,
+    "partial": 0,
+    "missing": 5,
     "blocked": 0,
     "items": [
       {
         "text": "`src/infrastructure/proj/read/publication-history.adapter.ts` — implements `PublicationHistoryPort`; `history(projetoId)`: calls PUB's in-process `PublicacaoQueryPort.historyByProjeto(projetoId)`, maps to `PublicacaoHistoryItem[]`; `latest(projetoIds)`: calls PUB's `PublicacaoQueryPort.latestByProjetoIds(projetoIds)` in one batched call; `signedDownloadUrl(publicacaoId)`: delegates to PUB's `FileStoragePort.signedUrl(publicacaoId, ttlSeconds)`, wraps in `{ arquivoUrl, expiresAt }`; on PUB unavailability: `history()` returns `[]`, `latest()` returns empty Map, `signedDownloadUrl()` rethrows (caller handles as 502)",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/infrastructure/proj/read/publication-history.adapter.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/proj/read/publication-history.adapter.ts"
       },
       {
         "text": "`src/infrastructure/proj/read/publication-history.adapter.spec.ts` — `history()` maps correctly; `latest()` makes 1 call; `signedDownloadUrl()` delegates to PUB's storage port; PUB unavailable → `history()` returns `[]`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/infrastructure/proj/read/publication-history.adapter.spec.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/proj/read/publication-history.adapter.spec.ts"
       },
       {
         "text": "`src/modules/proj/proj.module.ts` — env-flag switch to register real adapter under `PUBLICATION_HISTORY_PORT`",
-        "state": "PARTIAL",
-        "evidence": "arquivo presente porem stub: src/modules/proj/proj.module.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/proj.module.ts"
       },
       {
         "text": "`latest(projetoIds)` makes exactly 1 call to PUB's query port (batching invariant)",
@@ -54,36 +54,36 @@
   "gates": {
     "build": "pass",
     "lint": "pass",
-    "test": "skip",
-    "e2e": "skip"
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 20,
+    "total": 71,
     "provisional": true,
     "range": [
-      20,
-      30
+      71,
+      81
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 20,
+        "value": 30,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 0,
+        "value": 11,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
@@ -93,11 +93,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Inicial",
+    "band": "Consistente",
     "statusTag": "REDUCED"
   },
   "agentTodo": [
-    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 11/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

@@ -1,8 +1,8 @@
 # PROJ-013 -- GetSignedDownloadUrlUseCase (GET /projetos/{id}/publicacoes/{pid}/download + 409 for non-downloadable)
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/4 itens
+**Status:** REDUCED -- pos-validacao 2026-08-28
+**Maturidade:** 73 -- Consistente
+**Done/Total:** 4/9 itens
 
 ## Contexto
 

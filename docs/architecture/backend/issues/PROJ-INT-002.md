@@ -1,8 +1,8 @@
 # PROJ-INT-002 -- ProjectMetadataPort real adapter binding to COMP in-process query port (stub to real)
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/4 itens
+**Status:** REDUCED -- pos-validacao 2026-08-28
+**Maturidade:** 73 -- Consistente
+**Done/Total:** 3/7 itens
 
 ## Contexto
 

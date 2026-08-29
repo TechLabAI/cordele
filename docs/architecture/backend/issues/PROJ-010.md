@@ -1,8 +1,8 @@
 # PROJ-010 -- GetProjetoLibraryUseCase (GET /projetos) batched N+1-free read + degraded fallback + G5 filter reservation
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/5 itens
+**Status:** REDUCED -- pos-validacao 2026-08-28
+**Maturidade:** 71 -- Consistente
+**Done/Total:** 3/8 itens
 
 ## Contexto
 

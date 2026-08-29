@@ -39,6 +39,9 @@ export interface CreateProjetoEditorialInput {
   readonly id: string;
   readonly nome: string;
   readonly descricao?: string;
+  /** Tenant-routing key (resolves the `emp_<slug>` schema, RULE-07). */
+  readonly empresaId: string;
+  /** Logical reference to the editora registry (`cordele_global`) — never used for schema routing. */
   readonly editoraId: string;
   readonly status: ProjetoStatus;
 }

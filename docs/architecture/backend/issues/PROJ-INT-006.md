@@ -1,8 +1,8 @@
 # PROJ-INT-006 -- PublicationErasurePort real adapter binding to PUB purge port
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/3 itens
+**Status:** REDUCED -- pos-validacao 2026-08-28
+**Maturidade:** 73 -- Consistente
+**Done/Total:** 3/7 itens
 
 ## Contexto
 
@@ -21,14 +21,14 @@ and IMP so that digital artifacts are removed from storage before any row-level 
 
 Files to create (relative to monolith root `backend/`):
 
-- [ ] `src/infrastructure/proj/erasure/publication-erasure.adapter.ts` — implements `PublicationErasurePort`; calls PUB's `PublicacaoErasurePort.purgeByProjeto(projetoId)` (PUB deletes rows + storage artifacts internally); idempotent; on PUB unavailability: rethrows
-- [ ] `src/infrastructure/proj/erasure/publication-erasure.adapter.spec.ts` — PUB port purges; PUB port no-ops on empty; PUB port throws → rethrows
+- [ ] `src/infrastructure/proj/erasure/pub-publication-erasure.adapter.ts` — implements `PublicationErasurePort`; calls PUB's `PublicacaoErasurePort` via its `erase(projetoId, empresaId)` method (PUB deletes rows + storage artifacts internally); idempotent; on PUB unavailability: rethrows
+- [ ] `src/infrastructure/proj/erasure/pub-publication-erasure.adapter.spec.ts` — PUB port erases; PUB port no-ops on empty; PUB port throws → rethrows
 - [ ] `src/modules/proj/proj.module.ts` — register real adapter under `PUBLICATION_ERASURE_PORT` when PUB is scaffolded
 
 ## Criterios de aceite
 
-- [ ] `purge(projetoId)` calls PUB's purge port once
-- [ ] `purge(projetoId)` for a project with no publications completes without error (idempotent)
+- [ ] `erase(projetoId, empresaId)` calls PUB's erase port once
+- [ ] `erase(projetoId, empresaId)` for a project with no publications completes without error (idempotent)
 - [ ] PUB port failure: adapter rethrows; PROJ-016 aborts and leaves `projeto_editorial` intact
 - [ ] `pnpm test` on adapter spec exits 0
 

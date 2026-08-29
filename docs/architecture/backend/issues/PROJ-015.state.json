@@ -1,48 +1,48 @@
 {
   "issue": "PROJ-015",
   "layer": "be",
-  "computedAt": "2026-08-25T17:10:43",
+  "computedAt": "2026-08-28T10:36:30",
   "checklist": {
     "total": 11,
-    "done": 0,
-    "partial": 1,
-    "missing": 10,
+    "done": 7,
+    "partial": 0,
+    "missing": 4,
     "blocked": 0,
     "items": [
       {
-        "text": "`src/domain/proj/ports/outbound/publication-erasure.port.ts` — interface: `purge(projetoId: string): Promise<void>`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/domain/proj/ports/outbound/publication-erasure.port.ts"
+        "text": "`src/domain/proj/ports/outbound/publication-erasure.port.ts` — interface: `erase(projetoId: string, empresaId: string): Promise<void>`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/domain/proj/ports/outbound/publication-erasure.port.ts"
       },
       {
-        "text": "`src/domain/proj/ports/outbound/composition-erasure.port.ts` — interface: `purge(projetoId: string): Promise<void>`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/domain/proj/ports/outbound/composition-erasure.port.ts"
+        "text": "`src/domain/proj/ports/outbound/composition-erasure.port.ts` — interface: `erase(projetoId: string, empresaId: string): Promise<void>`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/domain/proj/ports/outbound/composition-erasure.port.ts"
       },
       {
-        "text": "`src/domain/proj/ports/outbound/manuscript-erasure.port.ts` — interface: `purge(projetoId: string): Promise<void>`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/domain/proj/ports/outbound/manuscript-erasure.port.ts"
+        "text": "`src/domain/proj/ports/outbound/manuscript-erasure.port.ts` — interface: `erase(projetoId: string, empresaId: string): Promise<void>`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/domain/proj/ports/outbound/manuscript-erasure.port.ts"
       },
       {
-        "text": "`src/infrastructure/stubs/proj/publication-erasure.stub.ts` — no-op, logs `INFO purge(projetoId) stub — no real PUB binding`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/infrastructure/stubs/proj/publication-erasure.stub.ts"
+        "text": "`src/infrastructure/stubs/proj/publication-erasure.stub.ts` — no-op, logs `WARN degraded:true port=PublicationErasurePort ... stub — no real PUB binding`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/stubs/proj/publication-erasure.stub.ts"
       },
       {
-        "text": "`src/infrastructure/stubs/proj/composition-erasure.stub.ts` — no-op, logs `INFO purge(projetoId) stub — no real COMP binding`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/infrastructure/stubs/proj/composition-erasure.stub.ts"
+        "text": "`src/infrastructure/stubs/proj/composition-erasure.stub.ts` — no-op, logs `WARN degraded:true port=CompositionErasurePort ... stub — no real COMP binding`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/stubs/proj/composition-erasure.stub.ts"
       },
       {
-        "text": "`src/infrastructure/stubs/proj/manuscript-erasure.stub.ts` — no-op, logs `INFO purge(projetoId) stub — no real IMP binding`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/infrastructure/stubs/proj/manuscript-erasure.stub.ts"
+        "text": "`src/infrastructure/stubs/proj/manuscript-erasure.stub.ts` — no-op, logs `WARN degraded:true port=ManuscriptErasurePort ... stub — no real IMP binding`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/stubs/proj/manuscript-erasure.stub.ts"
       },
       {
         "text": "`src/modules/proj/proj.module.ts` — register stubs under `PUBLICATION_ERASURE_PORT`, `COMPOSITION_ERASURE_PORT`, `MANUSCRIPT_ERASURE_PORT` DI tokens (update PROJ-001)",
-        "state": "PARTIAL",
-        "evidence": "arquivo presente porem stub: src/modules/proj/proj.module.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/proj.module.ts"
       },
       {
         "text": "All three port interfaces compiled; stubs implement them (TypeScript `implements` clause)",
@@ -50,7 +50,7 @@
         "evidence": "desmarcado (sem arquivo verificavel)"
       },
       {
-        "text": "`purge(projetoId)` on any stub resolves without error (safe no-op)",
+        "text": "`erase(projetoId, empresaId)` on any stub resolves without error (safe no-op)",
         "state": "MISSING",
         "evidence": "desmarcado (sem arquivo verificavel)"
       },
@@ -69,36 +69,36 @@
   "gates": {
     "build": "pass",
     "lint": "pass",
-    "test": "skip",
-    "e2e": "skip"
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 17,
+    "total": 79,
     "provisional": true,
     "range": [
-      17,
-      27
+      79,
+      89
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 17,
+        "value": 30,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 0,
+        "value": 19,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
@@ -108,11 +108,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Inicial",
+    "band": "Consistente",
     "statusTag": "REDUCED"
   },
   "agentTodo": [
-    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 19/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

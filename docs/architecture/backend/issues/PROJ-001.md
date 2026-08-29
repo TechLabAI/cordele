@@ -1,8 +1,8 @@
 # PROJ-001 -- NestJS ProjModule skeleton + ProjController with all 7 routes wired
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/5 itens
+**Status:** NEAR-CLOSED -- pos-validacao 2026-08-28
+**Maturidade:** 90 -- Maduro
+**Done/Total:** 10/10 itens
 
 ## Contexto
 

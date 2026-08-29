@@ -1,8 +1,8 @@
 # PROJ-006 -- Inbound port DI provider registry (4 ports exported for IMP, PUB, and editor callers)
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/4 itens
+**Status:** NEAR-CLOSED -- pos-validacao 2026-08-28
+**Maturidade:** 86 -- Maduro
+**Done/Total:** 7/8 itens
 
 ## Contexto
 

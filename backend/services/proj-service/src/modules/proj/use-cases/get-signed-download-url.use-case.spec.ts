@@ -56,6 +56,7 @@ describe('GetSignedDownloadUrlUseCase', () => {
       findAll: jest.fn(),
       updateStatus: jest.fn(),
       existsByIdAndEmpresa: jest.fn(),
+      delete: jest.fn(),
     } as unknown as jest.Mocked<ProjetoEditorialRepository>;
 
     publicationPort = {

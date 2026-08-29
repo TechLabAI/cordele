@@ -1,28 +1,28 @@
 {
   "issue": "PROJ-INT-001",
   "layer": "be",
-  "computedAt": "2026-08-25T17:10:48",
+  "computedAt": "2026-08-28T10:36:36",
   "checklist": {
     "total": 7,
-    "done": 0,
-    "partial": 1,
-    "missing": 6,
+    "done": 3,
+    "partial": 0,
+    "missing": 4,
     "blocked": 0,
     "items": [
       {
         "text": "`src/infrastructure/proj/read/manuscript-summary.adapter.ts` — implements `ManuscriptSummaryPort`; injects IMP's in-process query provider by DI token; calls `summaries(projetoIds)` in one call; maps IMP's response shape to `ManuscriptSummary` (totalCapitulos, totalImagens, trechosNaoParseados, criadoEm); on error: returns empty Map (caller marks degraded)",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/infrastructure/proj/read/manuscript-summary.adapter.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/proj/read/manuscript-summary.adapter.ts"
       },
       {
         "text": "`src/infrastructure/proj/read/manuscript-summary.adapter.spec.ts` — IMP port mock returns data for 2 projects; adapter maps correctly; IMP port throws → adapter returns empty Map without rethrowing",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/infrastructure/proj/read/manuscript-summary.adapter.spec.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/proj/read/manuscript-summary.adapter.spec.ts"
       },
       {
         "text": "`src/modules/proj/proj.module.ts` — add env-flag switch: when IMP module is present, register real adapter under `MANUSCRIPT_SUMMARY_PORT` instead of stub",
-        "state": "PARTIAL",
-        "evidence": "arquivo presente porem stub: src/modules/proj/proj.module.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/proj.module.ts"
       },
       {
         "text": "`summaries(projetoIds)` makes exactly 1 call to IMP's query port regardless of `projetoIds.length`",
@@ -49,36 +49,36 @@
   "gates": {
     "build": "pass",
     "lint": "pass",
-    "test": "skip",
-    "e2e": "skip"
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 20,
+    "total": 73,
     "provisional": true,
     "range": [
-      20,
-      30
+      73,
+      83
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 20,
+        "value": 30,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 0,
+        "value": 13,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
@@ -88,11 +88,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Inicial",
+    "band": "Consistente",
     "statusTag": "REDUCED"
   },
   "agentTodo": [
-    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 13/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

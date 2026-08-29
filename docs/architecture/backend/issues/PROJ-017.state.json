@@ -1,23 +1,23 @@
 {
   "issue": "PROJ-017",
   "layer": "be",
-  "computedAt": "2026-08-25T17:10:43",
+  "computedAt": "2026-08-28T10:36:30",
   "checklist": {
     "total": 7,
-    "done": 0,
+    "done": 2,
     "partial": 0,
-    "missing": 7,
+    "missing": 5,
     "blocked": 0,
     "items": [
       {
-        "text": "`src/infrastructure/health/proj-health.controller.ts` — `GET /api/proj/health` (or shared monolith health endpoint if already registered); uses `@nestjs/terminus` `HealthCheckService` + `PrismaHealthIndicator`; returns 200 `{ status: 'ok' }` or 503 on DB unavailability",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/infrastructure/health/proj-health.controller.ts"
+        "text": "`src/infrastructure/health/health.controller.ts` — `GET /api/proj/health` (or shared monolith health endpoint if already registered); uses `@nestjs/terminus` `HealthCheckService` + `PrismaHealthIndicator`; returns 200 `{ status: 'ok' }` or 503 on DB unavailability",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/health/health.controller.ts"
       },
       {
-        "text": "`src/infrastructure/middleware/correlation-id.middleware.ts` — NestJS middleware: reads `X-Correlation-Id` from request or generates UUID v4; stores in `AsyncLocalStorage<{ correlationId }>`; sets response header `X-Correlation-Id`; applies to all routes in `ProjModule`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/infrastructure/middleware/correlation-id.middleware.ts"
+        "text": "`src/infrastructure/http/correlation-id.interceptor.ts` — NestJS interceptor: reads `X-Correlation-Id` from request or generates UUID v4; stores in `AsyncLocalStorage<{ correlationId }>`; sets response header `X-Correlation-Id`; applies to all routes in `ProjModule`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/http/correlation-id.interceptor.ts"
       },
       {
         "text": "Logger configuration (if not already shared) — structured JSON logger with fields: `correlationId`, `port` (when `degraded:true`), `level` (`WARN` on degraded), `module: 'proj'`",
@@ -49,36 +49,36 @@
   "gates": {
     "build": "pass",
     "lint": "pass",
-    "test": "skip",
-    "e2e": "skip"
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 15,
+    "total": 69,
     "provisional": true,
     "range": [
-      15,
-      25
+      69,
+      79
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 15,
+        "value": 30,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 0,
+        "value": 9,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
@@ -88,11 +88,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Inicial",
+    "band": "Consistente",
     "statusTag": "REDUCED"
   },
   "agentTodo": [
-    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 9/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

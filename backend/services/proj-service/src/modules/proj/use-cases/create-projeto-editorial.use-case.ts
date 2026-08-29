@@ -64,6 +64,9 @@ export class CreateProjetoEditorialUseCase implements CreateProjetoEditorialPort
       id,
       nome: input.nome.trim(),
       descricao: input.descricao,
+      empresaId: user.empresaId,
+      // TODO: resolve from the global editora registry (cordele_global) once it
+      // exists; until then editoraId mirrors empresaId (single-editora tenant).
       editoraId: user.empresaId,
       status: ProjetoStatus.rascunho,
     });
@@ -94,6 +97,7 @@ export class CreateProjetoEditorialUseCase implements CreateProjetoEditorialPort
     const projeto = await this.repository.create({
       id,
       nome: input.titulo.trim(),
+      empresaId: 'context-resolved', // replaced by EmpresaContext in P5
       editoraId: 'context-resolved', // replaced by EmpresaContext in P5
       status: ProjetoStatus.rascunho,
     });

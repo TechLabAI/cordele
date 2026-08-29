@@ -1,5 +1,6 @@
 import {
   Body,
+  ConflictException,
   Controller,
   Delete,
   Get,
@@ -22,9 +23,14 @@ import {
   ApiOperation,
   ApiCreatedResponse,
   ApiQuery,
+  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 
+import type { ProjetoStatus } from '../../domain/proj/value-objects/project-status.vo';
+import type { UsuarioContext } from '../../domain/shared/usuario-context.interface';
+import { CurrentUser } from './decorators/current-user.decorator';
+import { RequiredScopes } from './decorators/require-scope.decorator';
 import { CreateProjetoDto } from './dto/create-projeto.dto';
 import { ProjetoDetailDto } from './dto/projeto-detail.dto';
 import { ProjetoCardDto } from './dto/projeto-card.dto';
@@ -37,6 +43,7 @@ import {
   GET_PROJETO_DETAIL_USE_CASE,
   GET_PUBLICATION_HISTORY_USE_CASE,
   GET_SIGNED_DOWNLOAD_URL_USE_CASE,
+  DELETE_PROJETO_USE_CASE,
 } from './proj.tokens';
 import type { GetProjetoLibraryUseCase } from './use-cases/get-projeto-library.use-case';
 import type { GetProjetoDetailUseCase } from './use-cases/get-projeto-detail.use-case';
@@ -44,6 +51,8 @@ import type { GetPublicationHistoryUseCase } from './use-cases/get-publication-h
 import type { GetSignedDownloadUrlUseCase } from './use-cases/get-signed-download-url.use-case';
 import type { CreateProjetoEditorialUseCase } from './use-cases/create-projeto-editorial.use-case';
 import type { ReopenProjectForRevisionUseCase } from './use-cases/reopen-project-for-revision.use-case';
+import type { DeleteProjetoUseCase } from './use-cases/delete-projeto.use-case';
+import { IllegalStatusTransitionError } from '../../domain/proj/errors/illegal-status-transition.error';
 
 /**
  * HTTP adapter for the PROJ (Projetos Editoriais) bounded context.
@@ -53,8 +62,13 @@ import type { ReopenProjectForRevisionUseCase } from './use-cases/reopen-project
  * are now wired to their respective use cases. The PROJ-009 port stubs provide
  * in-memory fallback data; degraded=true is surfaced when any port throws.
  *
- * JWT guards are intentionally absent in P4 — @UseGuards and @CurrentUser
- * are added in P5 (PROJ-014) after security infrastructure is stable.
+ * P5 update (PROJ-014): every handler now takes `@CurrentUser()`, resolving
+ * `empresaId` exclusively from the JWT claim (never from body/path/query).
+ * `JwtAuthGuard` is registered globally via `APP_GUARD` in `app.module.ts`
+ * (mirroring imp-service), so it protects every route below without this
+ * file importing anything from `infrastructure/`. `@RequiredScopes()` (also
+ * declared in `modules/proj/decorators/`) enforces the OAuth2 scope per
+ * route: `proj:read` for reads, `proj:write` for mutations.
  *
  * RULE-04: this file is in modules/ and must NOT import from infrastructure/.
  */
@@ -82,6 +96,9 @@ export class ProjController {
 
     @Inject(GET_SIGNED_DOWNLOAD_URL_USE_CASE)
     private readonly downloadUrlUseCase: GetSignedDownloadUrlUseCase,
+
+    @Inject(DELETE_PROJETO_USE_CASE)
+    private readonly deleteUseCase: DeleteProjetoUseCase,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -89,15 +106,16 @@ export class ProjController {
   // ---------------------------------------------------------------------------
 
   @Post('projetos')
+  @RequiredScopes('proj:write')
   @ApiOperation({ summary: 'Create a new editorial project' })
   @ApiCreatedResponse({
     type: ProjetoDetailDto,
     description: 'Project created (status = rascunho).',
   })
-  async create(@Body() dto: CreateProjetoDto): Promise<ProjetoDetailDto> {
-    // P5 will inject @CurrentUser here and derive empresaId from the JWT claim.
-    // For P4 placeholder: empresaId is the default empresa until JWT is wired.
-    const user = { id: 'system', empresaId: 'emp_aetos', scopes: [] };
+  async create(
+    @Body() dto: CreateProjetoDto,
+    @CurrentUser() user: UsuarioContext,
+  ): Promise<ProjetoDetailDto> {
     const projeto = await this.createUseCase.execute(
       { nome: dto.nome, descricao: dto.descricao },
       user,
@@ -122,6 +140,7 @@ export class ProjController {
   // ---------------------------------------------------------------------------
 
   @Get('projetos')
+  @RequiredScopes('proj:read')
   @ApiOperation({ summary: 'List editorial projects of the active empresa' })
   @ApiOkResponse({
     type: [ProjetoCardDto],
@@ -131,13 +150,18 @@ export class ProjController {
   @ApiQuery({ name: 'limit', required: false, description: 'Max items (reserved, not enforced in POC)' })
   @ApiQuery({ name: 'cursor', required: false, description: 'Pagination cursor (reserved, not enforced in POC)' })
   async findAll(
+    @CurrentUser() user: UsuarioContext,
     @Query('status') status?: string,
     @Query('limit') limit?: number,
     @Query('cursor') cursor?: string,
   ): Promise<ProjetoCardDto[]> {
-    // P5 will inject @CurrentUser here. For now use a placeholder empresa context.
-    const empresaId = 'emp_aetos';
-    const result = await this.libraryUseCase.execute({ empresaId, status: status as any, limit, cursor });
+    const empresaId = user.empresaId;
+    const result = await this.libraryUseCase.execute({
+      empresaId,
+      status: status ? (status as unknown as ProjetoStatus) : undefined,
+      limit,
+      cursor
+    });
     if (result.degraded) {
       this.logger.warn(`GET /projetos degraded=true empresaId=${empresaId}`);
     }
@@ -149,13 +173,15 @@ export class ProjController {
   // ---------------------------------------------------------------------------
 
   @Get('projetos/:projetoId')
+  @RequiredScopes('proj:read')
   @ApiOperation({ summary: 'Get an editorial project by id' })
   @ApiOkResponse({ type: ProjetoDetailDto, description: 'Project detail.' })
   @ApiNotFoundResponse({ description: 'Project not found or belongs to a different empresa.' })
   async findOne(
     @Param('projetoId', ParseUUIDPipe) id: string,
+    @CurrentUser() user: UsuarioContext,
   ): Promise<ProjetoDetailDto> {
-    const empresaId = 'emp_aetos';
+    const empresaId = user.empresaId;
     const result = await this.detailUseCase.execute({ projetoId: id, empresaId });
     if (!result) {
       throw new NotFoundException(`ProjetoEditorial ${id} not found`);
@@ -171,6 +197,7 @@ export class ProjController {
   // ---------------------------------------------------------------------------
 
   @Get('projetos/:projetoId/publicacoes')
+  @RequiredScopes('proj:read')
   @ApiOperation({ summary: 'List publications for a project (T08)' })
   @ApiOkResponse({
     type: [PublicacaoHistoryItemDto],
@@ -179,8 +206,9 @@ export class ProjController {
   @ApiNotFoundResponse({ description: 'Project not found.' })
   async findPublicacoes(
     @Param('projetoId', ParseUUIDPipe) projetoId: string,
+    @CurrentUser() user: UsuarioContext,
   ): Promise<PublicacaoHistoryItemDto[]> {
-    const empresaId = 'emp_aetos';
+    const empresaId = user.empresaId;
     return this.historyUseCase.execute({ projetoId, empresaId });
   }
 
@@ -200,11 +228,13 @@ export class ProjController {
     description: 'Publication artifact is not available (erros_criticos or pendente).',
   })
   @ApiNotFoundResponse({ description: 'Project or publication not found.' })
+  @RequiredScopes('proj:read')
   async getDownloadUrl(
     @Param('projetoId', ParseUUIDPipe) projetoId: string,
     @Param('publicacaoId', ParseUUIDPipe) publicacaoId: string,
+    @CurrentUser() user: UsuarioContext,
   ): Promise<SignedDownloadUrlDto> {
-    const empresaId = 'emp_aetos';
+    const empresaId = user.empresaId;
     return this.downloadUrlUseCase.execute({ projetoId, publicacaoId, empresaId });
   }
 
@@ -214,14 +244,23 @@ export class ProjController {
 
   @Delete('projetos/:projetoId')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @RequiredScopes('proj:write')
   @ApiOperation({
     summary: 'Delete a project and cascade LGPD erasure across all contexts',
   })
   @ApiNoContentResponse({
     description: 'Project and all associated data deleted (leaf-first cascade).',
   })
-  remove(@Param('projetoId', ParseUUIDPipe) _id: string): void {
-    // P6 stub — real implementation in P6 (PROJ-016: DeleteProjetoUseCase).
+  @ApiNotFoundResponse({ description: 'Project not found in this empresa.' })
+  @ApiResponse({
+    status: 502,
+    description: 'Erasure cascade aborted: a cross-context port (PUB/COMP/IMP) failed.',
+  })
+  async remove(
+    @Param('projetoId', ParseUUIDPipe) projetoId: string,
+    @CurrentUser() user: UsuarioContext,
+  ): Promise<void> {
+    await this.deleteUseCase.execute({ projetoId }, user);
   }
 
   // ---------------------------------------------------------------------------
@@ -229,6 +268,8 @@ export class ProjController {
   // ---------------------------------------------------------------------------
 
   @Post('projetos/:projetoId/reopen')
+  @HttpCode(HttpStatus.OK)
+  @RequiredScopes('proj:write')
   @ApiOperation({
     summary: 'Reopen a published/com_erros project for a new revision',
   })
@@ -236,11 +277,15 @@ export class ProjController {
     type: ProjetoDetailDto,
     description: 'Project detail after transition to em_composicao.',
   })
+  @ApiResponse({
+    status: 409,
+    description: 'The project cannot be reopened from its current status (rascunho).',
+  })
   async reopen(
     @Param('projetoId', ParseUUIDPipe) projetoId: string,
+    @CurrentUser() user: UsuarioContext,
   ): Promise<ProjetoDetailDto> {
-    const user = { id: 'system', empresaId: 'emp_aetos', scopes: [] };
-    const result = await this.reopenUseCase.reopen(projetoId, user);
+    const result = await this.reopenProjeto(projetoId, user);
     return {
       id: result.projetoId,
       editoraId: user.empresaId,
@@ -254,5 +299,30 @@ export class ProjController {
       publicationHistory: null,
       degraded: false,
     };
+  }
+
+  /**
+   * Maps the domain-level `IllegalStatusTransitionError` (thrown by
+   * `ProjectStatusVO.reopen` for a `rascunho` project) onto the HTTP 409
+   * documented in api-contract §4.7 / §7. The use case stays framework-free
+   * (RULE-01/02); only this HTTP adapter knows about `ConflictException`.
+   */
+  private async reopenProjeto(
+    projetoId: string,
+    user: UsuarioContext,
+  ): Promise<{ projetoId: string; newStatus: string }> {
+    try {
+      return await this.reopenUseCase.reopen(projetoId, user);
+    } catch (err) {
+      if (err instanceof IllegalStatusTransitionError) {
+        throw new ConflictException({
+          message: err.message,
+          type: 'urn:cordele:proj:illegal-status-transition',
+          from: err.from,
+          to: err.to,
+        });
+      }
+      throw err;
+    }
   }
 }

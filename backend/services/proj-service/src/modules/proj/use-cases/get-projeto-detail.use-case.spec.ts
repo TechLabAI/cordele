@@ -6,8 +6,10 @@
  *  2. Returns null for unknown/cross-tenant project → controller maps to 404.
  *  3. degraded=true and publicationHistory=[] when PUB port throws.
  *  4. status always from PROJ own row, regardless of cross-context data.
+ *  5. WARN emitted with degraded:true port=<PortName> when any port degrades (PROJ-017).
  */
 
+import { Logger } from '@nestjs/common';
 import { GetProjetoDetailUseCase } from './get-projeto-detail.use-case';
 import type { ProjetoEditorialRepository } from '../../../domain/proj/projeto-editorial.repository';
 import type { ManuscriptSummaryPort } from '../../../domain/proj/ports/outbound/manuscript-summary.port';
@@ -45,6 +47,7 @@ describe('GetProjetoDetailUseCase', () => {
       findAll: jest.fn(),
       updateStatus: jest.fn(),
       existsByIdAndEmpresa: jest.fn(),
+      delete: jest.fn(),
     } as unknown as jest.Mocked<ProjetoEditorialRepository>;
 
     manuscriptPort = { summaries: jest.fn() } as jest.Mocked<ManuscriptSummaryPort>;
@@ -125,5 +128,60 @@ describe('GetProjetoDetailUseCase', () => {
     const result = await useCase.execute({ projetoId: PROJETO_ID, empresaId: EMPRESA_ID });
 
     expect(result!.status).toBe(ProjetoStatus.em_composicao);
+  });
+
+  // ---------------------------------------------------------------------------
+  // PROJ-017: structured WARN log on degraded port (observability)
+  // ---------------------------------------------------------------------------
+
+  describe('degraded WARN logging (PROJ-017)', () => {
+    let loggerWarnSpy: jest.SpiedFunction<typeof Logger.prototype.warn>;
+
+    beforeEach(() => {
+      loggerWarnSpy = jest
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+      loggerWarnSpy.mockRestore();
+    });
+
+    it('emits WARN with degraded:true port=ManuscriptSummaryPort when that port throws', async () => {
+      repository.findById.mockResolvedValue(makeProject());
+      manuscriptPort.summaries.mockRejectedValue(new Error('IMP unavailable'));
+      metadataPort.metadata.mockResolvedValue(new Map());
+      publicationPort.history.mockResolvedValue([]);
+
+      await useCase.execute({ projetoId: PROJETO_ID, empresaId: EMPRESA_ID });
+
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('degraded:true port=ManuscriptSummaryPort'),
+      );
+    });
+
+    it('emits WARN with degraded:true port=PublicationHistoryPort when PUB port throws', async () => {
+      repository.findById.mockResolvedValue(makeProject());
+      manuscriptPort.summaries.mockResolvedValue(new Map());
+      metadataPort.metadata.mockResolvedValue(new Map());
+      publicationPort.history.mockRejectedValue(new Error('PUB unavailable'));
+
+      await useCase.execute({ projetoId: PROJETO_ID, empresaId: EMPRESA_ID });
+
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('degraded:true port=PublicationHistoryPort'),
+      );
+    });
+
+    it('does NOT emit WARN when all ports succeed', async () => {
+      repository.findById.mockResolvedValue(makeProject());
+      manuscriptPort.summaries.mockResolvedValue(new Map());
+      metadataPort.metadata.mockResolvedValue(new Map());
+      publicationPort.history.mockResolvedValue([]);
+
+      await useCase.execute({ projetoId: PROJETO_ID, empresaId: EMPRESA_ID });
+
+      expect(loggerWarnSpy).not.toHaveBeenCalled();
+    });
   });
 });

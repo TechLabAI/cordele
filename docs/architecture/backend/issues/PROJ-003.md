@@ -1,8 +1,8 @@
 # PROJ-003 -- CreateProjetoEditorialUseCase (POST /projetos golden path + ProjectCreated event)
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/5 itens
+**Status:** REDUCED -- pos-validacao 2026-08-28
+**Maturidade:** 78 -- Consistente
+**Done/Total:** 6/10 itens
 
 ## Contexto
 

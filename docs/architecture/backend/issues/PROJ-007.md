@@ -1,8 +1,8 @@
 # PROJ-007 -- Prisma schema models + initial migrations V0001-V0002 (ProjetoEditorial + ProjetoStatusHistorico)
 
-**Status:** in-review -- implementado P3 (2026-08-26)
-**Maturidade:** 1 -- Em progresso
-**Done/Total:** 5/6 itens
+**Status:** NEAR-CLOSED -- pos-validacao 2026-08-28
+**Maturidade:** 83 -- Maduro
+**Done/Total:** 7/9 itens
 
 ## Contexto
 
