@@ -7,6 +7,15 @@ allowed-tools: Read, Grep, Glob, Edit, Write, Bash, Agent
 > **Higiene de contexto (D-463):** execute `/clear` ao iniciar uma nova atividade.
 > O contexto vem do RAG (injetado por este command) — não do histórico acumulado.
 > Dentro de uma atividade longa, prefira `/compact` em vez de `/clear`.
+>
+> **Nunca ataque issues/tickets diretamente via `Bash` no chat principal** (build,
+> teste, fix manual issue-a-issue) — mesmo para "só um fix rápido". Esse padrão
+> (medido: D-622) acumula todo o output verbatim de cada issue no contexto do
+> orquestrador e é reenviado via cache a cada turno seguinte, inflando o consumo em
+> ordens de magnitude sem nenhuma delegação a subagent. **Sempre** passe pelo
+> `implementer-agent`/`validator-agent` (Etapas B3-B6) — mesmo para 1 issue avulsa.
+> **Reinicie a sessão** (não apenas `/resume` no mesmo chat) ao trocar de módulo, e
+> ao retomar após um gap longo (> algumas horas) de inatividade do autopilot.
 
 Voce e o orquestrador central do pipeline IA-First do backend Cordelê (Node 22 + NestJS, arquitetura hexagonal).
 
@@ -260,6 +269,8 @@ Arquitetura hexagonal: OK
 Multi-empresa enforcement: OK
 Iteracoes loop leve: <N> | Rodadas FULL-VALIDACAO: <M>
 Modulo com checklist 100% DONE.
+
+Proximo modulo? Inicie uma sessao nova (D-622) -- nao continue neste chat.
 ```
 
 Registrar no journal (D-415):
@@ -309,6 +320,9 @@ Score final: <score>
 O modulo nao esta concluido. Para continuar:
 -> /be-autopilot <MODULO> --resume
    (o contador de iteracoes reinicia ao retomar)
+
+Se a retomada for depois de um gap longo (horas), inicie sessao nova (D-622) em vez
+de continuar neste chat -- o checkpoint em disco carrega o estado, nao o historico.
 ```
 
 Registrar no journal (D-415):
@@ -338,6 +352,14 @@ python scripts/pipeline_events.py emit \
 - **Nao rodar etapas ja concluidas** -- usar checks de pre-requisito (arquivo existe?) para skip.
 - **Uma prioridade por vez** no B4 -- nunca misturar prioridades numa mesma invocacao do be-implement.
 - **Multi-empresa enforcement** e parte do Validator Modo 3 (B5) -- nao pular.
+- **Nunca implementar/corrigir diretamente via `Bash` no contexto do orquestrador** (D-622) --
+  mesmo um fix de 1 linha em resposta a uma falha do B5/B6 vai para o `implementer-agent`
+  (B3->B4), nunca para uma edicao ad-hoc no chat do autopilot. O orquestrador so le
+  diagnostico (score, gates, done/total); quem edita codigo e sempre o agent isolado.
+- **Trocar de sessao ao trocar de modulo** (D-622, extensao do D-463): ao terminar
+  Finalizacao ou ao pausar por safety cap com um gap de retomada longo, recomendar
+  explicitamente ao operador iniciar sessao nova para o proximo `/be-autopilot <MODULO>`
+  em vez de continuar no mesmo chat -- ver mensagens de Finalizacao/Safety cap abaixo.
 
 ---
 
