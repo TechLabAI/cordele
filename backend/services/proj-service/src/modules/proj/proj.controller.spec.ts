@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ProjController } from './proj.controller';
 import { REQUIRED_SCOPES_KEY } from './decorators/require-scope.decorator';
 import {
+  ADVANCE_PROJETO_STATUS_USE_CASE,
   CREATE_PROJETO_USE_CASE,
   REOPEN_PROJECT_USE_CASE,
   GET_PROJETO_LIBRARY_USE_CASE,
@@ -11,9 +12,10 @@ import {
   GET_SIGNED_DOWNLOAD_URL_USE_CASE,
   DELETE_PROJETO_USE_CASE,
 } from './proj.tokens';
+import { ProjetoStatus } from '../../domain/proj/value-objects/project-status.vo';
 
 /**
- * Unit tests for ProjController (P5 update).
+ * Unit tests for ProjController (P5 update + §4.8 advance-status).
  *
  * The controller now has use case dependencies injected via DI tokens.
  * This spec mocks all use cases so the controller can be tested in isolation.
@@ -22,14 +24,15 @@ import {
  * `jwt-auth.guard.spec.ts`); every handler call below passes a plain
  * `UsuarioContext` object to simulate what the decorator would inject.
  *
- * Route coverage (7 handlers from api-contract.md §4):
- *   POST   /projetos                                         → 201 ProjetoDetailDto
- *   GET    /projetos                                         → 200 ProjetoCardDto[]
- *   GET    /projetos/:projetoId                              → 200 ProjetoDetailDto
- *   GET    /projetos/:projetoId/publicacoes                  → 200 PublicacaoHistoryItemDto[]
- *   GET    /projetos/:projetoId/publicacoes/:id/download     → 200 SignedDownloadUrlDto
- *   DELETE /projetos/:projetoId                              → 204 (void)
- *   POST   /projetos/:projetoId/reopen                       → 200 ProjetoDetailDto
+ * Route coverage (8 handlers from api-contract.md §4):
+ *   POST   /projetos                                              → 201 ProjetoDetailDto
+ *   GET    /projetos                                              → 200 ProjetoCardDto[]
+ *   GET    /projetos/:projetoId                                   → 200 ProjetoDetailDto
+ *   GET    /projetos/:projetoId/publicacoes                       → 200 PublicacaoHistoryItemDto[]
+ *   GET    /projetos/:projetoId/publicacoes/:id/download          → 200 SignedDownloadUrlDto
+ *   DELETE /projetos/:projetoId                                   → 204 (void)
+ *   POST   /projetos/:projetoId/reopen                            → 200 ProjetoDetailDto
+ *   POST   /projetos/:projetoId/advance-status                    → 200 AdvanceProjetoStatusResult
  */
 describe('ProjController', () => {
   let controller: ProjController;
@@ -93,6 +96,14 @@ describe('ProjController', () => {
     execute: jest.fn().mockResolvedValue(undefined),
   };
 
+  const mockAdvanceStatusUseCase = {
+    advanceTo: jest.fn().mockResolvedValue({
+      projetoId: 'proj-id-1',
+      newStatus: ProjetoStatus.publicado,
+      changed: true,
+    }),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -106,6 +117,7 @@ describe('ProjController', () => {
         { provide: GET_PUBLICATION_HISTORY_USE_CASE, useValue: mockHistoryUseCase },
         { provide: GET_SIGNED_DOWNLOAD_URL_USE_CASE, useValue: mockDownloadUrlUseCase },
         { provide: DELETE_PROJETO_USE_CASE, useValue: mockDeleteUseCase },
+        { provide: ADVANCE_PROJETO_STATUS_USE_CASE, useValue: mockAdvanceStatusUseCase },
       ],
     }).compile();
 
@@ -239,16 +251,105 @@ describe('ProjController', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // 4.8 POST /projetos/:projetoId/advance-status — advanceStatus()
+  // ---------------------------------------------------------------------------
+
+  describe('advanceStatus() — POST /projetos/:projetoId/advance-status', () => {
+    const projetoId = '11111111-1111-1111-1111-111111111111';
+
+    it('returns projetoId, newStatus and changed=true on successful advance', async () => {
+      const result = await controller.advanceStatus(
+        projetoId,
+        { targetStatus: ProjetoStatus.publicado },
+        user,
+      );
+
+      expect(result).toEqual({
+        projetoId: 'proj-id-1',
+        newStatus: ProjetoStatus.publicado,
+        changed: true,
+      });
+      expect(mockAdvanceStatusUseCase.advanceTo).toHaveBeenCalledWith(
+        { projetoId, targetStatus: ProjetoStatus.publicado },
+        user,
+      );
+    });
+
+    it('returns changed=false for idempotent no-op', async () => {
+      mockAdvanceStatusUseCase.advanceTo.mockResolvedValueOnce({
+        projetoId,
+        newStatus: ProjetoStatus.publicado,
+        changed: false,
+      });
+
+      const result = await controller.advanceStatus(
+        projetoId,
+        { targetStatus: ProjetoStatus.publicado },
+        user,
+      );
+
+      expect(result.changed).toBe(false);
+    });
+
+    it('maps IllegalStatusTransitionError to ConflictException (409)', async () => {
+      const { ConflictException } = await import('@nestjs/common');
+      const { IllegalStatusTransitionError } = await import(
+        '../../domain/proj/errors/illegal-status-transition.error'
+      );
+
+      mockAdvanceStatusUseCase.advanceTo.mockRejectedValueOnce(
+        new IllegalStatusTransitionError(
+          ProjetoStatus.rascunho,
+          ProjetoStatus.publicado,
+          'rascunho cannot advance directly to publicado',
+        ),
+      );
+
+      await expect(
+        controller.advanceStatus(
+          projetoId,
+          { targetStatus: ProjetoStatus.publicado },
+          user,
+        ),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('propagates NotFoundException when project is not found', async () => {
+      const { NotFoundException } = await import('@nestjs/common');
+      mockAdvanceStatusUseCase.advanceTo.mockRejectedValueOnce(
+        new NotFoundException(`ProjetoEditorial ${projetoId} not found in this empresa`),
+      );
+
+      await expect(
+        controller.advanceStatus(
+          projetoId,
+          { targetStatus: ProjetoStatus.com_erros },
+          user,
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Route metadata verification
   // ---------------------------------------------------------------------------
 
-  describe('Route metadata (7 handlers registered)', () => {
-    it('ProjController prototype has all 7 handler methods', () => {
+  describe('Route metadata (8 handlers registered)', () => {
+    it('ProjController prototype has all 8 handler methods', () => {
       const proto = Object.getOwnPropertyNames(ProjController.prototype).filter(
         (m) => m !== 'constructor',
       );
 
-      const handlers = ['create', 'findAll', 'findOne', 'findPublicacoes', 'getDownloadUrl', 'remove', 'reopen'];
+      const handlers = [
+        'create',
+        'findAll',
+        'findOne',
+        'findPublicacoes',
+        'getDownloadUrl',
+        'remove',
+        'reopen',
+        'advanceStatus',
+      ];
       for (const handler of handlers) {
         expect(proto).toContain(handler);
       }
@@ -267,6 +368,7 @@ describe('ProjController', () => {
       expect(scopesOf('create')).toEqual(['proj:write']);
       expect(scopesOf('remove')).toEqual(['proj:write']);
       expect(scopesOf('reopen')).toEqual(['proj:write']);
+      expect(scopesOf('advanceStatus')).toEqual(['proj:write']);
     });
 
     it('requires proj:read for read routes', () => {

@@ -37,6 +37,7 @@ import { ProjetoCardDto } from './dto/projeto-card.dto';
 import { PublicacaoHistoryItemDto } from './dto/publicacao-history-item.dto';
 import { SignedDownloadUrlDto } from './dto/signed-download-url.dto';
 import {
+  ADVANCE_PROJETO_STATUS_USE_CASE,
   CREATE_PROJETO_USE_CASE,
   REOPEN_PROJECT_USE_CASE,
   GET_PROJETO_LIBRARY_USE_CASE,
@@ -52,6 +53,11 @@ import type { GetSignedDownloadUrlUseCase } from './use-cases/get-signed-downloa
 import type { CreateProjetoEditorialUseCase } from './use-cases/create-projeto-editorial.use-case';
 import type { ReopenProjectForRevisionUseCase } from './use-cases/reopen-project-for-revision.use-case';
 import type { DeleteProjetoUseCase } from './use-cases/delete-projeto.use-case';
+import type {
+  AdvanceProjetoStatusUseCase,
+  AdvanceProjetoStatusResult,
+} from './use-cases/advance-projeto-status.use-case';
+import { AdvanceStatusDto } from './dto/advance-status.dto';
 import { IllegalStatusTransitionError } from '../../domain/proj/errors/illegal-status-transition.error';
 
 /**
@@ -99,6 +105,9 @@ export class ProjController {
 
     @Inject(DELETE_PROJETO_USE_CASE)
     private readonly deleteUseCase: DeleteProjetoUseCase,
+
+    @Inject(ADVANCE_PROJETO_STATUS_USE_CASE)
+    private readonly advanceStatusUseCase: AdvanceProjetoStatusUseCase,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -313,6 +322,62 @@ export class ProjController {
   ): Promise<{ projetoId: string; newStatus: string }> {
     try {
       return await this.reopenUseCase.reopen(projetoId, user);
+    } catch (err) {
+      if (err instanceof IllegalStatusTransitionError) {
+        throw new ConflictException({
+          message: err.message,
+          type: 'urn:cordele:proj:illegal-status-transition',
+          from: err.from,
+          to: err.to,
+        });
+      }
+      throw err;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // 4.8  POST /api/v1/proj/projetos/:projetoId/advance-status — advance status (G4/INT-PUB-003)
+  // ---------------------------------------------------------------------------
+
+  @Post('projetos/:projetoId/advance-status')
+  @HttpCode(HttpStatus.OK)
+  @RequiredScopes('proj:write')
+  @ApiOperation({
+    summary: 'Advance the status of a project (called by PUB via HTTP after export)',
+  })
+  @ApiOkResponse({
+    description: 'Status advanced (or idempotent no-op). Returns projetoId, newStatus and changed flag.',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Illegal status transition from the current state to the requested target.',
+  })
+  @ApiNotFoundResponse({ description: 'Project not found in this empresa.' })
+  async advanceStatus(
+    @Param('projetoId', ParseUUIDPipe) projetoId: string,
+    @Body() dto: AdvanceStatusDto,
+    @CurrentUser() user: UsuarioContext,
+  ): Promise<AdvanceProjetoStatusResult> {
+    return this.callAdvanceStatus(projetoId, dto, user);
+  }
+
+  /**
+   * Maps `IllegalStatusTransitionError` (domain) onto HTTP 409 for the
+   * advance-status route (§4.8 / api-contract §7). Same pattern as
+   * `reopenProjeto` above.
+   *
+   * RULE-04: stays in modules/; only this adapter touches `ConflictException`.
+   */
+  private async callAdvanceStatus(
+    projetoId: string,
+    dto: AdvanceStatusDto,
+    user: UsuarioContext,
+  ): Promise<AdvanceProjetoStatusResult> {
+    try {
+      return await this.advanceStatusUseCase.advanceTo(
+        { projetoId, targetStatus: dto.targetStatus },
+        user,
+      );
     } catch (err) {
       if (err instanceof IllegalStatusTransitionError) {
         throw new ConflictException({
