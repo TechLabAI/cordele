@@ -32,9 +32,9 @@ provisioning script; if Opção B (single schema), the migration runs in the glo
 Files to create (relative to monolith root `backend/`):
 
 - [x] `prisma/schema.prisma` — add COMP model blocks: `Metadados` (with `@@unique([projetoId])`, `@relation`), `ConfiguracaoLayout` (with `@@unique([projetoId])`, `@relation` to LayoutOverride), `LayoutOverride` (with `@@unique([configuracaoLayoutId, referencia_no])`); field types match `data-model.md` (UUID pk, TIMESTAMPTZ → `DateTime`, NUMERIC → `Decimal`)
-- [x] `prisma/migrations/20260825141357_init/migration.sql` — bloco `CREATE TABLE metadados` com todas as colunas, `UNIQUE`, CHECK constraints (`chk_metadados_titulo`, `_autor`, `_idioma`), FK `REFERENCES projeto_editorial (id) ON DELETE CASCADE` (originalmente previsto como `V0001__create_metadados.sql`)
-- [x] `prisma/migrations/20260825141357_init/migration.sql` — bloco `CREATE TABLE configuracao_layout` com todas as colunas, UNIQUE, CHECK constraints (corpo bounds, espacamento, margem, heading bounds, `chk_cfglayout_heading_order`), FK ON DELETE CASCADE para `projeto_editorial` (originalmente previsto como `V0002__create_configuracao_layout.sql`)
-- [x] `prisma/migrations/20260825141357_init/migration.sql` — bloco `CREATE TABLE layout_override` com todas as colunas, `chk_override_tipo`, `chk_override_alinhamento`, `chk_override_imagem_alinhado`, `chk_override_ordem`, FK `REFERENCES configuracao_layout (id) ON DELETE CASCADE`, `uq_override_no UNIQUE(configuracao_layout_id, referencia_no)` (originalmente previsto como `V0003__create_layout_override.sql`)
+- [x] `prisma/migrations/20260825141357_init/migration.sql` — bloco `CREATE TABLE metadados` com todas as colunas, `UNIQUE`, CHECK constraints (`chk_metadados_titulo`, `_autor`, `_idioma`), FK `REFERENCES projeto_editorial (id) ON DELETE CASCADE` (originalmente previsto como arquivo separado V0001)
+- [x] `prisma/migrations/20260825141357_init/migration.sql` — bloco `CREATE TABLE configuracao_layout` com todas as colunas, UNIQUE, CHECK constraints (corpo bounds, espacamento, margem, heading bounds, `chk_cfglayout_heading_order`), FK ON DELETE CASCADE para `projeto_editorial` (originalmente previsto como arquivo separado V0002)
+- [x] `prisma/migrations/20260825141357_init/migration.sql` — bloco `CREATE TABLE layout_override` com todas as colunas, `chk_override_tipo`, `chk_override_alinhamento`, `chk_override_imagem_alinhado`, `chk_override_ordem`, FK `REFERENCES configuracao_layout (id) ON DELETE CASCADE`, `uq_override_no UNIQUE(configuracao_layout_id, referencia_no)` (originalmente previsto como arquivo separado V0003)
 - [x] Integration test: `pnpm prisma migrate dev` aplica a migration `20260825141357_init` contra DB de teste via Testcontainers (verificado pelos specs de repositorio COMP-010/COMP-011); sem erros
 
 ## Criterios de aceite
@@ -43,7 +43,7 @@ Files to create (relative to monolith root `backend/`):
 - [x] `metadados` has FK `ON DELETE CASCADE` to `projeto_editorial` (SPEC-04.C6)
 - [x] `configuracao_layout` has FK `ON DELETE CASCADE` to `projeto_editorial` (SPEC-04.C6)
 - [x] `layout_override` has FK `ON DELETE CASCADE` to `configuracao_layout`
-- [x] `chk_override_imagem_alinhado` CHECK constraint present in `20260825141357_init/migration.sql`
+- [x] `chk_override_imagem_alinhado` CHECK constraint present in `prisma/migrations/20260825141357_init/migration.sql`
 
 ## Dependencias
 

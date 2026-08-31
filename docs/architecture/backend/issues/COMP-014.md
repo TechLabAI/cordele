@@ -10,9 +10,17 @@
 Provides a thin stub implementation of `ManuscriptContentPort` (interface declared in COMP-007)
 so that COMP compiles and the preview/override paths exercise before IMP's in-process content
 query port exists. The stub returns a small fixture content tree with known `referenciaNo` values
-for `getContentTree` and always returns `true` for `nodeExists`. This unblocks BDD tests (COMP-020)
-and integration testing without requiring IMP to be scaffolded first. The real adapter is in
-INT-COMP-001 and replaces this stub once IMP exports its query port.
+for `getContentTree`. This unblocks BDD tests (COMP-020) and integration testing without requiring
+IMP to be scaffolded first. The real adapter is in INT-COMP-001 and replaces this stub once IMP
+exports its query port.
+
+> **Nota de correcao (2026-08-31):** o comportamento originalmente especificado para `nodeExists`
+> ("returns true for any referenciaNo not in a denial list") foi superado pela implementacao real:
+> `nodeExists` valida o `referenciaNo` contra a arvore de conteudo da fixture (busca recursiva por
+> `nodeId`), retornando `true` apenas para IDs realmente presentes na fixture. Isso e necessario para
+> a deteccao de overrides `stale` (COMP-007/COMP-008) funcionar corretamente contra o stub -- um
+> `nodeExists` sempre-verdadeiro tornaria a deteccao de stale impossivel de testar. Nao foi
+> implementada uma "denial list" separada porque a arvore fixture ja cumpre esse papel.
 
 ## Spec de referencia
 - SPEC-10 (integrations — ManuscriptContentPort stub note; scaffold note)
@@ -30,7 +38,7 @@ Files to create (relative to monolith root `backend/`):
 
 - [x] `GET /api/comp/projetos/fixture-id/preview-context` returns 200 with fixture tree (stub active)
 - [x] Project id in denial list → `getContentTree` returns null → 409 `manuscript-missing`
-- [ ] `nodeExists` returns true for any `referenciaNo` not in denial list
+- [x] `nodeExists` valida contra a arvore da fixture (retorna `true` so para `referenciaNo` realmente presente) — comportamento corrigido, ver nota acima; testado em `manuscript-content-stub.adapter.spec.ts`
 - [x] `pnpm test` on stub spec exits 0
 
 ## Dependencias

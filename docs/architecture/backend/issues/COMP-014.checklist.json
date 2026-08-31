@@ -3,9 +3,9 @@
   "layer": "be",
   "checklist": {
     "total": 7,
-    "done": 6,
+    "done": 7,
     "partial": 0,
-    "missing": 1,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -34,9 +34,9 @@
         "evidence": "marcado (sem arquivo verificavel)"
       },
       {
-        "text": "`nodeExists` returns true for any `referenciaNo` not in denial list",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "text": "`nodeExists` valida contra a arvore da fixture (retorna `true` so para `referenciaNo` realmente presente) — comportamento corrigido, ver nota acima; testado em `manuscript-content-stub.adapter.spec.ts`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: manuscript-content-stub.adapter.spec.ts"
       },
       {
         "text": "`pnpm test` on stub spec exits 0",

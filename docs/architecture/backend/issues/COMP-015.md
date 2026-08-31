@@ -28,7 +28,7 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] `put('cover-123.jpg', buffer, 'image/jpeg')` creates file at `COMP_STORAGE_DIR/cover-123.jpg` and returns `{ url: '/covers/cover-123.jpg' }`
+- [x] `store('cover-123.jpg', buffer)` creates file at COMP_STORAGE_DIR/cover-123.jpg and returns a `file://` URL string — API real diverge do texto original (metodo `store` em vez de `put`, retorno `Promise<string>` em vez de `{url}`, URL `file://` em vez de `/covers/key`); ver `src/modules/comp/ports/file-storage.port.ts` — comportamento testado em `disk-file-storage.adapter.spec.ts`
 - [x] `delete('/covers/nonexistent.jpg')` completes without throwing
 - [x] `pnpm test` on adapter spec exits 0
 

@@ -3,9 +3,9 @@
   "layer": "be",
   "checklist": {
     "total": 6,
-    "done": 5,
+    "done": 6,
     "partial": 0,
-    "missing": 1,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -24,9 +24,9 @@
         "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/comp/comp.module.ts"
       },
       {
-        "text": "`put('cover-123.jpg', buffer, 'image/jpeg')` creates file at `COMP_STORAGE_DIR/cover-123.jpg` and returns `{ url: '/covers/cover-123.jpg' }`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: COMP_STORAGE_DIR/cover-123.jpg"
+        "text": "`store('cover-123.jpg', buffer)` creates file at COMP_STORAGE_DIR/cover-123.jpg and returns a `file://` URL string — API real diverge do texto original (metodo `store` em vez de `put`, retorno `Promise<string>` em vez de `{url}`, URL `file://` em vez de `/covers/key`); ver `src/modules/comp/ports/file-storage.port.ts` — comportamento testado em `disk-file-storage.adapter.spec.ts`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/comp/ports/file-storage.port.ts, disk-file-storage.adapter.spec.ts"
       },
       {
         "text": "`delete('/covers/nonexistent.jpg')` completes without throwing",
