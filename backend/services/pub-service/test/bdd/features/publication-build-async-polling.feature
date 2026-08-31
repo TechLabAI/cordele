@@ -51,3 +51,12 @@ Scenario: Re-exporting a finished project creates a new attempt with the next se
   When the editor triggers an export for project "proj-100"
   Then the response status is 202
   And the new publicacao has sequencia 2
+
+Scenario: KPI emAndamento is 1 while a build is in progress
+  Given project "proj-100" has the following publicacoes:
+    | status   | epubcheckStatus | sequencia |
+    | gerando  | pendente        | 1         |
+  When the editor reads the publication stats for "proj-100"
+  Then the response status is 200
+  And the stats field "emAndamento" is 1
+  And the stats field "publicadas" is 0
