@@ -1,0 +1,10 @@
+{
+  "name": "@cordele/comp/data-access",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/core": "^21.0.0",
+    "@cordele/shared/access-http-base": "0.0.1",
+    "rxjs": "^7.0.0"
+  },
+  "sideEffects": false
+}
