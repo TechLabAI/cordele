@@ -112,6 +112,7 @@ describe('PrismaProjetoEditorialRepository', () => {
         id: 'uuid-projeto-001',
         nome: 'Projeto de Teste',
         descricao: undefined,
+        empresaId: 'aetos',
         editoraId: 'uuid-editora-aetos',
         status: ProjetoStatus.rascunho,
       });
@@ -129,7 +130,7 @@ describe('PrismaProjetoEditorialRepository', () => {
       expect(result.status).toBe(ProjetoStatus.rascunho);
     });
 
-    it('deve chamar withTenant com o editoraId correto', async () => {
+    it('deve chamar withTenant com o empresaId correto (nao o editoraId)', async () => {
       const tx = makeTx({
         projetoEditorial: { create: jest.fn().mockResolvedValue(makeRow()) },
         projetoStatusHistorico: { create: jest.fn().mockResolvedValue({}) },
@@ -139,7 +140,8 @@ describe('PrismaProjetoEditorialRepository', () => {
       await repo.create({
         id: 'uuid-1',
         nome: 'Projeto X',
-        editoraId: 'emp-slug-aetos',
+        empresaId: 'emp-slug-aetos',
+        editoraId: 'uuid-editora-aetos',
         status: ProjetoStatus.rascunho,
       });
 

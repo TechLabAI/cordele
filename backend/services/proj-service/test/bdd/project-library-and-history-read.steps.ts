@@ -16,10 +16,33 @@
  *
  * Invariant tested: 3 port calls exactly per library request (SPEC-10 clause 3).
  */
+
+// ── Env vars required by ConfigModule (set before any Nest import) ────────────
+// The scope-guard scenario (scenario 8/12) creates a NestJS TestingModule that
+// imports ProjModule, which in turn uses ConfigModule to resolve JWT env vars.
+process.env['NODE_ENV'] = 'test';
+process.env['JWT_ISSUER_URI'] = 'http://test-issuer/realms/test';
+process.env['JWT_AUDIENCE'] = 'proj-service-test';
+process.env['DATABASE_URL'] = 'postgresql://test:test@localhost:5432/cordele_test';
+
 import { join } from 'node:path';
 
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ExecutionContext,
+  ForbiddenException,
+  Global,
+  INestApplication,
+  Logger,
+  Module,
+  NotFoundException,
+  ValidationPipe,
+  VersioningType,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { Test } from '@nestjs/testing';
 import { defineFeature, loadFeature } from 'jest-cucumber';
+import request from 'supertest';
 
 import { GetProjetoLibraryUseCase } from 'src/modules/proj/use-cases/get-projeto-library.use-case';
 import { GetProjetoDetailUseCase } from 'src/modules/proj/use-cases/get-projeto-detail.use-case';
@@ -30,22 +53,73 @@ import type { ManuscriptSummaryPort } from 'src/domain/proj/ports/outbound/manus
 import type { ProjectMetadataPort } from 'src/domain/proj/ports/outbound/project-metadata.port';
 import type { PublicationHistoryPort } from 'src/domain/proj/ports/outbound/publication-history.port';
 import { ProjetoStatus } from 'src/domain/proj/value-objects/project-status.vo';
-
-// Shared step imports kept for API compatibility (shared.ts functions are no-ops;
-// all real logic is implemented inline below).
 import {
-  aProjectProjXBelongingToEmpresaOutra,
-  anAuthenticatedEditorOfEmpresaAetos,
-  anExistingProjectProj1InStatusComErros,
-  anExistingProjectProj1InStatusPublicado,
-  theEditorListsProjects,
-  theResponseStatusIs200,
-  theResponseStatusIs403,
-  theResponseStatusIs404,
-  theResponseStatusIs409,
-} from './steps/shared';
+  COMPOSITION_ERASURE_PORT,
+  MANUSCRIPT_ERASURE_PORT,
+  MANUSCRIPT_SUMMARY_PORT,
+  PROJECT_METADATA_PORT,
+  PROJETO_EDITORIAL_REPOSITORY,
+  PUBLICATION_ERASURE_PORT,
+  PUBLICATION_HISTORY_PORT,
+} from 'src/modules/proj/proj.tokens';
+import { ProjModule } from 'src/modules/proj/proj.module';
+import { REQUIRED_SCOPES_KEY } from 'src/modules/proj/decorators/require-scope.decorator';
+
+// These were originally imported from ./steps/shared, but that file was
+// redesigned (P8) to hold only pure, stateless helpers shared across suites —
+// it no longer exports these no-op placeholders. All real assertions in this
+// file are implemented inline in each step body (see file header comment
+// above), so these remain true no-ops kept only for structural parity with
+// the Gherkin given/when/then wiring below.
+function aProjectProjXBelongingToEmpresaOutra(): void {}
+function anAuthenticatedEditorOfEmpresaAetos(): void {}
+function anExistingProjectProj1InStatusComErros(): void {}
+function anExistingProjectProj1InStatusPublicado(): void {}
+function theEditorListsProjects(): void {}
+function theResponseStatusIs200(): void {}
+function theResponseStatusIs403(): void {}
+function theResponseStatusIs404(): void {}
+function theResponseStatusIs409(): void {}
 
 const feature = loadFeature(join(__dirname, 'features', 'project-library-and-history-read.feature'));
+
+// ---------------------------------------------------------------------------
+// Fake @Global() module used by the scope-guard BDD scenario (13/13).
+// Provides the tokens that ProjModule expects globally from AppModule's
+// PersistenceModule, ReadPortsModule and ErasurePortsModule in production.
+// Stubs are never called — the request is blocked at the guard (403).
+// Must be declared at file scope so TypeScript class decorators work correctly.
+// ---------------------------------------------------------------------------
+
+@Global()
+@Module({
+  providers: [
+    { provide: PROJETO_EDITORIAL_REPOSITORY, useValue: {} },
+    { provide: MANUSCRIPT_SUMMARY_PORT, useValue: { summaries: async () => new Map() } },
+    { provide: PROJECT_METADATA_PORT, useValue: { metadata: async () => new Map() } },
+    {
+      provide: PUBLICATION_HISTORY_PORT,
+      useValue: {
+        latest: async () => new Map(),
+        history: async () => [],
+        signedDownloadUrl: async () => ({ arquivoUrl: '', expiresAt: '' }),
+      },
+    },
+    { provide: PUBLICATION_ERASURE_PORT, useValue: { erase: async () => undefined } },
+    { provide: COMPOSITION_ERASURE_PORT, useValue: { erase: async () => undefined } },
+    { provide: MANUSCRIPT_ERASURE_PORT, useValue: { erase: async () => undefined } },
+  ],
+  exports: [
+    PROJETO_EDITORIAL_REPOSITORY,
+    MANUSCRIPT_SUMMARY_PORT,
+    PROJECT_METADATA_PORT,
+    PUBLICATION_HISTORY_PORT,
+    PUBLICATION_ERASURE_PORT,
+    COMPOSITION_ERASURE_PORT,
+    MANUSCRIPT_ERASURE_PORT,
+  ],
+})
+class ScopeGuardBddFakeInfraModule { /* NestJS module — all configuration in @Module() decorator above */ }
 
 // ---------------------------------------------------------------------------
 // Test helpers
@@ -230,6 +304,7 @@ defineFeature(feature, (test) => {
     let repo: jest.Mocked<ProjetoEditorialRepository>;
     let publicationPort: jest.Mocked<PublicationHistoryPort>;
     let result: any;
+    let warnSpy: jest.SpyInstance;
     const PROJECT_ID = 'proj-1';
 
     given('an authenticated editor of empresa "aetos"', () => {
@@ -247,6 +322,10 @@ defineFeature(feature, (test) => {
 
     when('the editor lists projects', async () => {
       theEditorListsProjects();
+      // Spy on Logger.prototype.warn BEFORE invoking the use case so the
+      // degraded:true port=PublicationHistoryPort message is captured.
+      // (SPEC-07 / P8 criterion 2: spy de logger captura WARN degraded:true)
+      warnSpy = jest.spyOn(Logger.prototype, 'warn');
       const manuscriptPort = makeManuscriptPort(new Map());
       const metadataPort = makeMetadataPort(new Map());
       const useCase = new GetProjetoLibraryUseCase(repo, manuscriptPort, metadataPort, publicationPort);
@@ -265,7 +344,19 @@ defineFeature(feature, (test) => {
     });
 
     and('the response is marked degraded', () => {
-      expect(result.degraded).toBe(true);
+      try {
+        expect(result.degraded).toBe(true);
+        // Verify the logger emitted WARN degraded:true port=PublicationHistoryPort
+        // (SPEC-07 / P8 criterion 2). The production use case calls logger.warn()
+        // inside callPort() when the port rejects.
+        const warnMessages: string[] = warnSpy.mock.calls.map((args) => String(args[0]));
+        const degradedWarn = warnMessages.find(
+          (msg) => msg.includes('degraded:true') && msg.includes('port=PublicationHistoryPort'),
+        );
+        expect(degradedWarn).toBeDefined();
+      } finally {
+        warnSpy.mockRestore();
+      }
     });
   });
 
@@ -452,20 +543,98 @@ defineFeature(feature, (test) => {
     });
   });
 
-  // Scenario: "A read without the required scope is forbidden" → BLOCKED by P5 (JWT scope guards)
-  // test.skip kept to signal P5 dependency
-  test.skip('A read without the required scope is forbidden', ({ given, then, when }) => {
+  // Scenario 13/13: scope guard enforcement (P5 dependency now fulfilled — PROJ-014).
+  // Unlike the other 12 scenarios (which call use cases directly), this one boots a
+  // mini INestApplication because @RequiredScopes enforcement lives in the HTTP pipeline
+  // (JwtAuthGuard / guard stub with Reflector), not in the use case layer.
+  // The app uses ScopeGuardBddFakeInfraModule (fake @Global()) + ProjModule only —
+  // AppModule is intentionally excluded to avoid the APP_GUARD wiring issue documented
+  // in the PROJ plan (overrideGuard() + APP_GUARD conflict).
+  test('A read without the required scope is forbidden', ({ given, then, when }) => {
+    let scopeTestStatus: number;
+
     given('an authenticated editor of empresa "aetos"', () => {
       anAuthenticatedEditorOfEmpresaAetos();
     });
+
     given('the editor\'s token lacks scope "proj:read"', () => {
-      // Requires ScopesGuard wired in P5 (PROJ-014)
+      // The guard stub configured in the `when` step injects a user whose
+      // scopes array does not contain 'proj:read' — enforced via Reflector.
     });
-    when('the editor lists projects', () => {
+
+    when('the editor lists projects', async () => {
       theEditorListsProjects();
+
+      // Principal that carries proj:write but NOT proj:read.
+      const userWithoutReadScope = {
+        userId: '00000000-0000-0000-0000-000000000099',
+        username: 'scope-test-editor',
+        roles: ['proj-user'],
+        scopes: ['proj:write'],
+        empresaId: EMPRESA_ID,
+      };
+
+      // Reflector is wired after compile(); guard reads it lazily at request time.
+      let scopeTestReflector: Reflector | null = null;
+
+      // Guard stub mirrors JwtAuthGuard.enforceScopes without real JWT infrastructure.
+      const scopeGuardStub = {
+        canActivate: (context: ExecutionContext): boolean => {
+          const req = context.switchToHttp().getRequest<Record<string, unknown>>();
+          req['user'] = userWithoutReadScope;
+
+          if (scopeTestReflector) {
+            const required = scopeTestReflector.getAllAndOverride<string[] | undefined>(
+              REQUIRED_SCOPES_KEY,
+              [context.getHandler(), context.getClass()],
+            );
+            if (required && required.length > 0) {
+              const hasScope = required.some((s) =>
+                userWithoutReadScope.scopes.includes(s),
+              );
+              if (!hasScope) {
+                throw new ForbiddenException(
+                  `Insufficient scope. Required one of: ${required.join(', ')}`,
+                );
+              }
+            }
+          }
+
+          return true;
+        },
+      };
+
+      const moduleRef = await Test.createTestingModule({
+        imports: [ScopeGuardBddFakeInfraModule, ProjModule],
+      }).compile();
+
+      const app: INestApplication = moduleRef.createNestApplication();
+      app.setGlobalPrefix('api');
+      app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
+      app.useGlobalPipes(
+        new ValidationPipe({
+          whitelist: true,
+          forbidNonWhitelisted: true,
+          transform: true,
+          transformOptions: { enableImplicitConversion: true },
+        }),
+      );
+      // useGlobalGuards bypasses the APP_GUARD / overrideGuard conflict.
+      app.useGlobalGuards(scopeGuardStub as Parameters<typeof app.useGlobalGuards>[0]);
+      await app.init();
+
+      // Wire Reflector so the guard stub can read @RequiredScopes metadata.
+      scopeTestReflector = moduleRef.get(Reflector);
+
+      const response = await request(app.getHttpServer()).get('/api/v1/proj/projetos');
+      scopeTestStatus = response.status;
+
+      await app.close();
     });
+
     then('the response status is 403', () => {
       theResponseStatusIs403();
+      expect(scopeTestStatus).toBe(403);
     });
   });
 

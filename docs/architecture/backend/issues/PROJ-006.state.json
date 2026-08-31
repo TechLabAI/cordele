@@ -1,7 +1,7 @@
 {
   "issue": "PROJ-006",
   "layer": "be",
-  "computedAt": "2026-08-25T19:59:33",
+  "computedAt": "2026-08-28T10:36:23",
   "checklist": {
     "total": 8,
     "done": 7,
@@ -55,14 +55,14 @@
     "build": "pass",
     "lint": "pass",
     "test": "pass",
-    "e2e": "skip"
+    "e2e": "pass"
   },
   "score": {
-    "total": 76,
+    "total": 86,
     "provisional": true,
     "range": [
-      76,
-      86
+      86,
+      96
     ],
     "breakdown": {
       "structure": {
@@ -83,7 +83,7 @@
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
@@ -93,7 +93,7 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Consistente",
+    "band": "Maduro",
     "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [

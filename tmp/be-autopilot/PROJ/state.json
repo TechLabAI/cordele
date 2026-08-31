@@ -3,11 +3,11 @@
   "module": "PROJ",
   "service": "proj-service",
   "pipeline": "implement",
-  "currentStep": "implement",
-  "nextStep": "validate",
-  "progressUnit": "P4",
-  "notes": "PARADA SOLICITADA PELO USUARIO para limpeza de contexto. Retomar em B5 (validacao leve de P4). P4 entregue: 3 ports outbound + 3 stubs funcionais (PROJ-009), 4 use cases de leitura (PROJ-010..013), 3 adapters HTTP em infrastructure (PROJ-INT-001..003), controller com os 4 GET reais, ReadPortsModule global. 8/8 issues de P4 marcadas DONE pelo implementer (a confirmar na validacao). DIRETIVA ATIVA DO USUARIO: nenhum teste em skip, tudo implementacao real. Skips: 44 -> 33 (11 BDD de library/history implementados). Restam 33: status-authority 10, observability 6, creation-tenancy 5, lgpd 5, event-integrity 3, lifecycle 2, api-surface 1, library-history 1 (este ultimo bloqueado por ScopesGuard de P5). Gap conhecido: empresaId ainda hardcoded emp_aetos nos use cases ate P5 wirar JWT. Iteracao 5 de 5 do loop leve - o contador reinicia no --resume.",
-  "iteration": 5,
-  "timestamp": "2026-08-26T07:44:47",
+  "currentStep": "full-validate",
+  "nextStep": "finalizacao",
+  "progressUnit": "P1-P8",
+  "notes": "B6 FULL-VALIDACAO PASS: lint PASS, build PASS, test 168/168 PASS, e2e 11/11 PASS, arch-conformance 5/5 PASS. Score 77/100 (Consistente), checklist 152/217 (70.0%). Todos os gates passam -- Finalizacao Pipeline B conforme regra B6 do autopilot (gates completos = criterio, nao score/checklist). Debito remanescente: itens comportamentais de checklist sem evidencia citavel automaticamente (agora cobertos por evidencia real de teste), adapter legado P1 (prisma-proj.repository.ts) nao removido.",
+  "iteration": 3,
+  "timestamp": "2026-08-28T10:38:32",
   "capReached": false
 }

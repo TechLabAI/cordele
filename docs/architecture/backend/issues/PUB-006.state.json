@@ -1,0 +1,103 @@
+{
+  "issue": "PUB-006",
+  "layer": "be",
+  "computedAt": "2026-08-26T13:19:09",
+  "checklist": {
+    "total": 8,
+    "done": 2,
+    "partial": 0,
+    "missing": 6,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/pub/application/get-publication-stats.use-case.ts` — agrega `Publicacao` por `projetoId` via repositório (`countByStatus`, `countByEpubcheckStatus`, `findLatest`); retorna `PublicationStats` DTO (api-contract §6.3); `avisos` conta como `publicadas` + `comAvisos` (D-Q)",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/get-publication-stats.use-case.ts"
+      },
+      {
+        "text": "`src/modules/pub/ports/publicacao-repository.port.ts` — acrescenta métodos `countByStatus(projetoId)`, `findLatest(projetoId)` à interface `IPublicacaoRepository` (se já declarada em PUB-003, unificar)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/ports/publicacao-repository.port.ts"
+      },
+      {
+        "text": "`src/modules/pub/application/get-publication-stats.use-case.spec.ts` — unit tests: projeto sem publicações (zeros + nulls), fixture de 3 publicações (`publicado/valido`, `publicado/avisos`, `com_erros`) verificando `total=3, publicadas=2, comAvisos=1, comErros=1, emAndamento=0` (cobre SPEC-08 fixture), `emAndamento=1` com build em voo",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/get-publication-stats.use-case.spec.ts"
+      },
+      {
+        "text": "`src/modules/pub/dto/publication-stats.dto.ts` — shape `{ projetoId, total, publicadas, comAvisos, comErros, emAndamento, ultimoStatus, ultimoEpubcheckStatus, ultimaPublicacaoEm }` (api-contract §6.3)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/dto/publication-stats.dto.ts"
+      },
+      {
+        "text": "`pnpm test src/modules/pub/application/get-publication-stats.use-case.spec.ts` exits 0",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/get-publication-stats.use-case.spec.ts"
+      },
+      {
+        "text": "`comAvisos` não exclui a publicação de `publicadas` (ambos incrementam simultaneamente)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Projeto sem publicações retorna `total=0`, `ultimo* = null`",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Cenário `emAndamento=1` coberto: projeto com build em `gerando` → `emAndamento=1, publicadas=0`",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "pass",
+    "e2e": "pass"
+  },
+  "score": {
+    "total": 59,
+    "provisional": true,
+    "range": [
+      59,
+      69
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 21,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 8,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 20,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 10,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Parcial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 8/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

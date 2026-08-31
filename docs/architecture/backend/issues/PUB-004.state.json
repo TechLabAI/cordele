@@ -1,0 +1,123 @@
+{
+  "issue": "PUB-004",
+  "layer": "be",
+  "computedAt": "2026-08-26T13:19:09",
+  "checklist": {
+    "total": 12,
+    "done": 2,
+    "partial": 0,
+    "missing": 10,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/pub/application/publication-build-job.ts` — classe `PublicationBuildJob`; método `run(publicacaoId, projetoId)` com as 4 fases; cada transição de estado é persistida antes de avançar; falha em `advanceTo` não apaga o resultado do build",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-build-job.ts"
+      },
+      {
+        "text": "`src/modules/pub/application/publication-build-job.spec.ts` — unit tests com mocks: happy path `valido`, `avisos` (publica), `erros_criticos` (com_erros), falha de storage após epubcheck OK (com_erros), `advanceTo` lança (resultado preservado)",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-build-job.spec.ts"
+      },
+      {
+        "text": "`src/modules/pub/ports/epub-validation.port.ts` — interface `IEpubValidationPort` com `validate(epubBytes: Buffer): Promise<ValidationReport>`; `ValidationReport = { totalErrors, totalWarnings, messages: { severity, code, message, location }[] }`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/ports/epub-validation.port.ts"
+      },
+      {
+        "text": "`src/modules/pub/ports/file-storage.port.ts` — interface `IFileStoragePort` com `store(key, bytes)`, `signUrl(key, ttlSeconds): Promise<{url, expiresAt}>`, `readImage(storageKey): Promise<Buffer>`, `delete(key)`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/ports/file-storage.port.ts"
+      },
+      {
+        "text": "`src/domain/pub/events/publication-succeeded.event.ts` — payload mínimo: `publicacaoId, projetoId, epubcheckStatus, sequencia`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/domain/pub/events/publication-succeeded.event.ts"
+      },
+      {
+        "text": "`src/domain/pub/events/publication-failed.event.ts` — payload mínimo: `publicacaoId, projetoId, resumoErro`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/domain/pub/events/publication-failed.event.ts"
+      },
+      {
+        "text": "`pnpm test src/modules/pub/application/publication-build-job.spec.ts` exits 0",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-build-job.spec.ts"
+      },
+      {
+        "text": "Veredito `avisos` (0 errors, N warnings) resulta em `status=publicado, epubcheckStatus=avisos` (D-Q)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Falha do `FileStoragePort.store` após epubcheck válido resulta em `status=com_erros` com `resumoErro` de storage (invariante `chk_publicacao_artefato`)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`advanceTo` chamado exatamente uma vez por desfecho terminal; falha nele não reverte o `Publicacao` persistido",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Eventos despachados somente após persistência do desfecho (not before commit)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Job roda no `EmpresaContext` da requisição disparadora (sem vazar tenant)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "pass",
+    "e2e": "pass"
+  },
+  "score": {
+    "total": 54,
+    "provisional": true,
+    "range": [
+      54,
+      64
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 19,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 5,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 20,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 10,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Parcial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 5/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

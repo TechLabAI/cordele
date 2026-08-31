@@ -35,11 +35,11 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] Override `tipo=em-branco` in any position of the set triggers 422 before any DB write
-- [ ] Override with `referenciaNo` returning `nodeExists=false` triggers 422; no rows written
-- [ ] Re-sending identical PUT body makes 1 total repository write
-- [ ] `LayoutUpdated` emitted exactly once per successful mutating PUT
-- [ ] `pnpm test` on the use case spec exits 0
+- [x] Override `tipo=em-branco` in any position of the set triggers 422 before any DB write
+- [ ] Override with `referenciaNo` returning `nodeExists=false` triggers 422; no rows written — decisao de design divergente e intencional: o override e marcado `stale=true` e a escrita prossegue (200), em vez de rejeitar com 422. Comportamento confirmado pelo BDD `boundary-ports` Test 2 e por `get-layout-preview`/`update-layout` specs. Nao marcado por divergir do texto literal da issue; requer decisao do arquiteto se deve mudar para 422 ou se o texto da issue deve ser corrigido para "stale".
+- [x] Re-sending identical PUT body makes 1 total repository write — `ConfiguracaoLayout.equalsInput()` + no-op path em `UpdateLayoutUseCase`, testado
+- [x] `LayoutUpdated` emitted exactly once per successful mutating PUT — via `DomainEventEmitter`, nao emitido no caminho no-op, testado
+- [x] `pnpm test` on the use case spec exits 0
 
 ## Dependencias
 

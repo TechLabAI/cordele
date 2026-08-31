@@ -35,8 +35,10 @@
   at POC scale is unquantified.
 - **G6 — Revision semantics.** The `publicado → em_composicao` (new revision) and `com_erros →
   em_composicao` (recovery) paths need concrete triggers agreed with COMP/PUB.
-- **G7 — Tenant provisioning / per-schema migration** is a shared platform mechanism (Prisma vs
-  schema-per-tenant) not yet designed; noted for scaffold/infra.
+- ~~**G7 — Tenant provisioning / per-schema migration** is a shared platform mechanism (Prisma vs
+  schema-per-tenant) not yet designed; noted for scaffold/infra.~~ **Resolved (D-619):** dynamic
+  `PrismaClient` per tenant, `datasourceUrl` resolved from `EmpresaContext`, LRU-evicted registry.
+  See `ADR-003-multi-tenancy.md` § Resolution.
 
 ## Suposicoes a Validar
 

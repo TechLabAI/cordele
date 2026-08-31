@@ -1,0 +1,39 @@
+{
+  "issue": "PUB-020",
+  "layer": "be",
+  "computedAt": "2026-08-26T16:12:53",
+  "checklist": {
+    "total": 6,
+    "done": 0,
+    "partial": 0,
+    "missing": 6,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PUB.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [],
+    "partial": [],
+    "notStarted": [
+      "`docs/architecture/backend/services/pub-service/runbook-orphan-build.md` — runbook MVP: como identificar builds órfãos (`SELECT * FROM publicacao WHERE status IN ('gerando','validando') AND iniciada_em < now() - interval '1 hour'`); comando SQL para forçar `com_erros` com `resumo_erro='Reconciled: process crash'`; como verificar que o index parcial foi liberado; quando escalar",
+      "`src/infrastructure/pub/persistence/publicacao.repository.ts` — acrescentar método `findStaleInFlight(olderThanMinutes: number): Promise<Publicacao[]>` — usado pelo runbook e pelo script de reconciliação; não exposto via REST",
+      "`scripts/pub-reconcile-orphans.ts` (ou `.sql`) — script one-shot que marca como `com_erros` todas as publicações em `gerando`/`validando` com `iniciada_em < now() - PUB_ORPHAN_TIMEOUT_MINUTES`; saída tabulada com `publicacaoId`/`projetoId`; dry-run via flag `--dry-run`; **não executar automaticamente** — uso manual pelo operador",
+      "`runbook-orphan-build.md` descreve o cenário de risco, o critério de identificação e os passos de correção verificáveis",
+      "`findStaleInFlight(60)` em banco de teste retorna publicações com `iniciada_em > 1h` em estado não-terminal",
+      "Script com `--dry-run` imprime lista mas não altera nenhuma linha (verificado por SELECT após execução)"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "PUB-007",
+      "PUB-008"
+    ],
+    "notes": []
+  },
+  "suggestedPlanType": "INCREMENTAL",
+  "needsAgentConfirm": true
+}

@@ -4,7 +4,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { passportJwtSecret } from 'jwks-rsa';
 
-import type { AuthenticatedUser } from './jwt-auth.guard';
+import type { AuthenticatedUser } from '../comp/auth/jwt-auth.guard';
 
 interface JwtPayload {
   sub: string;

@@ -1,0 +1,46 @@
+{
+  "issue": "PUB-019",
+  "layer": "be",
+  "computedAt": "2026-08-26T15:33:42",
+  "checklist": {
+    "total": 9,
+    "done": 1,
+    "partial": 0,
+    "missing": 8,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PUB.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [
+      "`docs/architecture/backend/services/pub-service/tests/cucumber/publication-build-async-polling.feature` — acrescentar cenário `Scenario: KPI emAndamento is 1 while a build is in progress` usando o step DataTable para seed de 1 publicação `gerando`; verifica `GET stats` → `emAndamento=1, publicadas=0`"
+    ],
+    "partial": [],
+    "notStarted": [
+      "`test/pub/step-definitions/pub-fixture.steps.ts` — step `project {string} has the following publicacoes:` com DataTable; cria linhas via `IPublicacaoRepository` fake; colunas obrigatórias: `status`, `epubcheckStatus`, `sequencia`; coluna opcional `artefatoRef`",
+      "`test/pub/step-definitions/epubcheck-stub.steps.ts` — step `epubcheck cannot execute due to a missing JRE or JAR path`; substitui o fake `IEpubValidationPort` por um que lança `EpubcheckUnavailableError`; verifica que o build resultante é `com_erros`",
+      "`test/pub/step-definitions/pub-common.steps.ts` — steps reutilizáveis já listados em SPEC-08: `an authenticated editor of empresa {string} with scope {string}`, `an existing project {string}`, `project {string} has an imported manuscript`, `project {string} has complete metadata`",
+      "`test/pub/pub.bdd.spec.ts` — entrada dos 3 feature files no runner jest-cucumber; verifica que todos os steps resolvem (sem `undefined step`)",
+      "`pnpm test test/pub/pub.bdd.spec.ts` exits 0 com todos os steps definidos (sem `undefined step`)",
+      "DataTable `has the following publicacoes:` cria corretamente N linhas no repositório fake com `status`/`epubcheckStatus` definidos explicitamente",
+      "Cenário `emAndamento=1` passa: `GET stats` retorna `emAndamento=1` com build em voo",
+      "Step `epubcheck cannot execute` resulta em build `com_erros` (nunca `publicado`) — invariante ADR-003"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "PUB-004",
+      "PUB-006",
+      "PUB-010"
+    ],
+    "notes": [
+      "- PUB-010 (EpubValidationPort — stub configurável)"
+    ]
+  },
+  "suggestedPlanType": "CONTINUACAO",
+  "needsAgentConfirm": true
+}

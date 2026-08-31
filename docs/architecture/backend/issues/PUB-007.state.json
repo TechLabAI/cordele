@@ -1,0 +1,113 @@
+{
+  "issue": "PUB-007",
+  "layer": "be",
+  "computedAt": "2026-08-26T13:50:22",
+  "checklist": {
+    "total": 10,
+    "done": 0,
+    "partial": 0,
+    "missing": 10,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`prisma/pub/schema.prisma` — modelos `Publicacao` e `ValidationMessage` com enums `PublicacaoStatus`, `EpubcheckStatus`, `ValidationSeverity`; mapeamentos snake_case (`@@map`/`@map`); relação 1:N `Publicacao → ValidationMessage`; campo `projetoId` como referência (sem modelo `ProjetoEditorial` — cross-module FK gerida pela infra)",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: prisma/pub/schema.prisma"
+      },
+      {
+        "text": "`prisma/pub/migrations/V0001__create_publicacao_validation_message.sql` — DDL canônico do SPEC-04 §2.1/§2.2: CREATE TABLE + CHECK constraints + UNIQUE + FK ON DELETE CASCADE + índice parcial `uq_publicacao_projeto_inflight` + índices de busca",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: prisma/pub/migrations/V0001__create_publicacao_validation_message.sql"
+      },
+      {
+        "text": "`src/infrastructure/pub/persistence/prisma-pub.module.ts` — provider do `PrismaClient` para PUB com URL resolvida do `EmpresaContext` (schema-per-tenant)",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/pub/persistence/prisma-pub.module.ts"
+      },
+      {
+        "text": "`src/infrastructure/pub/persistence/prisma-pub.service.ts` — wrapper `PrismaService` para PUB com método `forSchema(empresaSlug: string): PrismaClient`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/pub/persistence/prisma-pub.service.ts"
+      },
+      {
+        "text": "`src/infrastructure/pub/persistence/prisma-pub.service.spec.ts` — smoke test: cliente inicializa sem erro; `forSchema` produz URL com o slug correto",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/pub/persistence/prisma-pub.service.spec.ts"
+      },
+      {
+        "text": "`npx prisma validate --schema prisma/pub/schema.prisma` exits 0",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: prisma/pub/schema.prisma"
+      },
+      {
+        "text": "Migration SQL aplica sem erro em banco PostgreSQL 16 com `gen_random_uuid()` disponível",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Índice parcial `uq_publicacao_projeto_inflight` presente no SQL (`WHERE status IN ('gerando', 'validando')`)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm test src/infrastructure/pub/persistence/prisma-pub.service.spec.ts` exits 0",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/pub/persistence/prisma-pub.service.spec.ts"
+      },
+      {
+        "text": "`pnpm build` exits 0 após adicionar o novo schema ao build",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "deferred",
+    "lint": "pass",
+    "test": "deferred",
+    "e2e": "deferred"
+  },
+  "score": {
+    "total": 0,
+    "provisional": true,
+    "range": [
+      0,
+      10
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 0,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "INTACT"
+  },
+  "agentTodo": [
+    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

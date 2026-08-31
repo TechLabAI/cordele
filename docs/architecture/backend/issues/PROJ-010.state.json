@@ -1,23 +1,23 @@
 {
   "issue": "PROJ-010",
   "layer": "be",
-  "computedAt": "2026-08-25T17:10:42",
+  "computedAt": "2026-08-28T10:36:29",
   "checklist": {
     "total": 8,
-    "done": 1,
+    "done": 3,
     "partial": 0,
-    "missing": 7,
+    "missing": 5,
     "blocked": 0,
     "items": [
       {
         "text": "`src/modules/proj/use-cases/get-projeto-library.use-case.ts` — fetches `ProjetoEditorial[]` via repository; calls `ManuscriptSummaryPort.summaries(ids)`, `ProjectMetadataPort.metadata(ids)`, `PublicationHistoryPort.latest(ids)` **each once** with full id set; assembles `ProjetoCard[]`; each port call is wrapped in try/catch — on failure, `degraded=true` propagated per card, cross-context fields null/0; ordered by `ultimaAtividadeEm DESC`; supports `?status` filter (DB-side)",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/proj/use-cases/get-projeto-library.use-case.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/use-cases/get-projeto-library.use-case.ts"
       },
       {
         "text": "`src/modules/proj/use-cases/get-projeto-library.use-case.spec.ts` — happy path (all ports return data); partial degraded (one port fails — other cards still fully composed); full degraded (all ports fail — own fields still returned); `?status` filter passes to repository",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/proj/use-cases/get-projeto-library.use-case.spec.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/use-cases/get-projeto-library.use-case.spec.ts"
       },
       {
         "text": "`src/modules/proj/proj.controller.ts` — wire `GET /projetos` to use case (update PROJ-001 stub); accept `?status`, `?limit`, `?cursor` query params; return 200 with `ProjetoCard[]`",
@@ -54,36 +54,36 @@
   "gates": {
     "build": "pass",
     "lint": "pass",
-    "test": "skip",
-    "e2e": "skip"
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 24,
+    "total": 71,
     "provisional": true,
     "range": [
-      24,
-      34
+      71,
+      81
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 20,
+        "value": 30,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 4,
+        "value": 11,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
@@ -93,11 +93,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Inicial",
+    "band": "Consistente",
     "statusTag": "REDUCED"
   },
   "agentTodo": [
-    "Confirmar functionality 4/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 11/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

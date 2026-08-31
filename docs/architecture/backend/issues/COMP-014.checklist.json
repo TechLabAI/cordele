@@ -1,0 +1,48 @@
+{
+  "issue": "COMP-014",
+  "layer": "be",
+  "checklist": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "missing": 0,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/infrastructure/comp/manuscript/manuscript-content-stub.adapter.ts` — implements `ManuscriptContentPort`; `getContentTree(projetoId)` returns a fixture tree (`{ manuscritoId: 'fixture-id', estrutura: [{ id: 'img-1', tipo: 'imagem' }, { id: 'p-1', tipo: 'paragrafo' }] }`) or `null` for a known \"no-manuscript\" project id (configurable via env `COMP_STUB_NO_MANUSCRIPT_IDS`); `nodeExists` returns `true` for any `referenciaNo` not in a configured denial list",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/comp/manuscript/manuscript-content-stub.adapter.ts"
+      },
+      {
+        "text": "`src/modules/comp/comp.module.ts` (amend) — register stub under `MANUSCRIPT_CONTENT_PORT` token when `NODE_ENV !== 'production'` OR when `COMP_USE_STUB_MANUSCRIPT=true`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/comp/comp.module.ts"
+      },
+      {
+        "text": "`src/infrastructure/comp/manuscript/manuscript-content-stub.adapter.spec.ts` — configured no-manuscript id → `getContentTree` returns null; any other → returns fixture tree; `nodeExists` returns true by default",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/comp/manuscript/manuscript-content-stub.adapter.spec.ts"
+      },
+      {
+        "text": "`GET /api/comp/projetos/fixture-id/preview-context` returns 200 with fixture tree (stub active)",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Project id in denial list → `getContentTree` returns null → 409 `manuscript-missing`",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`nodeExists` valida contra a arvore da fixture (retorna `true` so para `referenciaNo` realmente presente) — comportamento corrigido, ver nota acima; testado em `manuscript-content-stub.adapter.spec.ts`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: manuscript-content-stub.adapter.spec.ts"
+      },
+      {
+        "text": "`pnpm test` on stub spec exits 0",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      }
+    ]
+  }
+}

@@ -1,28 +1,28 @@
 {
   "issue": "PROJ-013",
   "layer": "be",
-  "computedAt": "2026-08-25T17:10:42",
+  "computedAt": "2026-08-28T10:36:30",
   "checklist": {
     "total": 9,
-    "done": 1,
+    "done": 4,
     "partial": 0,
-    "missing": 8,
+    "missing": 5,
     "blocked": 0,
     "items": [
       {
         "text": "`src/modules/proj/use-cases/get-signed-download-url.use-case.ts` — validates `publicacaoId` belongs to `projetoId` and active empresa (via `PublicationHistoryPort.history(projetoId)` or a single-item fetch); checks `epubcheckStatus`; if `erros_criticos|pendente` throws `ArtifactNotAvailableError`; calls `PublicationHistoryPort.signedDownloadUrl(publicacaoId)`; returns `{ publicacaoId, arquivoUrl, expiresAt }`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/proj/use-cases/get-signed-download-url.use-case.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/use-cases/get-signed-download-url.use-case.ts"
       },
       {
         "text": "`src/domain/proj/errors/artifact-not-available.error.ts` — extends `DomainError`; carries `publicacaoId`, `epubcheckStatus`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/domain/proj/errors/artifact-not-available.error.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/domain/proj/errors/artifact-not-available.error.ts"
       },
       {
         "text": "`src/modules/proj/use-cases/get-signed-download-url.use-case.spec.ts` — valid publication returns signed URL; `erros_criticos` returns `ArtifactNotAvailableError`; cross-tenant publicacaoId returns 404",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/proj/use-cases/get-signed-download-url.use-case.spec.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/use-cases/get-signed-download-url.use-case.spec.ts"
       },
       {
         "text": "`src/modules/proj/proj.controller.ts` — wire `GET /projetos/:projetoId/publicacoes/:publicacaoId/download` (update PROJ-001 stub); map `ArtifactNotAvailableError` → 409 `urn:cordele:proj:artifact-not-available`",
@@ -59,36 +59,36 @@
   "gates": {
     "build": "pass",
     "lint": "pass",
-    "test": "skip",
-    "e2e": "skip"
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 22,
+    "total": 73,
     "provisional": true,
     "range": [
-      22,
-      32
+      73,
+      83
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 19,
+        "value": 30,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 3,
+        "value": 13,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
@@ -98,11 +98,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Inicial",
+    "band": "Consistente",
     "statusTag": "REDUCED"
   },
   "agentTodo": [
-    "Confirmar functionality 3/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 13/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

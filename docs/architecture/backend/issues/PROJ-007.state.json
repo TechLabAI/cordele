@@ -1,7 +1,7 @@
 {
   "issue": "PROJ-007",
   "layer": "be",
-  "computedAt": "2026-08-26T07:16:36",
+  "computedAt": "2026-08-28T10:36:23",
   "checklist": {
     "total": 9,
     "done": 7,
@@ -59,15 +59,15 @@
   "gates": {
     "build": "pass",
     "lint": "pass",
-    "test": "deferred",
-    "e2e": "deferred"
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 53,
+    "total": 83,
     "provisional": true,
     "range": [
-      53,
-      63
+      83,
+      93
     ],
     "breakdown": {
       "structure": {
@@ -83,12 +83,12 @@
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
@@ -98,7 +98,7 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Parcial",
+    "band": "Maduro",
     "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [

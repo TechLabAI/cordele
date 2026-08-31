@@ -1,8 +1,8 @@
 # PROJ-005 -- ReopenProjectForRevisionUseCase + POST /projetos/{id}/reopen handler
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/4 itens
+**Status:** REDUCED -- pos-validacao 2026-08-28
+**Maturidade:** 79 -- Consistente
+**Done/Total:** 5/8 itens
 
 ## Contexto
 

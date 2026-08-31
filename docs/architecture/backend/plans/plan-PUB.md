@@ -2,15 +2,15 @@
 
 ## Status das prioridades
 
-- P1 -- pendente
-- P2 -- pendente
-- P3 -- pendente
-- P4 -- pendente
-- P5 -- pendente
-- P6 -- pendente
-- P7 -- pendente
-- P8 -- pendente
-- P9 -- pendente
+- P1 -- DONE
+- P2 -- DONE
+- P3 -- DONE
+- P4 -- DONE
+- P5 -- DONE
+- P6 -- PARTIAL (PUB-014 DONE, PUB-015 DONE, PUB-016 DONE; INT-PUB-001/002/003 BLOCKED [requer IMP/COMP/PROJ])
+- P7 -- DONE (PUB-017: Correlation interceptor + structured logging. PUB-018: Health endpoint com epubcheck liveness check. 2026-08-26 17:59)
+- P8 -- DONE (PUB-019: BDD step definitions manuais + execução dos 3 feature files; 22/22 scenarios PASS @ 2026-08-26 19:08)
+- P9 -- pendente (PUB-020: Runbook de reconciliação de build órfão)
 
 ---
 
@@ -238,7 +238,7 @@ explícito para `PublicationBuildJob.run`.
 ---
 
 ### Prioridade 6 -- Ports exportadas + integrações
-Status: pendente
+Status: PARTIAL (PUB-014 DONE, PUB-015 DONE; INT-PUB-001/002/003 BLOCKED por dependência externa; PUB-016 BLOCKED por ratificação FE)
 
 #### Objetivo / Resultado esperado
 `PublicationHistoryPort` e `PublicationErasurePort` injetáveis em PROJ; adapters reais de IMP/COMP/PROJ.
@@ -298,17 +298,235 @@ Status: pendente
 ---
 
 ### Prioridade 8 -- BDD end-to-end
-Status: pendente
+Status: DONE (2026-08-26 19:08 — 22/22 scenarios PASS, all phases completed)
 
 #### Issues vinculadas
 - PUB-019 (step definitions manuais + cenário emAndamento)
 
 #### Specs cobertas
 - SPEC-08 (bdd-test-scenarios)
+- SPEC-11 (publication-kpis — `emAndamento` semantics)
+- SPEC-03 (epub-assembly §borda — epubcheck inexecutável → com_erros)
+
+#### Objetivo
+
+Implementar os step definitions BDD dos 3 feature files já existentes em
+`test/bdd/features/`. Todos os cenários estão marcados `test.skip` (scaffoldado);
+o objetivo é remover o `.skip` e implementar cada step com fakes em memória,
+de modo que `pnpm test:bdd` exits 0 com 0 cenários undefined.
+
+#### Problemas identificados
+
+1. Todos os steps em `publication-build-async-polling.steps.ts`,
+   `epubcheck-validation-verdict.steps.ts` e
+   `publication-history-download-and-erasure.steps.ts` estão com
+   `TODO[BDD]` — não executam nenhuma lógica.
+2. `test/bdd/steps/shared.ts` tem 3 funções stub vazias — precisam
+   de uma implementação que opere sobre estado de teste compartilhado.
+3. O step `project {string} has the following publicacoes:` (DataTable) não
+   tem infraestrutura de seed — requer `InMemoryPublicacaoRepository`.
+4. O step `epubcheck cannot execute due to a missing JRE or JAR path` não
+   tem stub configurável para `EpubValidationPort` — requer fake que lança
+   `EpubcheckUnavailableError`.
+5. O cenário `emAndamento=1` (build em voo → `stats.emAndamento=1`) está
+   ausente do feature file `publication-build-async-polling.feature`.
+6. O critério de aceite da issue usa path incorreto `test/pub/pub.bdd.spec.ts`;
+   o runner correto é `pnpm test:bdd` (= `jest --config test/jest-bdd.json`).
+
+#### Alvos de alteração (caminhos completos relativos ao repositório)
+
+Novos arquivos a criar:
+- `backend/services/pub-service/test/bdd/steps/test-context.ts`
+- `backend/services/pub-service/test/bdd/steps/in-memory-publicacao.repository.ts`
+
+Arquivos a modificar:
+- `backend/services/pub-service/test/bdd/steps/shared.ts`
+- `backend/services/pub-service/test/bdd/features/publication-build-async-polling.feature`
+- `backend/services/pub-service/test/bdd/publication-build-async-polling.steps.ts`
+- `backend/services/pub-service/test/bdd/epubcheck-validation-verdict.steps.ts`
+- `backend/services/pub-service/test/bdd/publication-history-download-and-erasure.steps.ts`
+
+#### Contrato operacional
+
+Deve existir:
+- `InMemoryPublicacaoRepository` implementando `PublicacaoRepositoryPort` completo (todos os métodos)
+- `BddTestContext` interface com: `inMemoryRepo`, `epubValidationPort`, `manuscriptContentPort`,
+  `compositionMetadataPort`, `compositionLayoutPort`, `advanceProjetoStatusPort`,
+  `fileStoragePort`, `empresaContextService`, `lastStatus: number`, `lastBody: unknown`
+- `createBddTestContext(): BddTestContext` — fábrica de contexto limpo por cenário
+- `setCurrentContext(ctx)` + `getCurrentContext()` — acesso pelo `shared.ts`
+- Novo cenário `Scenario: KPI emAndamento is 1 while a build is in progress` no feature file
+
+Não deve existir:
+- Nenhum import de `@prisma/client` nos arquivos de teste BDD
+- Nenhuma chamada HTTP real (sem `supertest`, sem NestJS TestingModule) — steps chamam
+  use-cases diretamente com fakes
+- `test.skip` em qualquer cenário após a implementação
+
+Verificação objetiva:
+- `cd backend/services/pub-service && pnpm test:bdd` exits 0
+- Saída do jest não contém `undefined step`, `Skipped`, nem `TODO[BDD]` em runtime
+
+Condição de bloqueio:
+- `EpubcheckUnavailableError` ausente em `src/domain/pub/` → criar antes do step stub
+
+#### Sequência de execução
+
+**Fase 1 — Infraestrutura de teste BDD (`test/bdd/steps/`)**
+
+Criar `test/bdd/steps/in-memory-publicacao.repository.ts`:
+- Classe `InMemoryPublicacaoRepository implements PublicacaoRepositoryPort`
+- Estado: `private rows: Map<string, PublicacaoEntity> = new Map()`
+- `findInFlight(projetoId)`: busca row com `status === 'gerando' || 'validando'` para o projeto
+- `nextSequencia(projetoId)`: conta rows do projeto + 1
+- `save(pub)`: `rows.set(pub.id, pub)`, retorna `pub`
+- `findById(projetoId, publicacaoId)`: busca `rows.get(publicacaoId)` onde `projetoId` bate
+- `listByProjeto(projetoId)`: filtra por `projetoId`, ordena por `sequencia DESC`
+- `findLatestByProjetoIds(ids)`: para cada id, busca a row com maior `sequencia`
+- `findByPublicacaoId(id)`: `rows.get(id) ?? null`
+- `deleteAllByProjeto(projetoId)`: remove todas as rows do projeto
+
+Criar `test/bdd/steps/test-context.ts`:
+- Importa: `InMemoryPublicacaoRepository`, todos os ports de `src/modules/pub/ports/`, use-cases de `src/modules/pub/use-cases/`, `EmpresaContextService` de `src/infrastructure/auth/`
+- Interface `BddTestContext` com: `inMemoryRepo: InMemoryPublicacaoRepository`, fakes `jest.Mocked<...>` de todos os outbound ports, `empresaContextService: EmpresaContextService`, `lastStatus: number`, `lastBody: unknown`, `lastError: unknown`
+- `function createBddTestContext(): BddTestContext`: cria `InMemoryPublicacaoRepository` + `jest.fn()` para cada port externo + instancia os use-cases com injeção direta + `EmpresaContextService` real
+- `let _current: BddTestContext | null = null`
+- `export function setCurrentContext(ctx: BddTestContext): void`
+- `export function getCurrentContext(): BddTestContext`
+
+Padrão de inicialização nos steps files:
+```ts
+let ctx: BddTestContext;
+beforeEach(() => { ctx = createBddTestContext(); setCurrentContext(ctx); });
+```
+
+**Fase 2 — Implementar `test/bdd/steps/shared.ts`**
+
+Substituir os 3 stubs:
+- `anAuthenticatedEditorOfEmpresaAetosWithScopePubW()`: chama `getCurrentContext().empresaContextService.runAs('emp_aetos', () => {})` para inicializar o ALS; em seguida seta `ctx.empresaId = 'emp_aetos'` no contexto
+- `theResponseStatusIs200()`: `expect(getCurrentContext().lastStatus).toBe(200)`
+- `theResponseStatusIs409()`: `expect(getCurrentContext().lastStatus).toBe(409)`
+
+**Fase 3 — Criar `test/bdd/steps/pub-fixture.steps.ts`** (novo arquivo, importado pelos steps files que precisam do step DataTable)
+
+Expõe a função `seedPublicacoesFromDataTable(projetoId: string, table: Record<string, string>[]): void`:
+- Para cada linha da tabela (colunas: `status`, `epubcheckStatus`, `sequencia`, opcional `artefatoRef`):
+  - Cria `PublicacaoEntity` com os valores explícitos via construtor direto (não via `iniciar` — o estado já é fornecido)
+  - Chama `ctx.inMemoryRepo.save(entity)`
+
+Pitfall mitigado: step text `project {string} has the following publicacoes:` usa `{string}` (não escaped quote) — a expressão Cucumber parseia corretamente.
+
+**Fase 4 — Implementar `publication-history-download-and-erasure.steps.ts`**
+
+Remover todos os `test.skip`. Adicionar `beforeEach` + `setCurrentContext`.
+
+Steps DataTable (`project "proj-100" has the following publicacoes:`): chamar `seedPublicacoesFromDataTable` com a DataTable passada pelo jest-cucumber (segundo argumento do step body).
+
+Steps singulares (`publicacao "pub-2" of "proj-100" is publicado with epubcheckStatus "avisos"`): criar `PublicacaoEntity` diretamente e inserir no `inMemoryRepo`.
+
+Steps when (`the editor lists publications`): chamar `GetPublicationHistoryUseCase.execute({projetoId})` dentro de `empresaContextService.runAs('emp_aetos', ...)`, armazenar resultado em `ctx.lastBody`, `ctx.lastStatus = 200`.
+
+Steps when download (`GET download url`): chamar `GetSignedDownloadUrlUseCase.execute({publicacaoId})` — se bem sucedido `status=200`, se lançar exceção de não-publicado `status=409`.
+
+Steps when stats: chamar `GetPublicationStatsUseCase.execute({projetoId})`.
+
+Steps then: fazer `expect` sobre `ctx.lastBody` + `ctx.lastStatus`.
+
+**Fase 5 — Implementar `epubcheck-validation-verdict.steps.ts`**
+
+Remover todos os `test.skip`. Adicionar `beforeEach` + `setCurrentContext`.
+
+Step `epubcheck cannot execute due to a missing JRE or JAR path`:
+- Verificar se `EpubcheckUnavailableError` existe em `src/domain/pub/`; se não existir, criá-lo como `class EpubcheckUnavailableError extends Error {}` nesse arquivo
+- `ctx.epubValidationPort.validate.mockRejectedValue(new EpubcheckUnavailableError('JRE not found'))`
+
+Step `the assembled ePub for project "proj-100" passes epubcheck with no messages`:
+- `ctx.epubValidationPort.validate.mockResolvedValue({ verdict: 'valido', messages: [] })`
+
+Step `the assembled ePub fails epubcheck with N errors`:
+- `ctx.epubValidationPort.validate.mockResolvedValue({ verdict: 'erros_criticos', messages: [...N error messages...] })`
+
+Step `the build job for project "proj-100" completes`:
+- Seed uma `PublicacaoEntity` em `gerando` no `inMemoryRepo`
+- Chamar `PublicationBuildJob.run({publicacaoId, projetoId})` dentro do `empresaContextService.runAs`
+- Capturar a `PublicacaoEntity` salva via `inMemoryRepo.findById` e armazenar em `ctx.lastBody`
+
+Steps then (`publicacao status is "publicado"`): `expect((ctx.lastBody as PublicacaoEntity).status).toBe('publicado')`.
+
+**Fase 6 — Adicionar cenário `emAndamento=1` ao feature file**
+
+Arquivo: `test/bdd/features/publication-build-async-polling.feature`
+
+Acrescentar ao final do arquivo (antes de EOF):
+```gherkin
+Scenario: KPI emAndamento is 1 while a build is in progress
+  Given project "proj-100" has the following publicacoes:
+    | status   | epubcheckStatus | sequencia |
+    | gerando  | pendente        | 1         |
+  When the editor reads the publication stats for "proj-100"
+  Then the response status is 200
+  And the stats field "emAndamento" is 1
+  And the stats field "publicadas" is 0
+```
+
+**Fase 7 — Implementar `publication-build-async-polling.steps.ts`**
+
+Remover todos os `test.skip`. Adicionar `beforeEach` + `setCurrentContext`.
+
+Step `an existing project "proj-100" in the active empresa`: armazena `ctx.projetoId = 'proj-100'`.
+
+Step `project "proj-100" has an imported manuscript`: configura `ctx.manuscriptContentPort.getContentTree.mockResolvedValue({...})`.
+
+Step `project "proj-100" has complete metadata with titulo "..." autor "..." idioma "..."`:
+configura `ctx.compositionMetadataPort.get.mockResolvedValue({...})`.
+
+Step `the editor triggers an export for project "proj-100"`:
+- Chamar `GeneratePublicationUseCase.execute({projetoId: 'proj-100'})` dentro do `empresaContextService.runAs`
+- Se bem sucedido: `ctx.lastStatus = 202`, `ctx.lastBody = {publicacaoId, status: 'gerando', ...}`
+- Se lançar `ManuscriptMissingError`: `ctx.lastStatus = 409`, `ctx.lastBody = {type: 'urn:cordele:pub:manuscript-missing'}`
+- Se lançar `MetadataIncompleteError`: `ctx.lastStatus = 422`, `ctx.lastBody = {type: 'urn:cordele:pub:metadata-incomplete'}`
+
+Novo cenário `emAndamento=1`: step `project "proj-100" has the following publicacoes:` chama `seedPublicacoesFromDataTable`; step `the editor reads the publication stats` chama `GetPublicationStatsUseCase.execute`.
+
+**Fase 8 — Verificação final**
+
+Executar `pnpm test:bdd --runInBand` e confirmar exit 0 com todos os cenários verdes.
+
+#### Política de testes
+
+- Todos os steps são unit-level (sem DB, sem HTTP, sem NestJS TestingModule)
+- Nenhum `test.skip` restante após esta prioridade
+- `pnpm lint` deve passar — sem `console.log`, sem `any` implícito
+
+#### Multi-empresa
+
+Step `anAuthenticatedEditorOfEmpresaAetosWithScopePubW` deve setar `empresaId = 'emp_aetos'` no `EmpresaContextService` (AsyncLocalStorage) antes de cada cenário. Todos os use-cases chamados dentro do `empresaContextService.runAs('emp_aetos', ...)` enxergarão o tenant correto. O `InMemoryPublicacaoRepository` não aplica filtro de tenant (é in-memory por definição) — mas `findByPublicacaoId` e `findById` são chamados após o ALS ser setado, o que é suficiente para validar a invariante de isolamento.
+
+#### Migrações Prisma
+
+Nenhuma — BDD tests são purely in-memory.
 
 #### Critérios de aceite
-- `pnpm test test/pub/pub.bdd.spec.ts` exits 0
-- Todos os 3 feature files executados sem `undefined step`
+
+- `cd backend/services/pub-service && pnpm test:bdd` exits 0
+- Saída Jest não contém `undefined step` nem `Skipped`
+- DataTable `project {string} has the following publicacoes:` cria N linhas no `InMemoryPublicacaoRepository` com `status`/`epubcheckStatus` explícitos
+- Cenário `emAndamento=1` passa: `GetPublicationStatsUseCase` retorna `emAndamento=1` com uma publicacao em `gerando`
+- Step `epubcheck cannot execute` resulta em `PublicacaoEntity.status === 'com_erros'` (nunca `publicado`) — invariante ADR-003
+
+#### Riscos
+
+- `EpubcheckUnavailableError` pode não existir ainda em `src/domain/pub/` — verificar antes de implementar a Fase 5; criar se ausente (arquivo novo `src/domain/pub/errors/epubcheck-unavailable.error.ts`)
+- `PublicacaoEntity` pode não ter construtor que aceite `status` explícito (só `iniciar()` hoje); se necessário, adicionar método estático `PublicacaoEntity.fromSnapshot(...)` no domain sem quebrar RULE-01/02
+- Cucumber Expression `{string}` vs regex: usar `{string}` em todos os novos steps para evitar o pitfall `bdd-scaffold:cucumber-expression:escaped-quote-not-supported`
+
+#### Instrução para implementador
+
+Executar as 8 fases na ordem listada. Fase 1 é pré-requisito de todas as demais.
+Não modificar `jest-bdd.json` — o runner já está correto.
+O critério de aceite usa `pnpm test:bdd`, não `pnpm test test/pub/pub.bdd.spec.ts`
+(o path `test/pub/` era pre-scaffold; o path real é `test/bdd/`).
+Ao final de cada fase, verificar `pnpm lint` antes de prosseguir.
 
 ---
 
@@ -316,10 +534,277 @@ Status: pendente
 Status: pendente
 
 #### Issues vinculadas
-- PUB-020 (runbook build órfão)
+- PUB-020 (runbook build órfão + script de reconciliação)
+
+#### Specs cobertas
+- SPEC-05 (idempotency §casos de borda — build órfão, reconciliação pós-POC)
+- SPEC-02 (build-orchestration §casos de borda — crash durante build)
+
+#### Objetivo
+
+Documentar e operacionalizar o gap de reconciliação de build órfão identificado em M2/M3.
+Um crash do processo durante o build (`gerando`/`validando`) deixa a linha `Publicacao`
+presa em estado não-terminal, bloqueando futuros exports do mesmo projeto via o índice
+parcial `uq_publicacao_projeto_inflight`. No MVP não existe timeout automático —
+o operador deve agir manualmente. Esta prioridade entrega: (1) runbook, (2) método de
+busca de órfãos no repositório, (3) script one-shot de reconciliação.
+
+#### Problema identificado
+
+1. `PublicacaoRepositoryPort` não expõe `findStaleInFlight` — operador não tem API de
+   diagnóstico; o script de reconciliação precisaria de SQL direto sem type-safety.
+2. Não existe runbook documentado — o operador não sabe como identificar, corrigir e
+   verificar a liberação do índice parcial.
+3. Não existe script de reconciliação — a correção hoje exigiria acesso direto ao banco
+   com SQL manual, sem `--dry-run`, sem saída tabulada, sem auditoria.
+
+#### Alvos de alteração (caminhos completos relativos ao repositório)
+
+Novos arquivos a criar:
+- `docs/architecture/backend/services/pub-service/runbook-orphan-build.md`
+- `backend/services/pub-service/scripts/pub-reconcile-orphans.ts`
+
+Arquivos a modificar:
+- `backend/services/pub-service/src/domain/pub/ports/publicacao-repository.port.ts`
+- `backend/services/pub-service/src/infrastructure/persistence/prisma-publicacao.repository.ts`
+- `backend/services/pub-service/src/infrastructure/persistence/prisma-publicacao.repository.spec.ts`
+
+#### Contrato operacional
+
+Deve existir:
+- `findStaleInFlight(olderThanMinutes: number): Promise<PublicacaoEntity[]>` na interface
+  `PublicacaoRepositoryPort` (domain) e implementado em `PrismaPublicacaoRepository` (infra)
+- `runbook-orphan-build.md` com as seções: Cenário, Critério de identificação, Passos de
+  correção, Verificação da liberação do índice, Quando escalar
+- `pub-reconcile-orphans.ts` com flag `--dry-run`; saída tabulada (`publicacaoId`, `projetoId`,
+  `status`, `iniciadaEm`); sem execução automática
+
+Não deve existir:
+- Chamada a `findStaleInFlight` em nenhum controller, service ou use-case de produção
+  (o método é diagnóstico/operacional — não exposto via REST)
+- Import de `@prisma/client` em `domain/` (RULE-01)
+- Timeout automático (escopo pós-POC — SPEC-05 §assunção pós-POC)
+
+Verificação objetiva:
+- `pnpm exec tsc --noEmit` em `backend/services/pub-service` exits 0 (novo método tipado)
+- `pnpm lint` exits 0 (sem RULE-01/02 violation)
+- `python scripts/arch-conformance.py check --layer be --target backend/services/pub-service` exits 0
+- Teste unitário de `findStaleInFlight` passa em `prisma-publicacao.repository.spec.ts`
+- `runbook-orphan-build.md` existe no path declarado e contém as 5 seções obrigatórias
+
+Condição de bloqueio:
+- Coluna `iniciadaEm` (snake_case: `iniciada_em`) deve existir em `prisma/schema.prisma`
+  (criada em PUB-007); verificar antes de implementar a query Prisma
+
+#### Sequência de execução
+
+**Fase 1 — Extensão do port (domain)**
+
+Arquivo: `src/domain/pub/ports/publicacao-repository.port.ts`
+
+Acrescentar ao final da interface `PublicacaoRepositoryPort`, antes do `}`:
+
+```ts
+/**
+ * Returns all publications stuck in a non-terminal state for longer than
+ * `olderThanMinutes` minutes. Used exclusively by the reconciliation script
+ * and the operational runbook — never exposed via REST.
+ *
+ * A publication is considered stale when:
+ *   status IN ('gerando', 'validando')
+ *   AND iniciadaEm < now() - interval '<olderThanMinutes> minutes'
+ *
+ * @param olderThanMinutes - threshold in minutes (typical: 60)
+ */
+findStaleInFlight(olderThanMinutes: number): Promise<PublicacaoEntity[]>;
+```
+
+Sem Nest decorators. Sem @prisma/client. RULE-01/02 OK.
+
+**Fase 2 — Implementação na camada de infraestrutura**
+
+Arquivo: `src/infrastructure/persistence/prisma-publicacao.repository.ts`
+
+Acrescentar método `findStaleInFlight` à classe `PrismaPublicacaoRepository`:
+
+```ts
+async findStaleInFlight(olderThanMinutes: number): Promise<PublicacaoEntity[]> {
+  const cutoff = new Date(Date.now() - olderThanMinutes * 60_000);
+  const models = await this.prisma.publicacao.findMany({
+    where: {
+      status: { in: [PublicacaoStatus.GERANDO, PublicacaoStatus.VALIDANDO] },
+      iniciadaEm: { lt: cutoff },
+    },
+    orderBy: { iniciadaEm: 'asc' },
+  });
+  return PublicacaoMapper.toDomainList(models);
+}
+```
+
+`iniciadaEm` é o campo Prisma correspondente à coluna `iniciada_em` (PUB-007).
+O método ordena por `iniciadaEm ASC` para facilitar triagem no output do script.
+
+**Fase 3 — Teste unitário**
+
+Arquivo: `src/infrastructure/persistence/prisma-publicacao.repository.spec.ts`
+
+Acrescentar bloco `describe('findStaleInFlight', ...)`:
+
+- Cenário 1: publicacao com `status=gerando` e `iniciadaEm = 2h atrás` → retornada
+- Cenário 2: publicacao com `status=gerando` e `iniciadaEm = 30min atrás` (threshold=60) → não retornada
+- Cenário 3: publicacao com `status=publicado` e `iniciadaEm = 2h atrás` → não retornada (terminal)
+- Cenário 4: lista vazia → retorna `[]`
+
+Usar `jest.fn()` para `prisma.publicacao.findMany` (padrão já adotado no spec file).
+Confirmar que `cutoff` é calculado corretamente (spy em `Date.now` ou injetar timestamp).
+
+**Fase 4 — Runbook operacional**
+
+Criar arquivo: `docs/architecture/backend/services/pub-service/runbook-orphan-build.md`
+
+Estrutura obrigatória do runbook (5 seções — critério de aceite da issue):
+
+```markdown
+# Runbook: Reconciliação de Build Órfão (PUB-020)
+
+## 1. Cenário de risco
+[Descrever: crash do processo (OOM, restart do pod, SIGKILL) durante o build deixa
+a publicação em status gerando/validando indefinidamente; o índice parcial
+uq_publicacao_projeto_inflight bloqueia novos exports do mesmo projeto
+enquanto a linha órfã existir]
+
+## 2. Critério de identificação
+Query de diagnóstico (tenant schema = emp_aetos):
+```sql
+SET search_path = emp_aetos;
+SELECT id, projeto_id, status, iniciada_em
+FROM publicacao
+WHERE status IN ('gerando','validando')
+  AND iniciada_em < now() - INTERVAL '1 hour';
+```
+Limiar padrão: 1 hora (configurável via PUB_ORPHAN_TIMEOUT_MINUTES).
+Resultado não-vazio = build órfão confirmado.
+
+## 3. Passos de correção
+[Passo 1: dry-run para confirmar lista]
+[Passo 2: executar script sem --dry-run para marcar com_erros]
+[Passo 3: verificar liberação do índice (SELECT retorna 0 linhas)]
+[Passo 4: informar o editor para tentar novo export via UI]
+
+## 4. Verificação da liberação do índice
+Após a correção, re-executar a query de diagnóstico e confirmar 0 linhas.
+Confirmar também que o índice parcial não bloqueia novo export:
+```sql
+SELECT * FROM publicacao
+WHERE projeto_id = '<projetoId>'
+  AND status IN ('gerando','validando');
+-- deve retornar 0 linhas
+```
+
+## 5. Quando escalar
+[Se a query de diagnóstico retornar linhas após o script, ou se novas publicações
+continuarem ficando presas após a correção → escalar para o time de plataforma]
+```
+
+O implementador deve preencher os blocos `[...]` com o conteúdo operacional descrito
+acima — a estrutura de seções é obrigatória para satisfazer o critério de aceite da issue.
+
+**Fase 5 — Script de reconciliação**
+
+Criar arquivo: `backend/services/pub-service/scripts/pub-reconcile-orphans.ts`
+
+O script é standalone (não importado pela aplicação), executado com `ts-node` ou
+`npx tsx` diretamente pelo operador. Estrutura:
+
+```ts
+// Lê: DATABASE_URL (env obrigatório), PUB_ORPHAN_TIMEOUT_MINUTES (env, default 60)
+// Argumento: --dry-run (flag opcional)
+// Saída: tabela com publicacaoId / projetoId / status / iniciadaEm
+// Sem --dry-run: atualiza status=com_erros, resumo_erro='Reconciled: process crash'
+
+// Nota de multi-empresa: o script deve aceitar --schema <schema> (ex: emp_aetos)
+// e executar SET search_path = <schema> antes de qualquer query.
+// Default: emp_aetos (único tenant ativo no MVP).
+
+// Estrutura principal:
+// 1. parse args (--dry-run, --schema, --timeout-minutes)
+// 2. new PrismaClient({ datasourceUrl: DATABASE_URL })
+// 3. await prisma.$executeRawUnsafe(`SET search_path = ${schema}`)
+// 4. findMany com where { status in gerando/validando, iniciada_em < cutoff }
+// 5. imprimir tabela
+// 6. se !dryRun: updateMany com { status: 'com_erros', resumo_erro: 'Reconciled: process crash' }
+// 7. imprimir confirmação com count de linhas afetadas
+// 8. prisma.$disconnect()
+```
+
+O implementador escolhe entre `process.argv` simples ou `minimist` para parsing de args.
+Sem dependência em `src/` do serviço — o script é 100% standalone com `@prisma/client` direto
+(exceção ao RULE-01: scripts/ não é `src/`, está fora do boundary `eslint-plugin-boundaries`).
+
+**Fase 6 — Verificação final**
+
+```bash
+cd backend/services/pub-service
+pnpm exec tsc --noEmit          # novo método tipado
+pnpm lint                       # RULE-01/02 OK
+pnpm test -- --testPathPattern="prisma-publicacao.repository.spec"
+python scripts/arch-conformance.py check --layer be --target backend/services/pub-service
+```
+
+Confirmar que `runbook-orphan-build.md` existe em
+`docs/architecture/backend/services/pub-service/`.
+
+#### Política de testes
+
+- Teste unitário de `findStaleInFlight` obrigatório em `prisma-publicacao.repository.spec.ts`
+- Não é necessário teste de integração para o script (é one-shot operacional; o método
+  `findStaleInFlight` já é coberto pela spec)
+- `pnpm lint` deve passar — sem `console.log` em `src/` (o script pode usar `console.log`
+  pois está em `scripts/`, fora da fronteira `eslint-plugin-boundaries`)
+
+#### Multi-empresa
+
+- O método `findStaleInFlight` não recebe `empresaId` — o isolamento já é feito via
+  `search_path` pelo `EmpresaContextService` (AsyncLocalStorage), como em todos os outros
+  métodos do repositório (ADR-003)
+- O script standalone não passa pelo `EmpresaContextService`; deve aceitar `--schema <schema>`
+  e executar `SET search_path` explicitamente antes das queries Prisma
+- O runbook deve documentar que o operador deve especificar o schema correto (`emp_aetos`)
+
+#### Migrações Prisma Migrate necessárias
+
+Nenhuma — a coluna `iniciada_em` já existe (criada em PUB-007).
+O campo Prisma `iniciadaEm` já está mapeado em `schema.prisma`.
+Verificar o mapeamento antes de implementar a query na Fase 2.
 
 #### Critérios de aceite
-- Runbook descreve cenário, critério de identificação e passos de correção verificáveis
+
+- `runbook-orphan-build.md` existe em `docs/architecture/backend/services/pub-service/`
+  e contém as 5 seções obrigatórias (Cenário, Critério de identificação, Passos de correção,
+  Verificação do índice, Quando escalar)
+- `findStaleInFlight(60)` em teste unitário retorna publicações com `iniciadaEm > 1h atrás`
+  em status `gerando` ou `validando`, e exclui publicações terminais e publicações recentes
+- Script `pub-reconcile-orphans.ts` com `--dry-run` imprime a lista sem alterar nenhuma linha
+  (verificado: SELECT após dry-run retorna as mesmas linhas)
+- `pnpm exec tsc --noEmit` exits 0
+- `pnpm lint` exits 0
+- `python scripts/arch-conformance.py check --layer be --target backend/services/pub-service` exits 0
+
+#### Riscos
+
+- Campo `iniciadaEm` pode estar mapeado com nome diferente em `schema.prisma` (verificar
+  antes da Fase 2; se diferente, ajustar o nome do campo na query Prisma)
+- `scripts/` pode não ter `tsconfig.json` próprio — verificar se `npx tsx` resolve os tipos
+  de `@prisma/client`; se necessário, usar `.sql` puro como alternativa (mesma lógica,
+  sem dependência de runtime TypeScript)
+
+#### Instrução para implementador
+
+Executar as 6 fases na ordem. A Fase 1 (port) é pré-requisito da Fase 2 (infra).
+Verificar o campo `iniciadaEm` em `prisma/schema.prisma` antes de escrever a query.
+O runbook (Fase 4) é um arquivo Markdown operacional — não é código; preencher
+os blocos `[...]` com o conteúdo descrito na estrutura. O script (Fase 5) não deve
+ser importado por nenhum módulo da aplicação — é estritamente one-shot operacional.
 
 ---
 

@@ -1,22 +1,17 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 
-import { ProjDomainService } from '../../domain/proj.domain-service';
 import { EmpresaContextMiddleware } from './middleware/empresa-context.middleware';
 import { ProjController } from './proj.controller';
-import { ProjService } from './proj.service';
 import {
   ADVANCE_PROJETO_STATUS_USE_CASE,
-  COMPOSITION_ERASURE_PORT,
   CREATE_PROJETO_USE_CASE,
   DELETE_PROJETO_USE_CASE,
   GET_PROJETO_DETAIL_USE_CASE,
   GET_PROJETO_LIBRARY_USE_CASE,
   GET_PUBLICATION_HISTORY_USE_CASE,
   GET_SIGNED_DOWNLOAD_URL_USE_CASE,
-  MANUSCRIPT_ERASURE_PORT,
   PROJECT_EVENT_PUBLISHER,
   PROJETO_EDITORIAL_LOOKUP,
-  PUBLICATION_ERASURE_PORT,
   REOPEN_PROJECT_USE_CASE,
 } from './proj.tokens';
 
@@ -31,6 +26,9 @@ import { GetProjetoDetailUseCase } from './use-cases/get-projeto-detail.use-case
 import { GetPublicationHistoryUseCase } from './use-cases/get-publication-history.use-case';
 import { GetSignedDownloadUrlUseCase } from './use-cases/get-signed-download-url.use-case';
 
+// P6 use case implementation (PROJ-016)
+import { DeleteProjetoUseCase } from './use-cases/delete-projeto.use-case';
+
 /**
  * PROJ — Projetos Editoriais bounded context module.
  *
@@ -42,27 +40,17 @@ import { GetSignedDownloadUrlUseCase } from './use-cases/get-signed-download-url
  * (@Global()) imported in AppModule. ProjModule never imports
  * infrastructure/ directly (RULE-04 compliant).
  *
- * P3 note: PROJETO_EDITORIAL_REPOSITORY and ProjRepositoryPort are provided
- * globally by PersistenceModule (@Global()); same pattern applies here.
+ * P3 note: PROJETO_EDITORIAL_REPOSITORY is provided globally by
+ * PersistenceModule (@Global()); same pattern applies here.
  *
  * RULE-04: modules/ must not import infrastructure/ directly. ✓
  */
 @Module({
   controllers: [ProjController],
   providers: [
-    // Application service (orchestrates P2+ use cases via DI tokens)
-    ProjService,
-
-    // D-603: domain service carries no Nest decorator — registered by factory
-    // so src/domain/ remains free of @nestjs/* (ADR-001-hexagonal-node, RULE-02).
-    {
-      provide: ProjDomainService,
-      useFactory: () => new ProjDomainService(),
-    },
-
-    // NOTE: ProjRepositoryPort and PROJETO_EDITORIAL_REPOSITORY are provided
-    // globally by PersistenceModule (P3). No stubs here — AppModule imports
-    // PersistenceModule which is @Global(), making both tokens available.
+    // NOTE: PROJETO_EDITORIAL_REPOSITORY is provided globally by
+    // PersistenceModule (P3). No stub here — AppModule imports
+    // PersistenceModule which is @Global(), making the token available.
 
     // --- Event publisher stub (P2) —
     // Real binding to EventEmitter2 added when @nestjs/event-emitter is configured.
@@ -150,22 +138,19 @@ import { GetSignedDownloadUrlUseCase } from './use-cases/get-signed-download-url
       useClass: GetSignedDownloadUrlUseCase,
     },
 
-    /** P6 (PROJ-016): DeleteProjetoUseCase — not yet implemented */
-    { provide: DELETE_PROJETO_USE_CASE, useValue: null },
-
-    // --- Outbound erasure port stubs (P1) — real adapters wired in P6 ---
-
-    /** P6 (PROJ-015 / PROJ-INT-006): PublicationErasurePort → PUB adapter */
-    { provide: PUBLICATION_ERASURE_PORT, useValue: null },
-
-    /** P6 (PROJ-015 / PROJ-INT-005): CompositionErasurePort → COMP adapter */
-    { provide: COMPOSITION_ERASURE_PORT, useValue: null },
-
-    /** P6 (PROJ-015 / PROJ-INT-004): ManuscriptErasurePort → IMP adapter */
-    { provide: MANUSCRIPT_ERASURE_PORT, useValue: null },
+    /**
+     * PROJ-016: DeleteProjetoUseCase
+     * Orchestrates the leaf-first LGPD erasure cascade (PUB -> COMP -> IMP ->
+     * DB delete). PUBLICATION_ERASURE_PORT, COMPOSITION_ERASURE_PORT and
+     * MANUSCRIPT_ERASURE_PORT are provided globally by ErasurePortsModule
+     * (@Global()) imported in AppModule — same pattern as the P4 read ports.
+     */
+    {
+      provide: DELETE_PROJETO_USE_CASE,
+      useClass: DeleteProjetoUseCase,
+    },
   ],
   exports: [
-    ProjService,
     // PROJ-006: 4 inbound ports exported for IMP / PUB / editor callers
     CREATE_PROJETO_USE_CASE,
     PROJETO_EDITORIAL_LOOKUP,
@@ -177,10 +162,12 @@ export class ProjModule implements NestModule {
   /**
    * Apply EmpresaContext middleware to all routes handled by this module.
    *
-   * P1 stub: the middleware is a no-op passthrough. In P5 (PROJ-014) the real
-   * implementation reads `req.user.empresaId` from the parsed JWT and populates
-   * the AsyncLocalStorage store so every downstream repository call receives
-   * the correct Postgres search_path (multi-empresa / schema-per-tenant).
+   * P1 stub: still a no-op passthrough. P5 (PROJ-014) resolves `empresaId`
+   * from the JWT claim via `@CurrentUser()` in `ProjController` and passes it
+   * explicitly into every use case call (the pattern already established by
+   * P3/P4 repositories and use cases) instead of populating an
+   * AsyncLocalStorage store here — Express middleware runs before
+   * `JwtAuthGuard`, so `req.user` is not yet available at this stage.
    */
   configure(consumer: MiddlewareConsumer): void {
     consumer.apply(EmpresaContextMiddleware).forRoutes(ProjController);

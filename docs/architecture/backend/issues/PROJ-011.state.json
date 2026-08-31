@@ -1,23 +1,23 @@
 {
   "issue": "PROJ-011",
   "layer": "be",
-  "computedAt": "2026-08-25T17:10:42",
+  "computedAt": "2026-08-28T10:36:29",
   "checklist": {
     "total": 7,
-    "done": 1,
+    "done": 3,
     "partial": 0,
-    "missing": 6,
+    "missing": 4,
     "blocked": 0,
     "items": [
       {
         "text": "`src/modules/proj/use-cases/get-projeto-detail.use-case.ts` — loads project via repository (returns 404 if absent or cross-tenant); calls 3 ports individually; assembles `ProjetoDetail`; each port wrapped in try/catch; `degraded=true` if any port fails; `manuscriptSummary=null` when IMP unavailable, `publicationHistory=[]` when PUB unavailable, `metadata={autor:null}` when COMP unavailable",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/proj/use-cases/get-projeto-detail.use-case.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/use-cases/get-projeto-detail.use-case.ts"
       },
       {
         "text": "`src/modules/proj/use-cases/get-projeto-detail.use-case.spec.ts` — full compose; PUB unavailable → `publicationHistory=[]`, `degraded=true`; unknown projetoId → 404; cross-tenant projetoId → 404",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/proj/use-cases/get-projeto-detail.use-case.spec.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/use-cases/get-projeto-detail.use-case.spec.ts"
       },
       {
         "text": "`src/modules/proj/proj.controller.ts` — wire `GET /projetos/:projetoId` to use case (update PROJ-001 stub); 404 on not found",
@@ -49,36 +49,36 @@
   "gates": {
     "build": "pass",
     "lint": "pass",
-    "test": "skip",
-    "e2e": "skip"
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 24,
+    "total": 73,
     "provisional": true,
     "range": [
-      24,
-      34
+      73,
+      83
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 20,
+        "value": 30,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 4,
+        "value": 13,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
@@ -88,11 +88,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Inicial",
+    "band": "Consistente",
     "statusTag": "REDUCED"
   },
   "agentTodo": [
-    "Confirmar functionality 4/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 13/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

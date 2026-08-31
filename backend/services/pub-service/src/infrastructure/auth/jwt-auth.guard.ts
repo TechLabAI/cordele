@@ -21,9 +21,29 @@ export interface AuthenticatedUser {
 
 export const IS_PUBLIC_KEY = 'isPublic';
 
+/**
+ * Metadata key used by `JwtAuthGuard` to read the required OAuth2 scopes.
+ *
+ * IMPORTANT: must stay in sync with `REQUIRED_SCOPES_KEY` in
+ * `modules/pub/decorators/require-scope.decorator.ts`. Both files use the
+ * same string literal so guard and decorator cooperate without either layer
+ * importing the other (RULE-04).
+ */
+export const REQUIRED_SCOPES_KEY = 'requiredScopes';
+
 /** Opts a route out of authentication (health checks, webhooks, docs). */
 export const Public = (): MethodDecorator & ClassDecorator =>
   SetMetadata(IS_PUBLIC_KEY, true);
+
+/**
+ * Declares the OAuth2 scopes required to access a route (infrastructure copy).
+ *
+ * Controllers in `modules/` must use `RequiredScopes` from
+ * `modules/pub/decorators/require-scope.decorator.ts` (RULE-04). This export
+ * exists only for use within `infrastructure/auth/` tests.
+ */
+export const RequiredScopes = (...scopes: string[]): MethodDecorator & ClassDecorator =>
+  SetMetadata(REQUIRED_SCOPES_KEY, scopes);
 
 /** Injects the authenticated principal into a controller handler. */
 export const CurrentUser = createParamDecorator(
@@ -39,9 +59,14 @@ export const CurrentUser = createParamDecorator(
 /**
  * Bearer-token guard for cordele.
  *
- * Runs the `jwt` Passport strategy, honours `@Public()` and resolves the
- * empresa from the token (with an `X-Tenant-Id` header override
- * that is only accepted for principals holding the `empresa-admin` role).
+ * Runs the `jwt` Passport strategy, honours `@Public()`, validates OAuth2
+ * scopes declared via `@RequiredScopes()`, and resolves the empresa from the
+ * token (with an `X-Tenant-Id` header override that is only accepted for
+ * principals holding the `empresa-admin` role).
+ *
+ * Responses:
+ *   401 — no token or expired token
+ *   403 — valid token but missing required scope or cross-empresa attempt
  */
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -70,7 +95,30 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       headers: Record<string, string | string[] | undefined>;
     }>();
     request.user = this.resolveTenant(request.user, request.headers['x-tenant-id']);
+    this.enforceScopes(context, request.user);
     return true;
+  }
+
+  /**
+   * Validates that the principal holds at least one of the scopes required by
+   * the handler (or its class). No-op when `@RequiredScopes()` is not applied.
+   */
+  private enforceScopes(context: ExecutionContext, user: AuthenticatedUser): void {
+    const required = this.reflector.getAllAndOverride<string[] | undefined>(
+      REQUIRED_SCOPES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+
+    if (!required || required.length === 0) {
+      return;
+    }
+
+    const hasScope = required.some((s) => user.scopes.includes(s));
+    if (!hasScope) {
+      throw new ForbiddenException(
+        `Insufficient scope. Required one of: ${required.join(', ')}`,
+      );
+    }
   }
 
   private resolveTenant(

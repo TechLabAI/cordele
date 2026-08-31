@@ -1,36 +1,36 @@
 {
   "issue": "PROJ-INT-005",
   "layer": "be",
-  "computedAt": "2026-08-25T17:10:49",
+  "computedAt": "2026-08-28T10:36:37",
   "checklist": {
     "total": 7,
-    "done": 0,
-    "partial": 1,
-    "missing": 6,
+    "done": 3,
+    "partial": 0,
+    "missing": 4,
     "blocked": 0,
     "items": [
       {
-        "text": "`src/infrastructure/proj/erasure/composition-erasure.adapter.ts` — implements `CompositionErasurePort`; calls COMP's `MetadataErasurePort.purgeByProjeto(projetoId)`; idempotent; on COMP unavailability: rethrows",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/infrastructure/proj/erasure/composition-erasure.adapter.ts"
+        "text": "`src/infrastructure/proj/erasure/comp-composition-erasure.adapter.ts` — implements `CompositionErasurePort`; calls COMP's `MetadataErasurePort` via its `erase(projetoId, empresaId)` method; idempotent; on COMP unavailability: rethrows",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/proj/erasure/comp-composition-erasure.adapter.ts"
       },
       {
-        "text": "`src/infrastructure/proj/erasure/composition-erasure.adapter.spec.ts` — COMP port purges; COMP port no-ops on empty; COMP port throws → rethrows",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/infrastructure/proj/erasure/composition-erasure.adapter.spec.ts"
+        "text": "`src/infrastructure/proj/erasure/comp-composition-erasure.adapter.spec.ts` — COMP port erases; COMP port no-ops on empty; COMP port throws → rethrows",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/proj/erasure/comp-composition-erasure.adapter.spec.ts"
       },
       {
         "text": "`src/modules/proj/proj.module.ts` — register real adapter under `COMPOSITION_ERASURE_PORT` when COMP is scaffolded",
-        "state": "PARTIAL",
-        "evidence": "arquivo presente porem stub: src/modules/proj/proj.module.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/proj.module.ts"
       },
       {
-        "text": "`purge(projetoId)` calls COMP's purge port once",
+        "text": "`erase(projetoId, empresaId)` calls COMP's erase port once",
         "state": "MISSING",
         "evidence": "desmarcado (sem arquivo verificavel)"
       },
       {
-        "text": "`purge(projetoId)` for a project with no COMP data completes without error",
+        "text": "`erase(projetoId, empresaId)` for a project with no COMP data completes without error",
         "state": "MISSING",
         "evidence": "desmarcado (sem arquivo verificavel)"
       },
@@ -49,36 +49,36 @@
   "gates": {
     "build": "pass",
     "lint": "pass",
-    "test": "skip",
-    "e2e": "skip"
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 20,
+    "total": 73,
     "provisional": true,
     "range": [
-      20,
-      30
+      73,
+      83
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 20,
+        "value": 30,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 0,
+        "value": 13,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
@@ -88,11 +88,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Inicial",
+    "band": "Consistente",
     "statusTag": "REDUCED"
   },
   "agentTodo": [
-    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 13/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

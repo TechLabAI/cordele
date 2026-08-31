@@ -1,8 +1,8 @@
 # PROJ-002 -- ProjectStatus value object with legal-transition table and invariants
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/5 itens
+**Status:** NEAR-CLOSED -- pos-validacao 2026-08-28
+**Maturidade:** 90 -- Maduro
+**Done/Total:** 10/10 itens
 
 ## Contexto
 

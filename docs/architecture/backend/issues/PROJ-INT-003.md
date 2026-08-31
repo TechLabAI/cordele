@@ -1,8 +1,8 @@
 # PROJ-INT-003 -- PublicationHistoryPort real adapter binding to PUB query port (history + latest + signedDownloadUrl)
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/5 itens
+**Status:** REDUCED -- pos-validacao 2026-08-28
+**Maturidade:** 71 -- Consistente
+**Done/Total:** 3/8 itens
 
 ## Contexto
 

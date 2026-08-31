@@ -1,8 +1,8 @@
 # PROJ-009 -- Outbound read port stub adapters: ManuscriptSummaryPort + ProjectMetadataPort + PublicationHistoryPort (batched, degraded:true)
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/5 itens
+**Status:** REDUCED -- pos-validacao 2026-08-28
+**Maturidade:** 78 -- Consistente
+**Done/Total:** 7/12 itens
 
 ## Contexto
 

@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
 import {
   HealthCheck,
   HealthCheckResult,
@@ -10,8 +10,11 @@ import { ApiTags } from '@nestjs/swagger';
 import { PrismaService } from '../persistence/prisma.service';
 import { Public } from '../auth/jwt-auth.guard';
 
+// Infra probes (k8s liveness/readiness) hit bare, unversioned /health paths —
+// setGlobalPrefix's `exclude` (main.ts) drops the /api prefix, and this drops
+// the /v1 version segment.
 @ApiTags('ops')
-@Controller('health')
+@Controller({ path: 'health', version: VERSION_NEUTRAL })
 export class HealthController {
   constructor(
     private readonly health: HealthCheckService,

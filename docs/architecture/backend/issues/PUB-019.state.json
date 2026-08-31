@@ -1,0 +1,108 @@
+{
+  "issue": "PUB-019",
+  "layer": "be",
+  "computedAt": "2026-08-26T16:10:40",
+  "checklist": {
+    "total": 9,
+    "done": 1,
+    "partial": 0,
+    "missing": 8,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`test/pub/step-definitions/pub-fixture.steps.ts` — step `project {string} has the following publicacoes:` com DataTable; cria linhas via `IPublicacaoRepository` fake; colunas obrigatórias: `status`, `epubcheckStatus`, `sequencia`; coluna opcional `artefatoRef`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: test/pub/step-definitions/pub-fixture.steps.ts"
+      },
+      {
+        "text": "`test/pub/step-definitions/epubcheck-stub.steps.ts` — step `epubcheck cannot execute due to a missing JRE or JAR path`; substitui o fake `IEpubValidationPort` por um que lança `EpubcheckUnavailableError`; verifica que o build resultante é `com_erros`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: test/pub/step-definitions/epubcheck-stub.steps.ts"
+      },
+      {
+        "text": "`docs/architecture/backend/services/pub-service/tests/cucumber/publication-build-async-polling.feature` — acrescentar cenário `Scenario: KPI emAndamento is 1 while a build is in progress` usando o step DataTable para seed de 1 publicação `gerando`; verifica `GET stats` → `emAndamento=1, publicadas=0`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: docs/architecture/backend/services/pub-service/tests/cucumber/publication-build-async-polling.feature"
+      },
+      {
+        "text": "`test/pub/step-definitions/pub-common.steps.ts` — steps reutilizáveis já listados em SPEC-08: `an authenticated editor of empresa {string} with scope {string}`, `an existing project {string}`, `project {string} has an imported manuscript`, `project {string} has complete metadata`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: test/pub/step-definitions/pub-common.steps.ts"
+      },
+      {
+        "text": "`test/pub/pub.bdd.spec.ts` — entrada dos 3 feature files no runner jest-cucumber; verifica que todos os steps resolvem (sem `undefined step`)",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: test/pub/pub.bdd.spec.ts"
+      },
+      {
+        "text": "`pnpm test test/pub/pub.bdd.spec.ts` exits 0 com todos os steps definidos (sem `undefined step`)",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: test/pub/pub.bdd.spec.ts"
+      },
+      {
+        "text": "DataTable `has the following publicacoes:` cria corretamente N linhas no repositório fake com `status`/`epubcheckStatus` definidos explicitamente",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Cenário `emAndamento=1` passa: `GET stats` retorna `emAndamento=1` com build em voo",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Step `epubcheck cannot execute` resulta em build `com_erros` (nunca `publicado`) — invariante ADR-003",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "pass",
+    "e2e": "pass"
+  },
+  "score": {
+    "total": 51,
+    "provisional": true,
+    "range": [
+      51,
+      61
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 18,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 3,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 20,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 10,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Parcial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 3/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

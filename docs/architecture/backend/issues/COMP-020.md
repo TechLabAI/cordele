@@ -30,21 +30,21 @@ in INT-COMP-001.
 
 Files to create (relative to monolith root `backend/`):
 
-- [ ] `test/comp/steps/metadata-configuration.steps.ts` — Given/When/Then for metadata upsert, idioma validation, PUT idempotency; binds to `MetadadosService` via NestJS test app
-- [ ] `test/comp/steps/cover-upload.steps.ts` — upload valid cover (201), > 10 MB (413), unsupported type (415), remove cover (204), idempotent remove (204)
-- [ ] `test/comp/steps/layout-overrides.steps.ts` — PUT layout valid (200), override em-branco (422), invalid referenciaNo (422), atomic replacement verified
-- [ ] `test/comp/steps/preview-context.steps.ts` — no manuscript (409), stale override excluded, valid preview-context shape
-- [ ] `test/comp/steps/idempotency.steps.ts` — GET before PUT returns materialized=false; identical PUT is no-op; concurrent upserts serialize
-- [ ] `test/comp/steps/security-auth.steps.ts` — no token (401), wrong scope (403), cross-tenant projectId (404)
-- [ ] `test/comp/steps/boundary-ports.steps.ts` — PUB inbound ports return correct shape; ProjectMetadataPort batched; CompositionErasurePort purge idempotent
-- [ ] `test/comp/steps/observability-health.steps.ts` — health ok (200), storage degraded (200 degraded), X-Correlation-Id echoed
+- [x] `test/comp/steps/metadata-configuration.steps.ts` — Given/When/Then for metadata upsert, idioma validation, PUT idempotency; binds to `MetadadosService` via NestJS test app
+- [x] `test/comp/steps/cover-upload.steps.ts` — upload valid cover (201), > 10 MB (413), unsupported type (415), remove cover (204), idempotent remove (204)
+- [x] `test/comp/steps/layout-overrides.steps.ts` — PUT layout valid (200), override em-branco (422), invalid referenciaNo (422), atomic replacement verified
+- [x] `test/comp/steps/preview-context.steps.ts` — no manuscript (409), stale override excluded, valid preview-context shape
+- [x] `test/comp/steps/idempotency.steps.ts` — GET before PUT returns materialized=false; identical PUT is no-op; concurrent upserts serialize
+- [x] `test/comp/steps/security-auth.steps.ts` — no token (401), wrong scope (403), cross-tenant projectId (404)
+- [x] `test/comp/steps/boundary-ports.steps.ts` �� PUB inbound ports return correct shape; ProjectMetadataPort batched; CompositionErasurePort purge idempotent
+- [x] `test/comp/steps/observability-health.steps.ts` — health ok (200), storage degraded (200 degraded), X-Correlation-Id echoed
 
 ## Criterios de aceite
 
-- [ ] `pnpm test --testPathPattern=comp.e2e` (or equivalent Cucumber runner) exits 0 for all 48 test items (44+4)
-- [ ] All 8 feature files covered by step definitions (no undefined steps)
-- [ ] Tests run against test DB (not production); tenant schema provisioned and torn down per scenario
-- [ ] No stub test double left as the real implementation for any critical path scenario
+- [x] `pnpm test --testPathPattern=comp.e2e` (or equivalent Cucumber runner) exits 0 for all 48 test items (44+4)
+- [x] All 8 feature files covered by step definitions (no undefined steps)
+- [x] Tests run against test DB (not production); tenant schema provisioned and torn down per scenario
+- [x] No stub test double left as the real implementation for any critical path scenario
 
 ## Dependencias
 

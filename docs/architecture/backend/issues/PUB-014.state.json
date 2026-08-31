@@ -1,0 +1,108 @@
+{
+  "issue": "PUB-014",
+  "layer": "be",
+  "computedAt": "2026-08-26T14:48:12",
+  "checklist": {
+    "total": 9,
+    "done": 0,
+    "partial": 1,
+    "missing": 8,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/pub/application/publication-history.service.ts` — implementa `IPublicationHistoryPort`; `history` delega ao `IPublicacaoRepository.findAllByProjeto` com ordenação `iniciada_em DESC`; `latest` executa `WHERE projeto_id IN (...)` em query única (batch); `signedDownloadUrl` valida `epubcheckStatus ∈ {valido, avisos}` e delega ao `IFileStoragePort.signUrl`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-history.service.ts"
+      },
+      {
+        "text": "`src/modules/pub/ports/publication-history.port.ts` — interface `IPublicationHistoryPort` com as 3 assinaturas; field set `PublicacaoHistoryItem` alinhado a api-contract §6.2",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/ports/publication-history.port.ts"
+      },
+      {
+        "text": "`src/modules/pub/application/publication-history.service.spec.ts` — unit tests: `history` retorna newest-first; `latest` com `projetoIds=[]` retorna Map vazio sem query; `signedDownloadUrl` de `erros_criticos` lança; `signedDownloadUrl` de `valido` retorna URL com `expiresAt`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-history.service.spec.ts"
+      },
+      {
+        "text": "`src/modules/pub/pub.module.ts` — acrescentar export de `IPublicationHistoryPort` token para que outros módulos possam injetar",
+        "state": "PARTIAL",
+        "evidence": "arquivo presente porem stub: src/modules/pub/pub.module.ts"
+      },
+      {
+        "text": "`src/infrastructure/pub/persistence/publicacao.repository.ts` — acrescentar `findLatestByProjetoIds(ids[])` retornando a publicação mais recente por projeto via GROUP BY / MAX (implementação do batch para `latest`)",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/infrastructure/pub/persistence/publicacao.repository.ts"
+      },
+      {
+        "text": "`pnpm test src/modules/pub/application/publication-history.service.spec.ts` exits 0",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-history.service.spec.ts"
+      },
+      {
+        "text": "`latest` com lista de 100 `projetoIds` gera exatamente 1 query ao repositório (sem N+1)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`arquivoUrl=null` para `erros_criticos`/`pendente` no `history` (SPEC-01 §4.3)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Provider exportado acessível por injeção no `ProjModule` (verificado por INT-PUB-004)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "deferred",
+    "lint": "pass",
+    "test": "deferred",
+    "e2e": "deferred"
+  },
+  "score": {
+    "total": 2,
+    "provisional": true,
+    "range": [
+      2,
+      12
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 2,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 0,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

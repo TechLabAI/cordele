@@ -1,0 +1,113 @@
+{
+  "issue": "PUB-001",
+  "layer": "be",
+  "computedAt": "2026-08-29T00:25:50",
+  "checklist": {
+    "total": 10,
+    "done": 2,
+    "partial": 1,
+    "missing": 7,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/pub/pub.module.ts` — registers `PubController`; declares DI tokens for 6 use cases (`GENERATE_PUBLICATION_USE_CASE`, `PUBLICATION_BUILD_JOB`, `GET_STATUS_USE_CASE`, `LIST_PUBLICATIONS_USE_CASE`, `DOWNLOAD_URL_USE_CASE`, `GET_STATS_USE_CASE`) and 5 port tokens (`EPUB_VALIDATION_PORT`, `FILE_STORAGE_PORT`, `MANUSCRIPT_CONTENT_PORT`, `COMPOSITION_READ_PORT`, `PROJECT_STATUS_PORT`); applies `EmpresaContext` middleware",
+        "state": "PARTIAL",
+        "evidence": "arquivo presente porem stub: src/modules/pub/pub.module.ts"
+      },
+      {
+        "text": "`src/modules/pub/pub.tokens.ts` — all Symbol DI token declarations for the PUB module",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/pub.tokens.ts"
+      },
+      {
+        "text": "`src/modules/pub/pub.controller.ts` — 5 route handlers under `/api/pub/projetos/:projetoId/publicacoes`; stub responses (202/200/204); scopes declared but guards wired as allow-all stubs in P1",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/pub.controller.ts"
+      },
+      {
+        "text": "`src/modules/pub/pub.controller.spec.ts` — unit tests verifying all 5 route handlers return stub HTTP statuses",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/pub.controller.spec.ts"
+      },
+      {
+        "text": "`src/modules/pub/dto/` — `publicacao-status.dto.ts`, `publicacao-history-item.dto.ts`, `download-url.dto.ts`, `publication-stats.dto.ts` matching api-contract §6",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: publicacao-status.dto.ts, publicacao-history-item.dto.ts, download-url.dto.ts, publication-stats.dto.ts"
+      },
+      {
+        "text": "`pnpm build` exits 0 with `PubModule` present",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "All 5 route handlers exist in `PubController` with correct HTTP verbs and paths (verified by controller unit test listing route metadata)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`@nestjs/swagger` decorators present on each route for OpenAPI generation",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "All DI tokens declared in `pub.tokens.ts`: use cases + outbound ports",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: pub.tokens.ts"
+      },
+      {
+        "text": "`pnpm test` on the controller spec exits 0",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "unknown",
+    "lint": "unknown",
+    "test": "unknown",
+    "e2e": "unknown"
+  },
+  "score": {
+    "total": 11,
+    "provisional": true,
+    "range": [
+      11,
+      21
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 5,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 6,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 6/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

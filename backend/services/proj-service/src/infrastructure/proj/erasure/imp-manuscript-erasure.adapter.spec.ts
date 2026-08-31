@@ -1,0 +1,64 @@
+/**
+ * Unit tests for ImpManuscriptErasureAdapter (PROJ-INT-004).
+ *
+ * Mirrors PubPublicationErasureAdapter's non-degraded contract: every failure
+ * path must throw so DeleteProjetoUseCase aborts the cascade.
+ */
+
+import { ConfigService } from '@nestjs/config';
+import { ImpManuscriptErasureAdapter } from './imp-manuscript-erasure.adapter';
+
+const mockConfig = {
+  get: jest.fn(),
+} as unknown as jest.Mocked<ConfigService>;
+
+const mockFetch = jest.fn();
+const originalFetch = globalThis.fetch;
+
+beforeAll(() => {
+  globalThis.fetch = mockFetch;
+});
+
+afterAll(() => {
+  globalThis.fetch = originalFetch;
+});
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
+
+describe('ImpManuscriptErasureAdapter', () => {
+  let adapter: ImpManuscriptErasureAdapter;
+
+  beforeEach(() => {
+    mockConfig.get = jest.fn().mockReturnValue('http://imp-service:3001');
+    adapter = new ImpManuscriptErasureAdapter(mockConfig);
+  });
+
+  it('resolves when IMP responds 2xx', async () => {
+    mockFetch.mockResolvedValue({ ok: true, status: 204 });
+
+    await expect(adapter.erase('projeto-1', 'emp-aetos')).resolves.toBeUndefined();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws when IMP_SERVICE_URL is not configured', async () => {
+    mockConfig.get = jest.fn().mockReturnValue(undefined);
+    adapter = new ImpManuscriptErasureAdapter(mockConfig);
+
+    await expect(adapter.erase('projeto-1', 'emp-aetos')).rejects.toThrow();
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('throws when IMP returns a non-2xx response', async () => {
+    mockFetch.mockResolvedValue({ ok: false, status: 503 });
+
+    await expect(adapter.erase('projeto-1', 'emp-aetos')).rejects.toThrow();
+  });
+
+  it('throws when IMP is unreachable', async () => {
+    mockFetch.mockRejectedValue(new Error('ECONNREFUSED'));
+
+    await expect(adapter.erase('projeto-1', 'emp-aetos')).rejects.toThrow('ECONNREFUSED');
+  });
+});

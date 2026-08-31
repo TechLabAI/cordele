@@ -209,6 +209,9 @@ def check_be_node(target: Path) -> list[dict]:
                 and not _in_any(f, target, ("infrastructure",))]
     modules = [f for f in ts if _in_any(f, target, ("modules", "application", "domain"))]
     non_migration = [f for f in ts if not _in_any(f, target, ("migrations", "prisma"))]
+    # console.log is legitimate in standalone CLI/operational scripts (outside src/).
+    # Mirror the Python rule that exempts scripts/ from no-print (PUB-020).
+    src_ts = [f for f in ts if not _in_any(f, target, ("scripts", "cli"))]
     return [
         # Injection: DI by constructor, never `new SomethingRepository()` in a service.
         {"rule": "no-adapter-instantiation-in-service",
@@ -219,8 +222,8 @@ def check_be_node(target: Path) -> list[dict]:
         # Layers: modules/application do not import infrastructure (RULE-04).
         {"rule": "no-infrastructure-import-in-modules",
          "violations": _scan(modules, _TS_INFRA_IMPORT, want=False)},
-        # Output: no console.log.
-        {"rule": "no-console-log", "violations": _scan(ts, _CONSOLE_LOG, want=False)},
+        # Output: no console.log in src/ (scripts/ CLI entry points are exempt).
+        {"rule": "no-console-log", "violations": _scan(src_ts, _CONSOLE_LOG, want=False)},
         # DDL: only inside prisma/migrations.
         {"rule": "no-ddl-outside-migrations", "violations": _scan(non_migration, _DDL, want=False)},
     ]

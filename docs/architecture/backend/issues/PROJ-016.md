@@ -1,8 +1,8 @@
 # PROJ-016 -- DeleteProjetoEditorialUseCase leaf-first LGPD erasure orchestration (idempotent, abort-before-identity, 502 on failure)
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/5 itens
+**Status:** REDUCED -- pos-validacao 2026-08-28
+**Maturidade:** 72 -- Consistente
+**Done/Total:** 4/10 itens
 
 ## Contexto
 
@@ -30,10 +30,10 @@ Each step is idempotent — a partial failure can be retried safely.
 
 Files to create (relative to monolith root `backend/`):
 
-- [ ] `src/modules/proj/use-cases/delete-projeto-editorial.use-case.ts` — validates projetoId exists in active empresa (404 otherwise); calls purge ports in order 1→3; on any port failure: catches error, throws `ErasureFailedError` (no identity deletion); on all ports OK: deletes `projeto_editorial` row via repository; emits `ProjectDeleted` after commit
-- [ ] `src/domain/proj/errors/erasure-failed.error.ts` — carries `failedPort`, `projetoId`, `cause`
+- [ ] `src/modules/proj/use-cases/delete-projeto.use-case.ts` — validates projetoId exists in active empresa (404 otherwise); calls purge ports in order 1→3; on any port failure: catches error, throws `BadGatewayException` (no identity deletion); on all ports OK: deletes `projeto_editorial` row via repository; emits `ProjectDeleted` after commit
+- [ ] `BadGatewayException` used instead of a custom error — carries type `urn:cordele:proj:erasure-failed` + `port` field indicating which erasure port failed
 - [ ] `src/domain/proj/events/project-deleted.event.ts` — payload: `{ eventId, occurredAt, projetoId, editoraId }`
-- [ ] `src/modules/proj/use-cases/delete-projeto-editorial.use-case.spec.ts` — full purge success → 204, `ProjectDeleted` emitted; PUB purge fails → 502, `projeto_editorial` NOT deleted, no event; IMP purge fails → 502, same; idempotent retry succeeds when all stubs are no-ops; unknown projetoId → 404
+- [ ] `src/modules/proj/use-cases/delete-projeto.use-case.spec.ts` — full purge success → 204, `ProjectDeleted` emitted; PUB purge fails → 502, `projeto_editorial` NOT deleted, no event; IMP purge fails → 502, same; idempotent retry succeeds when all stubs are no-ops; unknown projetoId → 404
 - [ ] `src/modules/proj/proj.controller.ts` — wire `DELETE /projetos/:projetoId` (update PROJ-001 stub); map `ErasureFailedError` → 502; return 204 on success
 
 ## Criterios de aceite

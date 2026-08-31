@@ -33,6 +33,9 @@ export interface CreateProjetoEditorialInput {
   readonly id: string;
   readonly nome: string;
   readonly descricao?: string;
+  /** Tenant-routing key (resolves the `emp_<slug>` schema, RULE-07). */
+  readonly empresaId: string;
+  /** Logical reference to the editora registry (`cordele_global`) — never used for schema routing. */
   readonly editoraId: string;
   readonly status: ProjetoStatus;
 }
@@ -77,6 +80,13 @@ export interface ProjetoEditorialRepository {
    * Used by ProjetoEditorialLookup (cross-tenant safety gate).
    */
   existsByIdAndEmpresa(id: string, empresaId: string): Promise<boolean>;
+
+  /**
+   * Hard-deletes the ProjetoEditorial row (ON DELETE CASCADE removes history
+   * rows). Used only by DeleteProjetoUseCase (P6 / PROJ-016) as the final
+   * step of the LGPD erasure cascade, after all cross-context purges succeed.
+   */
+  delete(id: string, empresaId: string): Promise<void>;
 }
 
 /** DI injection token for ProjetoEditorialRepository. */

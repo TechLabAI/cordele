@@ -1,8 +1,8 @@
 # PROJ-014 -- JwtAuthGuard + EmpresaContext tenant injection + scope guards (proj:read, proj:write, proj:delete)
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/5 itens
+**Status:** REDUCED -- pos-validacao 2026-08-28
+**Maturidade:** 56 -- Parcial
+**Done/Total:** 2/10 itens
 
 ## Contexto
 

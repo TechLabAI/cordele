@@ -1,0 +1,22 @@
+{
+  "score": 78,
+  "maturity": "Consistente",
+  "checklist": {
+    "done": 15,
+    "total": 20,
+    "gaps": [
+      "INT-PUB-001 (requer IMP)",
+      "INT-PUB-002 (requer COMP)",
+      "INT-PUB-003 (requer PROJ)",
+      "PUB-016 (aguarda ratificação FE)"
+    ]
+  },
+  "gates": {
+    "test": "deferred",
+    "build": "deferred",
+    "lint": "pass",
+    "e2e": "deferred",
+    "arch_conformance": "pass"
+  },
+  "next_action": "IMPLEMENTADOR"
+}

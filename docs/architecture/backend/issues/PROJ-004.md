@@ -1,8 +1,8 @@
 # PROJ-004 -- AdvanceProjetoStatusUseCase.advanceTo idempotent with audit append and ProjectStatusChanged
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/5 itens
+**Status:** NEAR-CLOSED -- pos-validacao 2026-08-28
+**Maturidade:** 83 -- Maduro
+**Done/Total:** 7/9 itens
 
 ## Contexto
 

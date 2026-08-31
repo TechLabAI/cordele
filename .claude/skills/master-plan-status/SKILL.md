@@ -8,7 +8,9 @@ tools: Bash
 # Master Plan Status
 
 ```bash
-python scripts/master-plan.py list
+cat docs/architecture/backend/plans/architecture-master-plan.md 2>/dev/null || echo "(sem master-plan BE)"
+echo
+cat docs/architecture/frontend/plans/architecture-master-plan.md 2>/dev/null || echo "(sem master-plan FE)"
 ```
 
 Uso: `/master-plan-status`

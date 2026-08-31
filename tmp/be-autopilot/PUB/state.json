@@ -1,0 +1,13 @@
+{
+  "id": "PUB",
+  "module": "PUB",
+  "service": "pub-service",
+  "pipeline": "implement",
+  "currentStep": "gaps-closed",
+  "nextStep": "done",
+  "progressUnit": "P9",
+  "notes": "Gaps remanescentes tratados a pedido do usuario: INT-PUB-001 (IMP) e INT-PUB-003 (PROJ) reescritas como HTTP clients reais (arquitetura de microservicos, RULE-06) com propagacao de bearer token do usuario pelo fluxo assincrono (PublicationBuildJobInput). Endpoint novo POST /api/v1/proj/projetos/:projetoId/advance-status criado em proj-service. PUB-016 implementada e DONE (endpoint validation-messages). INT-PUB-002 (COMP) permanece BLOCKED e documentada -- comp-service e um esqueleto CRUD generico sem dominio real de Metadados/ConfiguracaoLayout, fora do escopo de PUB. Checklist 23/23 DONE. Score final 88/100 Maduro (e2e SKIP por causa de INT-PUB-002). Identificado bug de infra: prisma generate hoisted compartilhado entre os 4 servicos do workspace pnpm causa colisao de client -- nao corrigido (fora do escopo, precisa decisao arquitetural).",
+  "iteration": 2,
+  "timestamp": "2026-08-29T00:28:50",
+  "capReached": false
+}

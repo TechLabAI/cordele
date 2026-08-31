@@ -44,6 +44,7 @@ describe('ReopenProjectForRevisionUseCase', () => {
       findById: jest.fn(),
       updateStatus: jest.fn(),
       existsByIdAndEmpresa: jest.fn(),
+      delete: jest.fn(),
         findAll: jest.fn(),
     };
 

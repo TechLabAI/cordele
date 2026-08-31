@@ -1,12 +1,12 @@
 {
   "issue": "PROJ-014",
   "layer": "be",
-  "computedAt": "2026-08-25T17:10:43",
+  "computedAt": "2026-08-28T10:36:30",
   "checklist": {
     "total": 10,
-    "done": 1,
+    "done": 2,
     "partial": 0,
-    "missing": 9,
+    "missing": 8,
     "blocked": 0,
     "items": [
       {
@@ -31,8 +31,8 @@
       },
       {
         "text": "`src/modules/proj/proj.controller.spec.ts` — add 401/403 cases for missing/invalid token and wrong scope",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/proj/proj.controller.spec.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/proj/proj.controller.spec.ts"
       },
       {
         "text": "Request without `Authorization` header returns 401 `urn:cordele:proj:unauthorized`",
@@ -64,36 +64,36 @@
   "gates": {
     "build": "pass",
     "lint": "pass",
-    "test": "skip",
-    "e2e": "skip"
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 21,
+    "total": 56,
     "provisional": true,
     "range": [
-      21,
-      31
+      56,
+      66
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 18,
+        "value": 20,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 3,
+        "value": 6,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
@@ -103,11 +103,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Inicial",
+    "band": "Parcial",
     "statusTag": "REDUCED"
   },
   "agentTodo": [
-    "Confirmar functionality 3/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 6/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

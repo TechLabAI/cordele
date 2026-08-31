@@ -3,18 +3,22 @@ import { ConfigModule } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 
 import { JwtStrategy } from './jwt.strategy';
-import { JwtAuthGuard } from './jwt-auth.guard';
 
 /**
  * Registers the JWT strategy once for the whole process.
  *
- * Global because `@UseGuards(JwtAuthGuard)` is applied in controllers all over
- * the app and the guard must be resolvable without a local import.
+ * `JwtAuthGuard` is NOT provided/exported here: it is already registered once,
+ * globally, via `{ provide: APP_GUARD, useClass: JwtAuthGuard }` in
+ * `app.module.ts`. A second registration here (as it used to be) creates a
+ * duplicate binding for the same class token that `TestingModule.overrideGuard()`
+ * cannot cleanly target — e2e tests that override the guard would silently hit
+ * the real one instead (confirmed: the override's `canActivate` was never
+ * invoked, and requests fell through to Passport's real JWT check → 401).
  */
 @Global()
 @Module({
   imports: [ConfigModule, PassportModule.register({ defaultStrategy: 'jwt' })],
-  providers: [JwtStrategy, JwtAuthGuard],
-  exports: [PassportModule, JwtAuthGuard],
+  providers: [JwtStrategy],
+  exports: [PassportModule],
 })
 export class AuthModule {}

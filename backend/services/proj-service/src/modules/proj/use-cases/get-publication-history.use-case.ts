@@ -10,7 +10,7 @@
  * RULE-04: this file is in modules/ and must NOT import from infrastructure/.
  */
 
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 
 import type { ProjetoEditorialRepository } from '../../../domain/proj/projeto-editorial.repository';
 import type {
@@ -30,8 +30,6 @@ export interface GetPublicationHistoryInput {
 
 @Injectable()
 export class GetPublicationHistoryUseCase {
-  private readonly logger = new Logger(GetPublicationHistoryUseCase.name);
-
   constructor(
     @Inject(PROJETO_EDITORIAL_REPOSITORY)
     private readonly repository: ProjetoEditorialRepository,

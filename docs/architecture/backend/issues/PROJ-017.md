@@ -1,8 +1,8 @@
 # PROJ-017 -- Health endpoint (@nestjs/terminus) + correlation ID propagation + degraded:true structured logging
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/4 itens
+**Status:** REDUCED -- pos-validacao 2026-08-28
+**Maturidade:** 69 -- Consistente
+**Done/Total:** 2/7 itens
 
 ## Contexto
 
@@ -23,8 +23,8 @@ the structured logger emits `WARN` with field `port=<PortName>` for observabilit
 
 Files to create (relative to monolith root `backend/`):
 
-- [ ] `src/infrastructure/health/proj-health.controller.ts` — `GET /api/proj/health` (or shared monolith health endpoint if already registered); uses `@nestjs/terminus` `HealthCheckService` + `PrismaHealthIndicator`; returns 200 `{ status: 'ok' }` or 503 on DB unavailability
-- [ ] `src/infrastructure/middleware/correlation-id.middleware.ts` — NestJS middleware: reads `X-Correlation-Id` from request or generates UUID v4; stores in `AsyncLocalStorage<{ correlationId }>`; sets response header `X-Correlation-Id`; applies to all routes in `ProjModule`
+- [ ] `src/infrastructure/health/health.controller.ts` — `GET /api/proj/health` (or shared monolith health endpoint if already registered); uses `@nestjs/terminus` `HealthCheckService` + `PrismaHealthIndicator`; returns 200 `{ status: 'ok' }` or 503 on DB unavailability
+- [ ] `src/infrastructure/http/correlation-id.interceptor.ts` — NestJS interceptor: reads `X-Correlation-Id` from request or generates UUID v4; stores in `AsyncLocalStorage<{ correlationId }>`; sets response header `X-Correlation-Id`; applies to all routes in `ProjModule`
 - [ ] Logger configuration (if not already shared) — structured JSON logger with fields: `correlationId`, `port` (when `degraded:true`), `level` (`WARN` on degraded), `module: 'proj'`
 
 ## Criterios de aceite

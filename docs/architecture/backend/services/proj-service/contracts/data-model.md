@@ -32,7 +32,11 @@ The editorial project — the aggregate root owned by Projects and the identity 
 to. `status` is authoritative and only PROJ writes it (ADR-002); the legal-transition rules live in the
 `ProjectStatus` value object, not in a DB trigger. `editora_id` references the global `editora` registry;
 because `editora` is in `cordele_global` and this table is in the tenant schema, the reference is a
-**logical** one validated in the application layer, not a cross-schema FK. This table is the **cascade
+**logical** one validated in the application layer, not a cross-schema FK — and, since that registry does
+not exist yet, the column is a plain `VARCHAR` rather than a DB-enforced `UUID` (tracked as a pendência;
+until the registry lands, callers populate it with the same value as `empresaId`). `empresaId` itself is
+never persisted as a column — it is the tenant-routing key that selects the `emp_<slug>` schema (RULE-07)
+and is passed alongside `editora_id` on every write. This table is the **cascade
 root** for LGPD erasure: the other contexts' tables (`manuscrito`, `metadados`, `configuracao_layout`,
 `publicacao`) declare `FOREIGN KEY (projeto_id) REFERENCES projeto_editorial (id) ON DELETE CASCADE` in
 their own contexts, so DB-level integrity is a backstop to the orchestrated purge (§5, SPEC-11).
@@ -41,7 +45,7 @@ their own contexts, so DB-level integrity is a backstop to the orchestrated purg
 -- schema: empresa
 CREATE TABLE projeto_editorial (
     id            UUID        NOT NULL DEFAULT gen_random_uuid(),
-    editora_id    UUID        NOT NULL,
+    editora_id    VARCHAR(64) NOT NULL,
     nome          TEXT        NOT NULL,
     status        TEXT        NOT NULL DEFAULT 'rascunho',
     descricao     TEXT,
@@ -58,7 +62,7 @@ CREATE INDEX idx_projeto_editorial_atualizado_em  ON projeto_editorial (atualiza
 
 COMMENT ON TABLE  projeto_editorial            IS 'Editorial project (aggregate root, PROJ context). Cascade root for LGPD erasure; sole authority over status (ADR-002).';
 COMMENT ON COLUMN projeto_editorial.status     IS 'Authoritative lifecycle status; only PROJ writes it. Transitions via ProjectStatus VO (ADR-002).';
-COMMENT ON COLUMN projeto_editorial.editora_id IS 'Logical reference to editora (cordele_global registry); validated application-side (cross-schema, not a DB FK).';
+COMMENT ON COLUMN projeto_editorial.editora_id IS 'Logical reference to editora (cordele_global registry); validated application-side (cross-schema, not a DB FK). VARCHAR until the registry exists — not the tenant-routing key (see empresaId).';
 ```
 
 **Invariants:**

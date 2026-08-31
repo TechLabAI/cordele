@@ -23,18 +23,18 @@ SPEC-10.C2). Both return `null` if no composition exists; PUB decides how to han
 
 Files to create (relative to monolith root `backend/`):
 
-- [ ] `src/modules/comp/application/get-metadados-export.use-case.ts` — `get(projetoId): Promise<MetadadosRead | null>`: loads `Metadados` from repository; if absent returns null; maps to api-contract §6.1 shape (`titulo, autor, isbn, idioma, categoria, capaUrl, editoraNome, atualizadoEm`); never exposes `metadados` table directly (port only)
-- [ ] `src/modules/comp/application/get-configuracao-layout-export.use-case.ts` — `get(projetoId): Promise<LayoutRead | null>`: loads `ConfiguracaoLayout` + overrides; for each override calls `ManuscriptContentPort.nodeExists` to detect stale; returns only non-stale honoured set (parameters from §7.3 only); if absent returns null
-- [ ] `src/modules/comp/comp.module.ts` (amend) — export `GetMetadadosExportUseCase` and `GetConfiguracaoLayoutExportUseCase` under tokens `GET_METADADOS_PORT` and `GET_CONFIGURACAO_LAYOUT_PORT` so `PubModule` can inject them
-- [ ] `src/modules/comp/application/get-configuracao-layout-export.use-case.spec.ts` — stale override excluded; non-stale included; absent layout → null; only §7.3 parameters in response
+- [x] `src/modules/comp/application/get-metadados-export.use-case.ts` — `get(projetoId): Promise<MetadadosRead | null>`: loads `Metadados` from repository; if absent returns null; maps to api-contract §6.1 shape (`titulo, autor, isbn, idioma, categoria, capaUrl, editoraNome, atualizadoEm`); never exposes `metadados` table directly (port only)
+- [x] `src/modules/comp/application/get-configuracao-layout-export.use-case.ts` — `get(projetoId): Promise<LayoutRead | null>`: loads `ConfiguracaoLayout` + overrides; for each override calls `ManuscriptContentPort.nodeExists` to detect stale; returns only non-stale honoured set (parameters from §7.3 only); if absent returns null
+- [x] `src/modules/comp/comp.module.ts` (amend) — export `GetMetadadosExportUseCase` and `GetConfiguracaoLayoutExportUseCase` under tokens `GET_METADADOS_PORT` and `GET_CONFIGURACAO_LAYOUT_PORT` so `PubModule` can inject them
+- [x] `src/modules/comp/application/get-configuracao-layout-export.use-case.spec.ts` — stale override excluded; non-stale included; absent layout → null; only §7.3 parameters in response
 
 ## Criterios de aceite
 
-- [ ] `GetConfiguracaoLayoutExportUseCase.get` excludes any override whose `referenciaNo` returns `nodeExists=false`
-- [ ] Response shape matches api-contract §7.3 exactly (no extra parameters)
-- [ ] Both use cases return `null` (not throw) when no composition exists
-- [ ] Both DI tokens exported from `CompModule` so `PubModule` can inject without HTTP
-- [ ] `pnpm test` on the export use case spec exits 0
+- [x] `GetConfiguracaoLayoutExportUseCase.get` excludes any override whose `referenciaNo` returns `nodeExists=false`
+- [x] Response shape matches api-contract §7.3 exactly (no extra parameters)
+- [x] Both use cases return `null` (not throw) when no composition exists
+- [x] Both DI tokens exported from `CompModule` so `PubModule` can inject without HTTP
+- [x] `pnpm test` on the export use case spec exits 0
 
 ## Dependencias
 

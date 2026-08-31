@@ -1,0 +1,103 @@
+{
+  "issue": "PUB-005",
+  "layer": "be",
+  "computedAt": "2026-08-26T13:19:09",
+  "checklist": {
+    "total": 8,
+    "done": 0,
+    "partial": 0,
+    "missing": 8,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/pub/application/get-publication-status.use-case.ts` — lê a linha `Publicacao` do repositório; retorna `PublicacaoStatus` DTO; inclui flag `isTerminal` para o controller setar/omitir `Retry-After`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/get-publication-status.use-case.ts"
+      },
+      {
+        "text": "`src/modules/pub/application/list-publications-by-projeto.use-case.ts` — retorna `PublicacaoHistoryItem[]` ordenado por `iniciadaEm DESC`; seta `arquivoUrl=null` para `erros_criticos`/`pendente`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/list-publications-by-projeto.use-case.ts"
+      },
+      {
+        "text": "`src/modules/pub/application/get-download-url.use-case.ts` — verifica `epubcheckStatus ∈ {valido, avisos}`; chama `FileStoragePort.signUrl(artefatoRef, PUB_DOWNLOAD_URL_TTL_SECONDS)`; retorna `{ arquivoUrl, expiresAt }`; rejeita `409 artifact-not-available` caso contrário",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/get-download-url.use-case.ts"
+      },
+      {
+        "text": "`src/modules/pub/application/publication-query.spec.ts` — unit tests: polling de build não-terminal (Retry-After), terminal sem Retry-After, download de `valido`, download de `com_erros` (409), histórico vazio (array vazio), cross-tenant `publicacaoId` (404)",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-query.spec.ts"
+      },
+      {
+        "text": "`pnpm test src/modules/pub/application/publication-query.spec.ts` exits 0",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-query.spec.ts"
+      },
+      {
+        "text": "`GetDownloadUrlUseCase` para `erros_criticos` lança erro mapeado para 409 pelo controller",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`GetPublicationStatusUseCase` para build terminal não inclui `Retry-After` na resposta (controller omite o header)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`ListPublicationsByProjetoUseCase` para projeto sem publicações retorna array vazio (não 404)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "pass",
+    "e2e": "pass"
+  },
+  "score": {
+    "total": 45,
+    "provisional": true,
+    "range": [
+      45,
+      55
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 15,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 0,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 20,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 10,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Parcial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

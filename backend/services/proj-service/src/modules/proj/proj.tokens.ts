@@ -12,9 +12,6 @@
 
 // --- Outbound port tokens ---
 
-/** Injection token for the ProjRepositoryPort outbound port. */
-export { ProjRepositoryPort as PROJ_REPOSITORY_TOKEN } from '../../domain/proj.repository.interface';
-
 /**
  * Injection token for the ProjetoEditorialRepository outbound port.
  * Used by P2 use cases (PROJ-003..005). Real Prisma adapter bound in P3 (PROJ-008).
@@ -120,21 +117,24 @@ export const PROJECT_EVENT_PUBLISHER = Symbol('ProjectEventPublisher');
 export const PROJETO_EDITORIAL_LOOKUP = Symbol('ProjetoEditorialLookup');
 
 // --- Outbound erasure port tokens (wired in P6) ---
+// Re-exported from the domain port files so that infrastructure/ (the global
+// ErasurePortsModule) and modules/ share the same Symbol (structural
+// consistency with the P4 read-port tokens above).
 
 /**
  * Injection token for PublicationErasurePort (PUB LGPD purge).
  * Stub adapter registered in P6 (PROJ-015); real adapter in PROJ-INT-006.
  */
-export const PUBLICATION_ERASURE_PORT = Symbol('PublicationErasurePort');
+export { PublicationErasurePort as PUBLICATION_ERASURE_PORT } from '../../domain/proj/ports/outbound/publication-erasure.port';
 
 /**
  * Injection token for CompositionErasurePort (COMP LGPD purge).
  * Stub adapter registered in P6 (PROJ-015); real adapter in PROJ-INT-005.
  */
-export const COMPOSITION_ERASURE_PORT = Symbol('CompositionErasurePort');
+export { CompositionErasurePort as COMPOSITION_ERASURE_PORT } from '../../domain/proj/ports/outbound/composition-erasure.port';
 
 /**
  * Injection token for ManuscriptErasurePort (IMP LGPD purge).
  * Stub adapter registered in P6 (PROJ-015); real adapter in PROJ-INT-004.
  */
-export const MANUSCRIPT_ERASURE_PORT = Symbol('ManuscriptErasurePort');
+export { ManuscriptErasurePort as MANUSCRIPT_ERASURE_PORT } from '../../domain/proj/ports/outbound/manuscript-erasure.port';

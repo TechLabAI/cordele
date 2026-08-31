@@ -1,7 +1,7 @@
 {
   "issue": "PROJ-002",
   "layer": "be",
-  "computedAt": "2026-08-25T19:59:32",
+  "computedAt": "2026-08-28T10:36:22",
   "checklist": {
     "total": 10,
     "done": 10,
@@ -65,14 +65,14 @@
     "build": "pass",
     "lint": "pass",
     "test": "pass",
-    "e2e": "skip"
+    "e2e": "pass"
   },
   "score": {
-    "total": 80,
+    "total": 90,
     "provisional": true,
     "range": [
-      80,
-      90
+      90,
+      100
     ],
     "breakdown": {
       "structure": {
@@ -93,7 +93,7 @@
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {

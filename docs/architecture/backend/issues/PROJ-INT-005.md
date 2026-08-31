@@ -1,8 +1,8 @@
 # PROJ-INT-005 -- CompositionErasurePort real adapter binding to COMP purge port
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/3 itens
+**Status:** REDUCED -- pos-validacao 2026-08-28
+**Maturidade:** 73 -- Consistente
+**Done/Total:** 3/7 itens
 
 ## Contexto
 
@@ -21,14 +21,14 @@ PUB purge and before IMP purge.
 
 Files to create (relative to monolith root `backend/`):
 
-- [ ] `src/infrastructure/proj/erasure/composition-erasure.adapter.ts` — implements `CompositionErasurePort`; calls COMP's `MetadataErasurePort.purgeByProjeto(projetoId)`; idempotent; on COMP unavailability: rethrows
-- [ ] `src/infrastructure/proj/erasure/composition-erasure.adapter.spec.ts` — COMP port purges; COMP port no-ops on empty; COMP port throws → rethrows
+- [ ] `src/infrastructure/proj/erasure/comp-composition-erasure.adapter.ts` — implements `CompositionErasurePort`; calls COMP's `MetadataErasurePort` via its `erase(projetoId, empresaId)` method; idempotent; on COMP unavailability: rethrows
+- [ ] `src/infrastructure/proj/erasure/comp-composition-erasure.adapter.spec.ts` — COMP port erases; COMP port no-ops on empty; COMP port throws → rethrows
 - [ ] `src/modules/proj/proj.module.ts` — register real adapter under `COMPOSITION_ERASURE_PORT` when COMP is scaffolded
 
 ## Criterios de aceite
 
-- [ ] `purge(projetoId)` calls COMP's purge port once
-- [ ] `purge(projetoId)` for a project with no COMP data completes without error
+- [ ] `erase(projetoId, empresaId)` calls COMP's erase port once
+- [ ] `erase(projetoId, empresaId)` for a project with no COMP data completes without error
 - [ ] COMP port failure: adapter rethrows; PROJ-016 aborts with 502
 - [ ] `pnpm test` on adapter spec exits 0
 

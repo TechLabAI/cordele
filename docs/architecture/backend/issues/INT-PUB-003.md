@@ -1,39 +1,54 @@
-# INT-PUB-003 -- ProjectStatusPort adapter: wiring in-process com PROJ.advanceTo
+# INT-PUB-003 -- ProjectStatusPort adapter: HTTP client em pub-service chamando PROJ.advance-status
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/4 itens
+> **REVISADO 2026-08-28: adapter e HTTP client (nao DI in-process) -- arquitetura real e microservicos separados, nao monolito.**
+
+**Status:** DONE -- implementado 2026-08-29
+**Maturidade:** 4 -- Completo
+**Done/Total:** 4/4 itens
 
 ## Contexto
 
 Implementar o adapter `ProjProjectStatusAdapter` que implementa `IProjectStatusPort`
-chamando in-process `AdvanceProjetoStatusUseCase.advanceTo({ projetoId, targetStatus })` do `ProjModule`.
-Injeção por token de DI (ADR-001). Falha em `advanceTo` (transição ilegal ou PROJ indisponível)
-deve ser capturada e surfaceada como `502 status-advance-failed` sem perder o desfecho do build
-(SPEC-02 §casos de borda).
+chamando **via HTTP** o endpoint `POST /api/v1/proj/projetos/:projetoId/advance-status`
+exposto pelo `proj-service`. O caller (pub-service) propaga o JWT original do usuario
+(`Authorization: Bearer <token>`) conforme RULE-06 (outbound HTTP clients somente em
+`infrastructure/http`). Falha HTTP (4xx/5xx ou rede) deve ser capturada e surfaceada como
+`ProjectStatusAdvanceError` sem perder o desfecho do build (SPEC-02 §casos de borda).
+
+O endpoint PROJ foi implementado em 2026-08-28:
+- **Path:** `POST /api/v1/proj/projetos/:projetoId/advance-status`
+- **Auth:** `JwtAuthGuard` padrao do proj-service (`Authorization: Bearer <token>` repassado pelo PUB)
+- **Body:** `{ "targetStatus": "publicado" | "com_erros" | "em_composicao" | "rascunho" }` (enum `ProjetoStatus`)
+- **Resposta 200:** `{ "projetoId": "...", "newStatus": "...", "changed": true|false }`
+- **Resposta 409:** transicao ilegal (`IllegalStatusTransitionError`) — `{ type: "urn:cordele:proj:illegal-status-transition", from, to }`
+- **Resposta 404:** projeto nao encontrado nesta empresa
 
 ## Spec de referencia
 - `contracts/integration-contracts.md` (§2.4 — ProjectStatusPort, D-P)
 - SPEC-02 (build-orchestration §casos de borda — falha de advanceTo)
 - SPEC-10 (integrations §2.3)
 
-## Escopo
+## Escopo (IMPLEMENTADO 2026-08-29)
 
-Files to create (relative to monolith root `backend/`):
+Files created em `backend/services/pub-service/`:
 
-- [ ] `src/infrastructure/pub/integration/proj-project-status.adapter.ts` — implementa `IProjectStatusPort`; injeta `PROJ_ADVANCE_STATUS_USE_CASE` token; `advanceTo({ projetoId, targetStatus })` chama o use case PROJ e captura exceções; lança `ProjectStatusAdvanceError` (não propaga a exceção interna de PROJ) para que `PublicationBuildJob` registre `status-advance-failed`
-- [ ] `src/infrastructure/pub/integration/proj-project-status.adapter.spec.ts` — unit tests: `advanceTo(publicado)` → delegado corretamente; `advanceTo` lança → `ProjectStatusAdvanceError` propagado (build result não revertido); PUB nunca chama `reopen` (verificado: nenhuma chamada de reopen nos mocks)
-- [ ] `src/domain/pub/errors/project-status-advance.error.ts` — classe `ProjectStatusAdvanceError` com `projetoId`, `targetStatus`, `reason`
-- [ ] Adicionar stub do `IProjectStatusPort` no `stubs.module.ts` de PUB-012: `advanceTo` echo (retorna success); configurável para lançar via env `PUB_PROJ_STUB_FAIL=true`
+- [x] Endpoint em `proj-service`: `POST /api/v1/proj/projetos/:projetoId/advance-status` (implementado 2026-08-28 em `proj.controller.ts`)
+- [x] `src/infrastructure/http/proj-project-status.adapter.ts` — implementa `AdvanceProjetoStatusPort.advanceTo(input, bearerToken)` via fetch nativo (Node 22); POST com `Authorization: Bearer <token>`; captura erros HTTP/rede; lanca `ProjectStatusAdvanceError`
+- [x] `src/infrastructure/http/proj-project-status.adapter.spec.ts` — 9 specs: happy path, changed=false, 409→error, 404→error, rede→error, 5xx→error, no reopen, config URL; todos passando
+- [x] `src/domain/pub/errors/project-status-advance.error.ts` — classe `ProjectStatusAdvanceError` com `projetoId`, `targetStatus` (local type `ProjetoTargetStatusDomain`), `reason`; zero imports modules/ (RULE-01/02)
+- [x] `src/modules/pub/ports/advance-projeto-status.port.ts` — assinatura atualizada: `advanceTo(input, bearerToken: string)`; stubs e todos os callers atualizados
 
 ## Criterios de aceite
-- [ ] `pnpm test src/infrastructure/pub/integration/proj-project-status.adapter.spec.ts` exits 0
-- [ ] Falha de `advanceTo` não reverte o `Publicacao` persistido (testado: `save` chamado antes do `advanceTo`)
-- [ ] PUB nunca chama `reopen` (sem método `reopen` no `IProjectStatusPort`)
+- [x] `pnpm test src/infrastructure/http/proj-project-status.adapter.spec.ts` exits 0 (9/9)
+- [x] Bearer token do request original e repassado no header `Authorization` para o proj-service
+- [x] Falha de `advanceTo` nao reverte o `Publicacao` persistido (log + sem relancamento no job)
+- [x] PUB nunca chama `reopen` (sem metodo `reopen` no `AdvanceProjetoStatusPort`)
+- [x] `pnpm exec tsc --noEmit` exits 0
+- [x] `pnpm lint` exits 0
 
 ## Dependencias
 - PUB-004 (IProjectStatusPort interface, PublicationBuildJob)
-- PROJ: `PROJ_ADVANCE_STATUS_USE_CASE` token exportado pelo ProjModule
+- proj-service rodando e acessivel via `PROJ_SERVICE_BASE_URL` (env var)
 
 ## Estimativa
 S

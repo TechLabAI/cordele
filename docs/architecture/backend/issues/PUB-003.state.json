@@ -1,0 +1,123 @@
+{
+  "issue": "PUB-003",
+  "layer": "be",
+  "computedAt": "2026-08-26T13:18:00",
+  "checklist": {
+    "total": 12,
+    "done": 2,
+    "partial": 0,
+    "missing": 10,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/pub/application/generate-publication.use-case.ts` — lógica de pré-flight + criação da entidade + enfileiramento do `PublicationBuildJob`; retorna `{ publicacaoId, status, isNew: boolean }` para o controller mapear para 202/200",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/generate-publication.use-case.ts"
+      },
+      {
+        "text": "`src/modules/pub/application/generate-publication.use-case.spec.ts` — unit tests com mocks das portas: happy path `202`, em-voo `200`, sem manuscrito `409`, sem metadados `422`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/generate-publication.use-case.spec.ts"
+      },
+      {
+        "text": "`src/modules/pub/ports/publicacao-repository.port.ts` — interface `IPublicacaoRepository` com métodos `findInFlight(projetoId)`, `save(pub)`, `nextSequencia(projetoId)`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/ports/publicacao-repository.port.ts"
+      },
+      {
+        "text": "`src/modules/pub/ports/manuscript-content.port.ts` — interface `IManuscriptContentPort` com `getContentTree(projetoId)`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/ports/manuscript-content.port.ts"
+      },
+      {
+        "text": "`src/modules/pub/ports/composition-read.port.ts` — interface `ICompositionReadPort` com `getMetadados(projetoId)`, `getConfiguracaoLayout(projetoId)`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/ports/composition-read.port.ts"
+      },
+      {
+        "text": "`src/modules/pub/ports/project-status.port.ts` — interface `IProjectStatusPort` com `advanceTo({ projetoId, targetStatus })`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/ports/project-status.port.ts"
+      },
+      {
+        "text": "`pnpm test src/modules/pub/application/generate-publication.use-case.spec.ts` exits 0",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/generate-publication.use-case.spec.ts"
+      },
+      {
+        "text": "Disparo com build em voo retorna o `publicacaoId` existente e não chama `save()` uma segunda vez",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Disparo sem manuscrito (`getContentTree` retorna `null`) rejeita antes de criar qualquer `Publicacao`",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Disparo sem `titulo`/`autor`/`idioma` rejeita com `422 metadata-incomplete`",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`sequencia` = `max(sequencia) + 1` por projeto; primeiro export gera `sequencia = 1`",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Nenhuma lógica de montagem de ePub presente neste use case (responsabilidade do `PublicationBuildJob`)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "pass",
+    "lint": "pass",
+    "test": "pass",
+    "e2e": "pass"
+  },
+  "score": {
+    "total": 54,
+    "provisional": true,
+    "range": [
+      54,
+      64
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 19,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 5,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 20,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 10,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Parcial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 5/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

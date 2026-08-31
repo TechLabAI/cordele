@@ -1,6 +1,6 @@
 {
-  "pending_input": 439250,
-  "pending_output": 2226,
+  "pending_input": 58691721,
+  "pending_output": 40530,
   "watermarks": {
     "695a150f-7620-46cf-b347-80c6aaa696eb": {
       "input": 2145696,
@@ -13,10 +13,145 @@
       "seq": 4
     },
     "3de1ab6a-f1b9-45c9-ae59-af141d5880d0": {
-      "input": 66010,
-      "output": 138,
-      "seq": 6
+      "input": 3202815,
+      "output": 10907,
+      "seq": 9
+    },
+    "dbfacd6e-e211-49fc-9637-adb707f77bb4": {
+      "input": 108990,
+      "output": 766,
+      "seq": 10
+    },
+    "b24c8d6e-96b9-4a35-96a9-6ff312f70424": {
+      "input": 4348601,
+      "output": 19953,
+      "seq": 26
+    },
+    "f0da9c5e-4bd5-43fd-a211-6b3ca2467d07": {
+      "input": 992490,
+      "output": 5474,
+      "seq": 14
+    },
+    "c96aafba-6f18-45f1-b052-36dbc16920ab": {
+      "input": 7088698,
+      "output": 28642,
+      "seq": 21
+    },
+    "e606add7-9fe3-4d5d-a740-7d79216f28c8": {
+      "input": 11424095,
+      "output": 46618,
+      "seq": 25
+    },
+    "c6d41777-0f63-4543-b663-950ad089e689": {
+      "input": 5496707,
+      "output": 23473,
+      "seq": 30
+    },
+    "d2bc3f80-3be6-4ce6-bbbe-9f28125b603c": {
+      "input": 13948486,
+      "output": 52754,
+      "seq": 29
+    },
+    "3bd0d230-306c-4dd9-8fff-5a2141190637": {
+      "input": 3355157,
+      "output": 15900,
+      "seq": 31
+    },
+    "f33723ed-1f8c-41ab-bb72-487202c90343": {
+      "input": 5691139,
+      "output": 25983,
+      "seq": 35
+    },
+    "d3697d74-0382-419f-9a56-45bbab599594": {
+      "input": 2250676,
+      "output": 13298,
+      "seq": 33
+    },
+    "7e7abefa-587a-499c-a670-4c69a06fd000": {
+      "input": 749601,
+      "output": 3705,
+      "seq": 34
+    },
+    "d4f5f0e6-cfc9-4883-9b51-0558e06d54e7": {
+      "input": 10616959,
+      "output": 37326,
+      "seq": 39
+    },
+    "73ed8c36-1cb0-4c2f-975a-70e663eee886": {
+      "input": 45806293,
+      "output": 177936,
+      "seq": 44
+    },
+    "f75ad16a-1020-41b5-8fc5-1c77ba461ca7": {
+      "input": 6823827,
+      "output": 35462,
+      "seq": 42
+    },
+    "7c46ee83-36f3-4e20-bd60-322d05564e2e": {
+      "input": 6052007,
+      "output": 26000,
+      "seq": 69
+    },
+    "8512ca54-3ef2-419a-8f51-6e9f8494b3bd": {
+      "input": 35883881,
+      "output": 120511,
+      "seq": 55
+    },
+    "56f64ffe-a00b-42a6-a184-bcdb98f6c775": {
+      "input": 1276172,
+      "output": 7576,
+      "seq": 56
+    },
+    "b57d719c-ebcb-4ea7-bba6-11b17b2b316b": {
+      "input": 20159309,
+      "output": 88245,
+      "seq": 65
+    },
+    "9680223a-974c-45cb-9caf-a371160b30c5": {
+      "input": 8079598,
+      "output": 29881,
+      "seq": 70
+    },
+    "cf945e46-501c-43d7-ad94-d30b8ab43d84": {
+      "input": 5909979,
+      "output": 30078,
+      "seq": 81
+    },
+    "66d40065-aaab-439a-995f-56a6f7f0d8ce": {
+      "input": 12028625,
+      "output": 41212,
+      "seq": 92
+    },
+    "3828a1b8-9035-4e2f-a5d1-11a940649cff": {
+      "input": 2197475,
+      "output": 12676,
+      "seq": 91
+    },
+    "3bbfd400-b1ea-46e2-a1b9-6f7d47372e67": {
+      "input": 6087860,
+      "output": 35436,
+      "seq": 114
+    },
+    "303608fe-6848-4f7b-85b8-476c815dffc5": {
+      "input": 39082644,
+      "output": 86556,
+      "seq": 108
+    },
+    "cb4816f3-f754-4ffd-a061-38788685736e": {
+      "input": 1445169,
+      "output": 8312,
+      "seq": 109
+    },
+    "dddb6167-1f50-4c1b-8139-28bad9b7d265": {
+      "input": 1354672,
+      "output": 6698,
+      "seq": 118
+    },
+    "4b816d14-f20b-44c5-b4c4-126e3f2c8d93": {
+      "input": 157084360,
+      "output": 247544,
+      "seq": 189
     }
   },
-  "seq": 6
+  "seq": 189
 }

@@ -28,10 +28,10 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] After two `upsert` calls with different override sets, only the second set's overrides exist
-- [ ] Entire override replacement executes in a single DB transaction (no partial state possible)
-- [ ] `findByProjetoId` loads overrides ordered by `ordem` ascending
-- [ ] `pnpm test` on repository spec exits 0
+- [x] After two `upsert` calls with different override sets, only the second set's overrides exist
+- [x] Entire override replacement executes in a single DB transaction (no partial state possible)
+- [x] `findByProjetoId` loads overrides ordered by `ordem` ascending
+- [x] `pnpm test` on repository spec exits 0
 
 ## Dependencias
 

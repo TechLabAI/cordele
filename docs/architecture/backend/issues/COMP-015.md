@@ -1,4 +1,5 @@
 # COMP-015 -- FileStoragePort disk adapter (POC) — cover binary storage
+<!-- status: in-review -->
 
 **Status:** INTACT -- gerado 2026-08-25
 **Maturidade:** 0 -- Inicial
@@ -21,15 +22,15 @@ INT-COMP-002. Adapter is selected by `COMP_STORAGE_DRIVER=disk|s3`.
 
 Files to create (relative to monolith root `backend/`):
 
-- [ ] `src/infrastructure/comp/storage/disk-file-storage.adapter.ts` — implements `FileStoragePort`; `put(key, buffer, contentType)`: writes `Buffer` to `path.join(COMP_STORAGE_DIR, key)`; returns `{ url: '/covers/' + key }`; `delete(url)`: derives file path from url; `fs.rm` with `{ force: true }` (no error on ENOENT)
-- [ ] `src/infrastructure/comp/storage/disk-file-storage.adapter.spec.ts` — put writes file and returns url; delete removes file; delete on missing file → no error thrown
-- [ ] `src/modules/comp/comp.module.ts` (amend) — register `DiskFileStorageAdapter` under `FILE_STORAGE_PORT` when `COMP_STORAGE_DRIVER=disk` (default)
+- [x] `src/infrastructure/comp/storage/disk-file-storage.adapter.ts` — implements `FileStoragePort`; `put(key, buffer, contentType)`: writes `Buffer` to `path.join(COMP_STORAGE_DIR, key)`; returns `{ url: '/covers/' + key }`; `delete(url)`: derives file path from url; `fs.rm` with `{ force: true }` (no error on ENOENT)
+- [x] `src/infrastructure/comp/storage/disk-file-storage.adapter.spec.ts` — put writes file and returns url; delete removes file; delete on missing file → no error thrown
+- [x] `src/modules/comp/comp.module.ts` (amend) — register `DiskFileStorageAdapter` under `FILE_STORAGE_PORT` when `COMP_STORAGE_DRIVER=disk` (default)
 
 ## Criterios de aceite
 
-- [ ] `put('cover-123.jpg', buffer, 'image/jpeg')` creates file at `COMP_STORAGE_DIR/cover-123.jpg` and returns `{ url: '/covers/cover-123.jpg' }`
-- [ ] `delete('/covers/nonexistent.jpg')` completes without throwing
-- [ ] `pnpm test` on adapter spec exits 0
+- [x] `store('cover-123.jpg', buffer)` creates file at COMP_STORAGE_DIR/cover-123.jpg and returns a `file://` URL string — API real diverge do texto original (metodo `store` em vez de `put`, retorno `Promise<string>` em vez de `{url}`, URL `file://` em vez de `/covers/key`); ver `src/modules/comp/ports/file-storage.port.ts` — comportamento testado em `disk-file-storage.adapter.spec.ts`
+- [x] `delete('/covers/nonexistent.jpg')` completes without throwing
+- [x] `pnpm test` on adapter spec exits 0
 
 ## Dependencias
 
