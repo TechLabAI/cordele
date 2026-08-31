@@ -1,0 +1,103 @@
+{
+  "issue": "PUB-017",
+  "layer": "be",
+  "computedAt": "2026-08-26T15:02:03",
+  "checklist": {
+    "total": 8,
+    "done": 3,
+    "partial": 1,
+    "missing": 4,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/pub/observability/correlation.interceptor.ts` — NestJS `NestInterceptor`; gera `X-Correlation-Id` se ausente; injeta no request e no response header; propaga para `AsyncLocalStorage` de correlação junto com `EmpresaContext`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/observability/correlation.interceptor.ts"
+      },
+      {
+        "text": "`src/modules/pub/observability/pub-logger.service.ts` — logger estruturado JSON wrapping o NestJS `LoggerService`; inclui `empresa`, `correlationId`, `publicacaoId` nos campos de cada log entry; logs de início/fim de cada fase do build com duração em ms",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/observability/pub-logger.service.ts"
+      },
+      {
+        "text": "`src/modules/pub/observability/build-metrics.ts` — helper `recordBuildPhase(phase, durationMs, result)` que emite evento de pipeline via `pipeline_events` D-423 (best-effort — falha não bloqueia o build); campos: `publicacaoId`, `projetoId`, `sequencia`, `epubcheckStatus`, duração, veredito",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/observability/build-metrics.ts"
+      },
+      {
+        "text": "`src/modules/pub/observability/pub-observability.module.ts` — módulo NestJS que registra interceptor + logger",
+        "state": "PARTIAL",
+        "evidence": "arquivo presente porem stub: src/modules/pub/observability/pub-observability.module.ts"
+      },
+      {
+        "text": "`X-Correlation-Id` presente em todas as respostas do `PubController` (gerado se ausente no request)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Logs de início e fim do build com `durationMs` e `epubcheckStatus` visíveis em `pnpm test` com log level `debug`",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Falha do pipeline events (`D-423`) não propaga exceção para o job (best-effort)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm build` exits 0",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "unknown",
+    "lint": "pass",
+    "test": "unknown",
+    "e2e": "unknown"
+  },
+  "score": {
+    "total": 26,
+    "provisional": true,
+    "range": [
+      26,
+      36
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 15,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 11,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 11/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "layer": "be",
+  "target": "backend\\services\\pub-service",
+  "passed": true,
+  "checks": [
+    {
+      "rule": "no-adapter-instantiation-in-service",
+      "violations": [],
+      "ok": true
+    },
+    {
+      "rule": "no-framework-import-in-domain",
+      "violations": [],
+      "ok": true
+    },
+    {
+      "rule": "no-infrastructure-import-in-modules",
+      "violations": [],
+      "ok": true
+    },
+    {
+      "rule": "no-console-log",
+      "violations": [],
+      "ok": true
+    },
+    {
+      "rule": "no-ddl-outside-migrations",
+      "violations": [],
+      "ok": true
+    }
+  ]
+}

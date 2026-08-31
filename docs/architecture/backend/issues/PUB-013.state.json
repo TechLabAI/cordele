@@ -1,0 +1,108 @@
+{
+  "issue": "PUB-013",
+  "layer": "be",
+  "computedAt": "2026-08-26T14:29:58",
+  "checklist": {
+    "total": 9,
+    "done": 0,
+    "partial": 0,
+    "missing": 9,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/pub/auth/jwt-auth.guard.ts` — `CanActivate` que valida Bearer JWT via `OAUTH2_JWK_SET_URI`; retorna `401` sem token, `403` com scope insuficiente; extrai `empresaSlug` do claim e popula `EmpresaContext`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/auth/jwt-auth.guard.ts"
+      },
+      {
+        "text": "`src/modules/pub/auth/empresa-context.middleware.ts` — NestJS middleware que resolve `empresa` do JWT claim e chama `EmpresaContext.run(slug, next)` via `AsyncLocalStorage`; cross-tenant `projetoId`/`publicacaoId` retorna `404` (nunca revela existência)",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/auth/empresa-context.middleware.ts"
+      },
+      {
+        "text": "`src/modules/pub/auth/pub-scope.decorator.ts` — decorator `@PubScope('pub:read' | 'pub:write')` aplicado por rota; consumido pelo guard",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/auth/pub-scope.decorator.ts"
+      },
+      {
+        "text": "`src/modules/pub/auth/jwt-auth.guard.spec.ts` — unit tests: token válido com `pub:write` → autorizado; token válido sem scope → 403; token ausente → 401; `empresaSlug` corretamente extraído e injetado no `EmpresaContext`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/auth/jwt-auth.guard.spec.ts"
+      },
+      {
+        "text": "`src/modules/pub/auth/empresa-context.ts` — (se não já shared) `AsyncLocalStorage`-backed `EmpresaContext` com `getSlug()`, `run(slug, fn)` — reutilizar implementação de COMP se já existir em shared",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/auth/empresa-context.ts"
+      },
+      {
+        "text": "`pnpm test src/modules/pub/auth/jwt-auth.guard.spec.ts` exits 0",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/auth/jwt-auth.guard.spec.ts"
+      },
+      {
+        "text": "Request sem `Authorization` header retorna 401 `urn:cordele:pub:unauthorized`",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Request com `pub:read` scope tentando `POST /publicacoes` retorna 403 `urn:cordele:pub:forbidden`",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`EmpresaContext.getSlug()` disponível dentro do job assíncrono disparado pelo mesmo request",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "unknown",
+    "lint": "skip",
+    "test": "unknown",
+    "e2e": "unknown"
+  },
+  "score": {
+    "total": 0,
+    "provisional": true,
+    "range": [
+      0,
+      10
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 0,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "INTACT"
+  },
+  "agentTodo": [
+    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

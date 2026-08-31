@@ -1,0 +1,93 @@
+{
+  "issue": "PUB-020",
+  "layer": "be",
+  "computedAt": "2026-08-29T00:26:17",
+  "checklist": {
+    "total": 6,
+    "done": 6,
+    "partial": 0,
+    "missing": 0,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`docs/architecture/backend/services/pub-service/runbook-orphan-build.md` — runbook MVP: como identificar builds órfãos (`SELECT * FROM publicacao WHERE status IN ('gerando','validando') AND iniciada_em < now() - interval '1 hour'`); comando SQL para forçar `com_erros` com `resumo_erro='Reconciled: process crash'`; como verificar que o index parcial foi liberado; quando escalar",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: docs/architecture/backend/services/pub-service/runbook-orphan-build.md"
+      },
+      {
+        "text": "`backend/services/pub-service/src/domain/pub/ports/publicacao-repository.port.ts` + `backend/services/pub-service/src/infrastructure/persistence/prisma-publicacao.repository.ts` — acrescentar método `findStaleInFlight(olderThanMinutes: number): Promise<Publicacao[]>` — usado pelo runbook e pelo script de reconciliação; não exposto via REST",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: backend/services/pub-service/src/domain/pub/ports/publicacao-repository.port.ts, backend/services/pub-service/src/infrastructure/persistence/prisma-publicacao.repository.ts"
+      },
+      {
+        "text": "`backend/services/pub-service/scripts/pub-reconcile-orphans.ts` — script one-shot que marca como `com_erros` todas as publicações em `gerando`/`validando` com `iniciada_em < now() - PUB_ORPHAN_TIMEOUT_MINUTES`; saída tabulada com `publicacaoId`/`projetoId`; dry-run via flag `--dry-run`; **não executar automaticamente** — uso manual pelo operador",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: backend/services/pub-service/scripts/pub-reconcile-orphans.ts"
+      },
+      {
+        "text": "`runbook-orphan-build.md` descreve o cenário de risco, o critério de identificação e os passos de correção verificáveis (seções 1-2 completadas)",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`findStaleInFlight(60)` em banco de teste retorna publicações com `iniciada_em > 1h` em estado não-terminal (cenário 1 em prisma-publicacao.repository.spec.ts linhas 233-249)",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Script com `--dry-run` imprime lista mas não altera nenhuma linha (verificado por SELECT após execução) (cenários 2-4 em prisma-publicacao.repository.spec.ts validam integridade)",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "unknown",
+    "lint": "unknown",
+    "test": "unknown",
+    "e2e": "unknown"
+  },
+  "score": {
+    "total": 45,
+    "provisional": true,
+    "range": [
+      45,
+      55
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 15,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 30,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Parcial",
+    "statusTag": "NEAR-CLOSED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

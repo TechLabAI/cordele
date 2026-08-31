@@ -1,0 +1,103 @@
+{
+  "issue": "PUB-015",
+  "layer": "be",
+  "computedAt": "2026-08-26T14:49:24",
+  "checklist": {
+    "total": 8,
+    "done": 0,
+    "partial": 1,
+    "missing": 7,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/pub/application/publication-erasure.service.ts` — implementa `IPublicationErasurePort`; lista `artefatoRef` de todas as publicações do projeto (incluindo `null`); deleta artefatos via `IFileStoragePort.delete` (um por um, ignorando erros de arquivo inexistente — idempotente); executa `IPublicacaoRepository.deleteByProjeto(projetoId)` (FK CASCADE remove `ValidationMessage`); toda operação dentro do `EmpresaContext` do chamador",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-erasure.service.ts"
+      },
+      {
+        "text": "`src/modules/pub/ports/publication-erasure.port.ts` — interface `IPublicationErasurePort` com `purge(projetoId: string): Promise<void>`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/ports/publication-erasure.port.ts"
+      },
+      {
+        "text": "`src/modules/pub/application/publication-erasure.service.spec.ts` — unit tests: `purge` com 3 publicações (2 com artefato, 1 sem) → `FileStoragePort.delete` chamado 2x; `purge` de projeto sem publicações → `0` deletes de storage, sem erro; `purge` idempotente (segunda chamada → no-op)",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-erasure.service.spec.ts"
+      },
+      {
+        "text": "`src/modules/pub/pub.module.ts` — export do token `PUBLICATION_ERASURE_PORT`",
+        "state": "PARTIAL",
+        "evidence": "arquivo presente porem stub: src/modules/pub/pub.module.ts"
+      },
+      {
+        "text": "`pnpm test src/modules/pub/application/publication-erasure.service.spec.ts` exits 0",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-erasure.service.spec.ts"
+      },
+      {
+        "text": "Segunda chamada de `purge` para o mesmo `projetoId` não lança (idempotente)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`FileStoragePort.delete` **não** chamado para publicações com `artefatoRef=null` (não há arquivo para deletar)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "FK CASCADE deleta `ValidationMessage` sem chamadas explícitas ao repositório de mensagens",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "deferred",
+    "lint": "pass",
+    "test": "deferred",
+    "e2e": "deferred"
+  },
+  "score": {
+    "total": 3,
+    "provisional": true,
+    "range": [
+      3,
+      13
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 3,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 0,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "project": "comp-service",
+  "layer": "be",
+  "gates": {
+    "lint": {
+      "status": "pass",
+      "message": "eslint + tsc --noEmit: no errors"
+    },
+    "test": {
+      "status": "deferred",
+      "message": "baseline: no unit/integration tests run; COMP-003..008 pending"
+    },
+    "build": {
+      "status": "pass",
+      "message": "pnpm build: OK"
+    },
+    "e2e": {
+      "status": "deferred",
+      "message": "baseline: E2E stub only; real tests deferred to P3+"
+    }
+  },
+  "timestamp": "2026-08-29T00:00:00Z"
+}

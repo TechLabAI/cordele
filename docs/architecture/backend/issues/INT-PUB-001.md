@@ -1,8 +1,8 @@
 # INT-PUB-001 -- ManuscriptContentPort adapter: wiring in-process com IMP
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/4 itens
+**Status:** DONE -- implementado 2026-08-29
+**Maturidade:** 4 -- Completo
+**Done/Total:** 4/4 itens
 
 ## Contexto
 
@@ -17,19 +17,24 @@ ADR-001). A substituição deve ser transparente para `GeneratePublicationUseCas
 - SPEC-10 (integrations §2.1)
 - `docs/architecture/backend/adr/ADR-001-hexagonal-node.md`
 
-## Escopo
+## Escopo (IMPLEMENTADO 2026-08-29 — arquitetura real: microservicos via HTTP)
 
-Files to create (relative to monolith root `backend/`):
+> Nota: INT-PUB-001 foi implementado como HTTP client (nao DI in-process) para refletir a
+> arquitetura real de microservicos separados. Os paths abaixo diferem do escopo original.
 
-- [ ] `src/infrastructure/pub/integration/imp-manuscript-content.adapter.ts` — implementa `IManuscriptContentPort` do PUB; injeta `IMP_MANUSCRIPT_CONTENT_PORT` token (exported by ImpModule); delega `getContentTree(projetoId)` para o provider IMP; importa apenas a interface/token, nunca uma classe concreta de IMP
-- [ ] `src/modules/pub/pub.module.ts` — condicional: se `ImpModule` disponível no bootstrap, usar `ImpManuscriptContentAdapter`; senão manter stub (controlado por `PUB_USE_STUBS`)
-- [ ] `src/infrastructure/pub/integration/imp-manuscript-content.adapter.spec.ts` — unit tests com mock do provider IMP: `getContentTree` delega corretamente; retorna `null` quando IMP retorna `null`
-- [ ] Documentar em `setup-local.md` a dependência do `ImpModule` no bootstrap do monólito
+Files created em `backend/services/pub-service/`:
+
+- [x] `src/infrastructure/http/imp-manuscript-content.adapter.ts` — implementa `ManuscriptContentPort.getContentTree(projetoId, bearerToken)` via fetch nativo (Node 22); dois passos: GET /api/v1/imp/projetos/{id}/manuscritos → GET /api/v1/imp/manuscripts/{id}/estrutura; encaminha bearer token; retorna null em 404/vazio/erro de rede; extrai chapters do ContentTree do IMP.
+- [x] `src/infrastructure/http/imp-manuscript-content.adapter.spec.ts` — 10 specs: happy path, 404, lista vazia, erro de rede, seleção do manuscrito mais recente, forwarding do Authorization header; todos passando.
+- [x] `src/modules/pub/ports/manuscript-content.port.ts` — assinatura atualizada: `getContentTree(projetoId: string, bearerToken: string)`.
+- [x] `src/app.module.ts` — binding condicional: `PUB_USE_STUBS !== true` → `ImpManuscriptContentAdapter`; stubs via `StubsModule` quando ativo.
 
 ## Criterios de aceite
-- [ ] `pnpm test src/infrastructure/pub/integration/imp-manuscript-content.adapter.spec.ts` exits 0
-- [ ] Nenhum import direto de arquivo interno de IMP (somente token/interface do barrel de IMP)
-- [ ] `PUB_USE_STUBS=true` mantém o stub sem erros de DI
+- [x] `pnpm test src/infrastructure/http/imp-manuscript-content.adapter.spec.ts` exits 0 (10/10)
+- [x] Bearer token encaminhado em `Authorization: Bearer` header para o IMP service
+- [x] `PUB_USE_STUBS=true` mantém o stub sem erros de DI (httpAdapterProviders=[] nesse caso)
+- [x] `pnpm exec tsc --noEmit` exits 0
+- [x] `pnpm lint` exits 0
 
 ## Dependencias
 - PUB-012 (stub a substituir)

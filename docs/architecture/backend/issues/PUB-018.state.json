@@ -1,0 +1,103 @@
+{
+  "issue": "PUB-018",
+  "layer": "be",
+  "computedAt": "2026-08-26T15:02:20",
+  "checklist": {
+    "total": 8,
+    "done": 0,
+    "partial": 0,
+    "missing": 8,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/pub/health/pub-health.indicator.ts` — `HealthIndicator` customizado do `@nestjs/terminus`; verifica: (1) `PrismaService.$queryRaw SELECT 1` para DB; (2) acesso de escrita ao `PUB_STORAGE_ROOT`; (3) existência de `EPUBCHECK_JAR_PATH` e executabilidade de `java -version` — retorna `UP` ou `DOWN` por componente",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/health/pub-health.indicator.ts"
+      },
+      {
+        "text": "`src/modules/pub/health/pub-health.module.ts` — NestJS module registrando o indicator e integrando com `TerminusModule`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/health/pub-health.module.ts"
+      },
+      {
+        "text": "`src/modules/pub/health/pub-health.indicator.spec.ts` — unit tests com mocks: epubcheck JAR ausente → status `DOWN` com reason `EPUBCHECK_JAR_PATH not configured`; DB inacessível → DOWN; todos presentes → UP",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/health/pub-health.indicator.spec.ts"
+      },
+      {
+        "text": "`src/app.health.controller.ts` — (se não existir) contribuição do PUB ao endpoint `/health` do monólito com os 3 indicadores PUB",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/app.health.controller.ts"
+      },
+      {
+        "text": "`pnpm test src/modules/pub/health/pub-health.indicator.spec.ts` exits 0",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/modules/pub/health/pub-health.indicator.spec.ts"
+      },
+      {
+        "text": "`EPUBCHECK_JAR_PATH` não configurado → health retorna status `DOWN` com campo `epubcheck.status=down` e `reason` legível",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm build` exits 0",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Health endpoint responde em < 500ms (sem executar epubcheck real — apenas verifica existência do JAR)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "unknown",
+    "lint": "pass",
+    "test": "unknown",
+    "e2e": "unknown"
+  },
+  "score": {
+    "total": 0,
+    "provisional": true,
+    "range": [
+      0,
+      10
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 0,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "INTACT"
+  },
+  "agentTodo": [
+    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

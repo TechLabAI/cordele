@@ -1,0 +1,3 @@
+gates-run: stack=node (resolved from D:\01_Trabalho\Cybersoft\TechLab IA\cordele\project-context.json) cwd=D:\01_Trabalho\Cybersoft\TechLab IA\cordele
+gates [be:backend/services/pub-service] test=skip build=skip e2e=skip lint=skip -> tmp/gates.json
+OK: gates {'test': 'skip', 'build': 'skip', 'e2e': 'skip', 'lint': 'skip'} -> tmp/gates.json

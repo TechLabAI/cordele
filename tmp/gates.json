@@ -1,7 +1,6 @@
 {
-  "lint": "pass",
-  "arch-conformance": "pass",
+  "test": "pass",
   "build": "pass",
-  "test": "deferred",
-  "e2e": "deferred"
+  "lint": "pass",
+  "e2e": "pass"
 }

@@ -225,6 +225,24 @@ Live projection of the project's publications used to render the KPI cards. Comp
 - `THE SYSTEM SHALL compute the KPIs from the Publicacao rows of the active empresa only, never from a
   separate analytics source (D-O).`
 
+### 4.6 `GET /api/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/validation-messages` — detailed validation messages (PUB-016)
+
+Returns the `validation_message` rows for one publication, optionally filtered by severity, ordered by
+`ordem ASC`. Useful for the FE to render the error-details screen without a separate query per severity.
+
+**Scope:** `pub:read`  
+**Query parameter:** `severity` (optional) — one of `error | warning | info`. When omitted all severities are returned.  
+**Success — `200 OK`**, body = `ValidationMessageItem[]` (§6.5).
+
+Cross-tenant guard: returns `404` when `publicacaoId` does not exist in the given `projetoId` or the active empresa (schema-per-tenant isolation via `search_path`; never reveals cross-tenant existence).
+
+Acceptance criteria (EARS):
+
+- `WHEN a valid publicacaoId belonging to the active empresa is requested, THE SYSTEM SHALL return its validation messages ordered by ordem ASC.`
+- `WHEN the query parameter severity=error is supplied, THE SYSTEM SHALL return only messages whose severity is error.`
+- `IF no severity parameter is supplied, THE SYSTEM SHALL return messages of all severities.`
+- `IF the publicacaoId does not belong to the projetoId or the active empresa, THEN THE SYSTEM SHALL respond 404 (urn:cordele:pub:publicacao-not-found).`
+
 ---
 
 ## 5. Errors (RFC 7807 ProblemDetail)
@@ -330,6 +348,24 @@ the authoritative source of that shape.
 - `publicadas` counts publications whose `status=publicado`; `comAvisos` is the subset with
   `epubcheckStatus=avisos`; `comErros` counts `com_erros`; `emAndamento` counts non-terminal builds.
 - `ultimo*` reflect the newest `Publicacao`; `null` when the project has never been exported.
+
+### 6.5 `ValidationMessageItem` (validation detail — PUB-016)
+
+```json
+{
+  "id": "uuid",
+  "severity": "error",
+  "code": "OPF-033",
+  "message": "Duplicate spine item reference",
+  "location": "OEBPS/content.opf#L42",
+  "ordem": 0
+}
+```
+
+- `severity ∈ {error, warning, info}` — epubcheck message class (data-model.md §2.2).
+- `code` is the stable epubcheck message id (e.g. `PKG-006`, `OPF-033`).
+- `location` is nullable — some epubcheck messages have no file/line reference.
+- `ordem` is 0-based insertion order; the list is always returned `ordem ASC`.
 
 ### 6.4 Inbound application ports exported by PUB (in-process; not REST)
 

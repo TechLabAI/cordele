@@ -1,0 +1,113 @@
+{
+  "issue": "PUB-002",
+  "layer": "be",
+  "computedAt": "2026-08-26T13:34:56",
+  "checklist": {
+    "total": 10,
+    "done": 0,
+    "partial": 0,
+    "missing": 10,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/domain/pub/publicacao.ts` — entidade raiz; construtor valida invariantes (`sequencia >= 1`, `artefato_ref` exigido se `publicado`, único build não-terminal por projeto é guardado pela camada de aplicação); métodos `transition(to: PublicacaoStatus)`, `setOutcome(verdict: EpubcheckStatus, counts: {erros, avisos}, artefatoRef?)`, `setResumoErro(msg: string)`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/domain/pub/publicacao.ts"
+      },
+      {
+        "text": "`src/domain/pub/validation-message.ts` — entidade filha; `severity: ValidationSeverity`, `code`, `message`, `location?`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/domain/pub/validation-message.ts"
+      },
+      {
+        "text": "`src/domain/pub/publication-status.vo.ts` — VO com a tabela canônica de transições (D-Q); método `isTerminal()`, `isDownloadable()`, `mapVerdictToStatus(verdict: EpubcheckStatus): PublicacaoStatus`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/domain/pub/publication-status.vo.ts"
+      },
+      {
+        "text": "`src/domain/pub/pub.enums.ts` — `PublicacaoStatus`, `EpubcheckStatus`, `ValidationSeverity` como `const enum` ou `enum`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/domain/pub/pub.enums.ts"
+      },
+      {
+        "text": "`src/domain/pub/pub.domain.spec.ts` — testes unitários: transições válidas, transições inválidas (throws), invariante `artefato_ref`, mapeamento de veredito (D-Q tabela)",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/domain/pub/pub.domain.spec.ts"
+      },
+      {
+        "text": "`pnpm test src/domain/pub/pub.domain.spec.ts` exits 0",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: src/domain/pub/pub.domain.spec.ts"
+      },
+      {
+        "text": "Transição `gerando → publicado` direta lança erro (deve passar por `validando`)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`setOutcome(erros_criticos, ...)` sem `artefatoRef` produz `status=com_erros` (`artefatoRef=null`)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`setOutcome(avisos, ...)` com `artefatoRef` produz `status=publicado, epubcheckStatus=avisos` (warnings publicam — D-Q)",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Nenhum arquivo importa Prisma, NestJS ou decorators de infra",
+        "state": "MISSING",
+        "evidence": "desmarcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "skip",
+    "lint": "skip",
+    "test": "skip",
+    "e2e": "skip"
+  },
+  "score": {
+    "total": 8,
+    "provisional": true,
+    "range": [
+      8,
+      18
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 8,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 0,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

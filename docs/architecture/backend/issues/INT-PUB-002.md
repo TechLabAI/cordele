@@ -1,8 +1,15 @@
 # INT-PUB-002 -- CompositionReadPort adapter: wiring in-process com COMP (metadados + layout)
 
-**Status:** INTACT -- gerado 2026-08-25
+**Status:** BLOCKED -- 2026-08-29 (documentada como bloqueada; aguardando COMP-service)
 **Maturidade:** 0 -- Inicial
 **Done/Total:** 0/4 itens
+
+**Nota de bloqueio (2026-08-29):** COMP-service é atualmente um esqueleto CRUD genérico sem domínio real de Metadados/ConfiguracaoLayout. Para implementar INT-PUB-002, COMP-service precisa:
+1. Arquitetar agregados reais `MetadadosEditorial` e `ConfiguracaoLayout` (P1-P2 COMP).
+2. Implementar casos de uso `GetMetadadosUseCase` e `GetConfiguracaoLayoutUseCase` (P2 COMP).
+3. Exportar tokens `GET_METADADOS_USE_CASE` e `GET_CONFIGURACAO_LAYOUT_USE_CASE` (P6 COMP).
+
+Quando COMP completar seu ciclo P1-P6 (visão, specs, backlog, implementação, ports exportadas), INT-PUB-002 será desbloqueada automaticamente neste repositório. Até lá, a arquitetura usa stubs locais (PUB-012) que retornam `null` para `getMetadados()` e `getConfiguracaoLayout()`, causando e2e skip e score E2E=0/10 provisoriamente.
 
 ## Contexto
 
