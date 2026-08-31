@@ -20,17 +20,17 @@ to RFC 7807 `application/problem+json` with `traceId = X-Correlation-Id`.
 
 Files to create (relative to monolith root `backend/`):
 
-- [ ] `src/infrastructure/comp/middleware/correlation.middleware.ts` — NestJS `NestMiddleware`: reads `X-Correlation-Id` from request header or generates UUID v4; sets in `EmpresaContext` as `correlationId`; echoes on response header `X-Correlation-Id`
-- [ ] `src/infrastructure/comp/middleware/request-logger.middleware.ts` — logs JSON `{ correlationId, empresa, projetoId, route, method, statusCode, durationMs }` on response finish; uses the monolith's shared logger (Winston or Pino)
-- [ ] `src/infrastructure/comp/filters/problem-json.filter.ts` — NestJS `ExceptionFilter`: maps `DomainException` → 400; `NotFoundException` → 404; `UnauthorizedException` → 401; `ForbiddenException` → 403; all with `application/problem+json` body `{ type, title, status, traceId }`
-- [ ] `src/modules/comp/comp.module.ts` (amend) — apply both middlewares to all COMP routes; register `ProblemJsonFilter` globally for the comp context
+- [x] `src/infrastructure/comp/middleware/correlation.middleware.ts` — NestJS `NestMiddleware`: reads `X-Correlation-Id` from request header or generates UUID v4; sets in `EmpresaContext` as `correlationId`; echoes on response header `X-Correlation-Id`
+- [x] `src/infrastructure/comp/middleware/request-logger.middleware.ts` — logs JSON `{ correlationId, empresa, projetoId, route, method, statusCode, durationMs }` on response finish; uses the monolith's shared logger (Winston or Pino)
+- [x] `src/infrastructure/comp/filters/problem-json.filter.ts` — NestJS `ExceptionFilter`: maps `DomainException` → 400; `NotFoundException` → 404; `UnauthorizedException` → 401; `ForbiddenException` → 403; all with `application/problem+json` body `{ type, title, status, traceId }`
+- [x] `src/modules/comp/comp.module.ts` (amend) — apply both middlewares to all COMP routes; register `ProblemJsonFilter` globally for the comp context
 
 ## Criterios de aceite
 
-- [ ] Request without `X-Correlation-Id` header → response contains generated UUID in `X-Correlation-Id` header
-- [ ] Request with `X-Correlation-Id: abc-123` → response echoes `X-Correlation-Id: abc-123`
-- [ ] `DomainException` from use case → 400 `application/problem+json` with `traceId` matching request `X-Correlation-Id`
-- [ ] `pnpm test` runs middleware unit tests and exits 0
+- [x] Request without `X-Correlation-Id` header → response contains generated UUID in `X-Correlation-Id` header
+- [x] Request with `X-Correlation-Id: abc-123` → response echoes `X-Correlation-Id: abc-123`
+- [x] `DomainException` from use case → 400 `application/problem+json` with `traceId` matching request `X-Correlation-Id`
+- [x] `pnpm test` runs middleware unit tests and exits 0
 
 ## Dependencias
 

@@ -1,0 +1,48 @@
+{
+  "issue": "COMP-010",
+  "layer": "be",
+  "checklist": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "missing": 0,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/infrastructure/comp/persistence/metadados.repository.ts` — implements `MetadadosRepository`; uses `prisma.metadados.upsert`; maps DB record → `Metadados` aggregate (snake_case → camelCase, `materialized=true` on persisted row); `findByProjetoId` uses `prisma.metadados.findUnique({ where: { projetoId } })`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/comp/persistence/metadados.repository.ts"
+      },
+      {
+        "text": "`src/infrastructure/comp/persistence/metadados.repository.spec.ts` — integration test against test DB (or PrismaService mock): upsert creates on first call; upsert updates on second call without duplicate; findByProjetoId returns null on absence",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/comp/persistence/metadados.repository.spec.ts"
+      },
+      {
+        "text": "`src/modules/comp/comp.module.ts` — register `MetadadosRepository` under `METADADOS_REPOSITORY` token (replace stub from COMP-001)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/comp/comp.module.ts"
+      },
+      {
+        "text": "Two `upsert` calls with same `projetoId` but different `titulo` result in exactly 1 row with second `titulo`",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`findByProjetoId` on absent project returns `null` (never throws)",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Mapped domain aggregate has `materialized=true`",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm test` on repository spec exits 0",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      }
+    ]
+  }
+}

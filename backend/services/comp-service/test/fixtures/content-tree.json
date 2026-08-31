@@ -1,0 +1,29 @@
+{
+  "projetoId": "00000000-0000-0000-0000-000000000001",
+  "nodes": [
+    {
+      "nodeId": "node-001",
+      "tipo": "capitulo",
+      "children": [
+        {
+          "nodeId": "node-002",
+          "tipo": "paragrafo"
+        },
+        {
+          "nodeId": "node-003",
+          "tipo": "imagem"
+        }
+      ]
+    },
+    {
+      "nodeId": "node-004",
+      "tipo": "capitulo",
+      "children": [
+        {
+          "nodeId": "node-005",
+          "tipo": "paragrafo"
+        }
+      ]
+    }
+  ]
+}

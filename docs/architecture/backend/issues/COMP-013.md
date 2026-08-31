@@ -22,19 +22,19 @@ existence). Read routes (`GET metadados`, `GET layout`, `GET preview-context`) r
 
 Files to create (relative to monolith root `backend/`):
 
-- [ ] `src/infrastructure/comp/auth/jwt-auth.guard.ts` — NestJS `CanActivate` implementing JWT validation via `OAUTH2_JWK_SET_URI` (RS256); extracts `empresa` claim and `principalId`; populates `EmpresaContext`; 401 if no/invalid token
-- [ ] `src/infrastructure/comp/auth/scope.guard.ts` — `ScopeGuard` factory decorator: checks `scopes` metadata on route; 403 if token lacks required scope; reuses PROJ's scope guard pattern if already present in monolith
-- [ ] `src/modules/comp/comp.controller.ts` (amend from COMP-001) — apply `@UseGuards(JwtAuthGuard, ScopeGuard)` + `@RequiredScopes('comp:read'|'comp:write')` per route; replace stub allow-all guards from P1
-- [ ] `src/infrastructure/comp/auth/jwt-auth.guard.spec.ts` — missing token → 401; expired token → 401; valid token → empresa claim in EmpresaContext; unknown empresa → 404 at use case (not at guard)
-- [ ] `src/infrastructure/comp/auth/scope.guard.spec.ts` — token with `comp:read` on read route → passes; same token on write route → 403; token with `comp:write` on any route → passes
+- [x] `src/infrastructure/comp/auth/jwt-auth.guard.ts` — NestJS `CanActivate` implementing JWT validation via `OAUTH2_JWK_SET_URI` (RS256); extracts `empresa` claim e `principalId`; populates `EmpresaContext`; 401 if no/invalid token
+- [x] `src/infrastructure/comp/auth/scope.guard.ts` — `ScopeGuard` factory decorator: checks `scopes` metadata on route; 403 if token lacks required scope; reuses PROJ's scope guard pattern if already present in monolith
+- [x] `src/modules/comp/comp.controller.ts` (amend from COMP-001) — apply `@UseGuards(JwtAuthGuard, ScopeGuard)` + `@RequiredScopes('comp:read'|'comp:write')` per route; replace stub allow-all guards from P1
+- [x] `src/infrastructure/comp/auth/jwt-auth.guard.spec.ts` — missing token → 401; expired token → 401; valid token → empresa claim in EmpresaContext; unknown empresa → 404 at use case (not at guard)
+- [x] `src/infrastructure/comp/auth/scope.guard.spec.ts` — token with `comp:read` on read route → passes; same token on write route → 403; token with `comp:write` on any route → passes
 
 ## Criterios de aceite
 
-- [ ] `GET /api/comp/projetos/:id/metadados` with no token → 401
-- [ ] `PUT /api/comp/projetos/:id/metadados` with `comp:read` scope only → 403
-- [ ] `PUT /api/comp/projetos/:id/metadados` with valid `comp:write` token → reaches use case (200/400)
-- [ ] `EmpresaContext` populated from JWT claim before any use case or repository call
-- [ ] `pnpm test` on both guard specs exits 0
+- [x] `GET /api/comp/projetos/:id/metadados` with no token → 401
+- [x] `PUT /api/comp/projetos/:id/metadados` with `comp:read` scope only → 403
+- [x] `PUT /api/comp/projetos/:id/metadados` with valid `comp:write` token → reaches use case (200/400)
+- [x] `EmpresaContext` populated from JWT claim before any use case or repository call
+- [x] `pnpm test` on both guard specs exits 0
 
 ## Dependencias
 

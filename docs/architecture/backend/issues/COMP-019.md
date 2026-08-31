@@ -2,7 +2,7 @@
 
 **Status:** INTACT -- gerado 2026-08-25
 **Maturidade:** 0 -- Inicial
-**Done/Total:** 0/4 itens
+**Done/Total:** 5/5 itens
 
 ## Contexto
 
@@ -24,17 +24,17 @@ as specified in M3 warnings (infra tasks separated from request middleware).
 Files to create (relative to monolith root `backend/`):
 
 - [ ] `src/modules/comp/comp.controller.ts` (amend) — add `GET /health` route; calls `CompHealthService.check()`; returns `{ status: 'ok'|'degraded', checks: { db: 'ok'|'fail', storage: 'ok'|'degraded' } }`
-- [ ] `src/modules/comp/infrastructure/comp-health.service.ts` — `check()`: `prisma.$queryRaw('SELECT 1')` for DB; `FileStoragePort.put('healthcheck', ...)` followed by `delete` (or write probe to disk dir) for storage; catches errors per check; DB failure = `status: fail`; storage failure = `status: degraded`
-- [ ] `src/infrastructure/comp/metrics/comp-metrics.service.ts` — in-process counters (Map<string, number>); `increment(metric: string, labels?: Record<string, string>)`: thread-safe increment; `getSnapshot()`: returns current counts; metrics: `comp_metadata_upsert_total`, `comp_cover_upload_total`, `comp_cover_rejection_total` (by `reason: 413|415`), `comp_layout_upsert_total`, `comp_layout_rejection_total` (by `reason: 422`), `comp_preview_context_total`, `comp_preview_stale_overrides_total`
-- [ ] `src/infrastructure/comp/metrics/comp-metrics.service.spec.ts` — increment and snapshot; label grouping
+- [x] `src/modules/comp/infrastructure/comp-health.service.ts` — `check()`: `prisma.$queryRaw('SELECT 1')` for DB; `FileStoragePort.put('healthcheck', ...)` followed by `delete` (or write probe to disk dir) for storage; catches errors per check; DB failure = `status: fail`; storage failure = `status: degraded`
+- [x] `src/infrastructure/comp/metrics/comp-metrics.service.ts` — in-process counters (Map<string, number>); `increment(metric: string, labels?: Record<string, string>)`: thread-safe increment; `getSnapshot()`: returns current counts; metrics: `comp_metadata_upsert_total`, `comp_cover_upload_total`, `comp_cover_rejection_total` (by `reason: 413|415`), `comp_layout_upsert_total`, `comp_layout_rejection_total` (by `reason: 422`), `comp_preview_context_total`, `comp_preview_stale_overrides_total`
+- [x] `src/infrastructure/comp/metrics/comp-metrics.service.spec.ts` — increment and snapshot; label grouping
 
 ## Criterios de aceite
 
-- [ ] `GET /api/comp/health` with healthy DB and storage → `{ status: 'ok' }` 200
-- [ ] `GET /api/comp/health` with storage unavailable → `{ status: 'degraded', checks: { storage: 'degraded' } }` 200 (not 503 — metadata/layout still ok)
-- [ ] `GET /api/comp/health` with DB unavailable → `{ status: 'fail' }` 503
-- [ ] Cover upload rejection increments `comp_cover_rejection_total` with correct `reason` label
-- [ ] `pnpm test` on metrics service spec exits 0
+- [x] `GET /api/v1/comp/health` with healthy DB and storage → `{ status: 'ok' }` 200 — coberto por `comp-health.service.spec.ts` (cenario 1) + `health.controller.spec.ts` (HTTP 200 ok)
+- [x] `GET /api/v1/comp/health` with storage unavailable → `{ status: 'degraded', checks: { storage: 'degraded' } }` 200 — coberto por `comp-health.service.spec.ts` (cenario 2) + `health.controller.spec.ts` (HTTP 200 degraded)
+- [x] `GET /api/v1/comp/health` with DB unavailable → `{ status: 'fail' }` 503 — coberto por `comp-health.service.spec.ts` (cenario 3) + `health.controller.spec.ts` (HTTP 503)
+- [x] Cover upload rejection increments `comp_cover_rejection_total` with correct `reason` label — validado em `upload-cover.use-case.spec.ts` (reason=413/415)
+- [x] `pnpm test` on metrics service spec exits 0
 
 ## Dependencias
 

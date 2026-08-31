@@ -31,11 +31,11 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] `getContentTree` returning null → 409 `urn:cordele:comp:manuscript-missing`
-- [ ] Override with stale `referenciaNo` appears in response with `stale=true` and is excluded from honoured set
-- [ ] `ManuscriptContentPort` throwing → 503/409 explicit error; metadata endpoint remains unaffected
-- [ ] Response shape matches api-contract §6.4 exactly
-- [ ] `pnpm test` on the use case spec exits 0
+- [x] `getContentTree` returning null → 409 `urn:cordele:comp:manuscript-missing`
+- [x] Override with stale `referenciaNo` appears in response with `stale=true` and is excluded from honoured set
+- [x] `ManuscriptContentPort` throwing → 503/409 explicit error; metadata endpoint remains unaffected
+- [x] Response shape matches api-contract §6.4 exactly
+- [x] `pnpm test` on the use case spec exits 0
 
 ## Dependencias
 

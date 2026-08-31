@@ -1,12 +1,35 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { DatabaseModule } from './infrastructure/persistence/database.module';
+import { PersistenceModule } from './infrastructure/persistence/persistence.module';
+import { PrismaMetadadosRepository } from './infrastructure/comp/persistence/metadados.repository';
+import { PrismaConfiguracaoLayoutRepository } from './infrastructure/comp/persistence/configuracao-layout.repository';
+import { PrismaDatabaseHealthAdapter } from './infrastructure/comp/persistence/prisma-database-health.adapter';
+import { ManuscriptContentStubAdapter } from './infrastructure/comp/manuscript/manuscript-content-stub.adapter';
+import { DiskFileStorageAdapter } from './infrastructure/comp/storage/disk-file-storage.adapter';
+import { InProcessEventEmitterAdapter } from './infrastructure/comp/events/in-process-event-emitter.adapter';
+import { ProblemJsonFilter } from './infrastructure/comp/filters/problem-json.filter';
+import { CompMetricsService } from './infrastructure/comp/metrics/comp-metrics.service';
 import { AuthModule } from './infrastructure/auth/auth.module';
+import { JwtAuthGuard } from './infrastructure/comp/auth/jwt-auth.guard';
+import { ScopeGuard } from './infrastructure/comp/auth/scope.guard';
+import { EmpresaContextMiddleware } from './infrastructure/auth/empresa-context.middleware';
+import { CorrelationMiddleware } from './infrastructure/comp/middleware/correlation.middleware';
+import { RequestLoggerMiddleware } from './infrastructure/comp/middleware/request-logger.middleware';
 import { HealthModule } from './infrastructure/health/health.module';
 import { CompModule } from './modules/comp/comp.module';
+import {
+  COMP_METADADOS_REPO,
+  COMP_LAYOUT_REPO,
+  COMP_MANUSCRIPT_CONTENT_PORT,
+  COMP_FILE_STORAGE_PORT,
+  COMP_EVENT_EMITTER,
+  COMP_METRICS_SERVICE,
+} from './modules/comp/comp.tokens';
+import { COMP_DATABASE_HEALTH_PORT } from './modules/comp/ports/database-health.port';
 
 /**
  * Root composition module for cordele.
@@ -14,6 +37,33 @@ import { CompModule } from './modules/comp/comp.module';
  * Feature modules map one-to-one to bounded contexts; they must never import
  * each other's providers directly — cross-context communication goes through
  * published contracts (HTTP or the message broker).
+ *
+ * P3: PersistenceModule (@Global) is imported here so CompModule never imports
+ * infrastructure/ directly (RULE-04). The token bindings for repository ports
+ * are declared here (the composition root is the correct place to wire
+ * infrastructure adapters to domain port tokens when the token constants live
+ * in modules/ — RULE-05 prevents PersistenceModule from importing modules/).
+ *
+ * P5: JwtAuthGuard registered as APP_GUARD (order matters: ThrottlerGuard first,
+ * then JwtAuthGuard) — mirrors imp-service and proj-service, keeps
+ * modules/comp/* free of any infrastructure/ import (RULE-04).
+ * EmpresaContextMiddleware and CorrelationMiddleware are registered here
+ * (composition root) via configure(), not in CompModule, so CompModule stays
+ * RULE-04 compliant.
+ *
+ * P7 / COMP-018: ProblemJsonFilter registered as APP_FILTER global here
+ * (composition root) so CompModule need not import infrastructure/comp/filters/
+ * (RULE-04 compliance). RequestLoggerMiddleware wired in configure() after
+ * EmpresaContextMiddleware so empresa and correlationId are set before logging.
+ *
+ * P7 / COMP-019: CompMetricsService and PrismaDatabaseHealthAdapter registered
+ * here (both in infrastructure/) so CompModule does not import infrastructure/
+ * (RULE-04). COMP_DATABASE_HEALTH_PORT bound to PrismaDatabaseHealthAdapter so
+ * CompHealthService (modules/) gets DB health without a direct Prisma import.
+ *
+ * COMP-016/COMP-017: COMP_PROJECT_METADATA_PORT and COMP_COMPOSITION_ERASURE_PORT
+ * are now registered inside CompModule (as use-case providers) and exported from
+ * there. AppModule no longer binds them — the bindings live in the bounded context.
  */
 @Module({
   imports: [
@@ -25,9 +75,113 @@ import { CompModule } from './modules/comp/comp.module';
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
     HealthModule,
     DatabaseModule,
+    PersistenceModule,
     AuthModule,
     CompModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    // --- Rate limiting and JWT auth guards (global, ordered) ---
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // JwtAuthGuard registered globally so CompController (and any future
+    // controller) does not need @UseGuards() — RULE-04 compliant.
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    // ScopeGuard runs AFTER JwtAuthGuard (order matches APP_GUARD declaration
+    // order) and enforces @RequiredScopes() metadata — SPEC-06 §2.
+    { provide: APP_GUARD, useClass: ScopeGuard },
+
+    // --- P7/COMP-018: RFC 7807 exception filter (global) ---
+    // Registered here (not in CompModule) so CompModule does not import
+    // infrastructure/comp/filters/ (RULE-04 compliance).
+    { provide: APP_FILTER, useClass: ProblemJsonFilter },
+
+    // --- P7/COMP-019: Observability infrastructure ---
+    // CompMetricsService lives in infrastructure/comp/metrics/; registered here
+    // (composition root) to keep CompModule RULE-04 compliant.
+    CompMetricsService,
+
+    // --- P3: Bind Prisma adapters to domain port tokens (composition root) ---
+    // PersistenceModule (@Global) provides the adapter classes; we alias them
+    // to the domain tokens so use cases in CompModule receive the right impl.
+    // AppModule is the only file allowed to import from both modules/ and
+    // infrastructure/ without violating RULE-04 or RULE-05.
+    {
+      provide: COMP_METADADOS_REPO,
+      useExisting: PrismaMetadadosRepository,
+    },
+    {
+      provide: COMP_LAYOUT_REPO,
+      useExisting: PrismaConfiguracaoLayoutRepository,
+    },
+
+    // --- P4: Bind infra adapters for ManuscriptContentPort and FileStoragePort ---
+    // INT-COMP-001: swap ManuscriptContentStubAdapter for ManuscritoQueryHttpAdapter
+    //               once IMP scaffold is available — only this file changes.
+    // INT-COMP-002: swap DiskFileStorageAdapter for S3FileStorageAdapter post-POC.
+    {
+      provide: COMP_MANUSCRIPT_CONTENT_PORT,
+      useClass: ManuscriptContentStubAdapter,
+    },
+    {
+      provide: COMP_FILE_STORAGE_PORT,
+      useClass: DiskFileStorageAdapter,
+    },
+
+    // --- COMP-019: Bind DB health port adapter (RULE-04 compliance) ---
+    // CompHealthService (modules/) injects COMP_DATABASE_HEALTH_PORT instead of
+    // PrismaService directly. PrismaDatabaseHealthAdapter (infrastructure/) is
+    // the concrete implementation, bound here at the composition root.
+    {
+      provide: COMP_DATABASE_HEALTH_PORT,
+      useClass: PrismaDatabaseHealthAdapter,
+    },
+
+    // --- In-process domain event emitter (pre-requisite for COMP-004/005/007) ---
+    // messaging.enabled=false — events dispatched in-process via Node EventEmitter.
+    // Bind here (composition root) so CompModule does not import infrastructure/
+    // directly (RULE-04). Use cases inject COMP_EVENT_EMITTER token and emit
+    // MetadataUpdated / LayoutUpdated events without coupling to the transport.
+    {
+      provide: COMP_EVENT_EMITTER,
+      useClass: InProcessEventEmitterAdapter,
+    },
+
+    // --- COMP-019: alias CompMetricsService to its DI token ---
+    // CompMetricsService is registered above as a class (token = the class itself).
+    // Use cases in modules/ cannot import the class directly (RULE-04), so they
+    // inject via COMP_METRICS_SERVICE token. useExisting keeps one shared instance.
+    {
+      provide: COMP_METRICS_SERVICE,
+      useExisting: CompMetricsService,
+    },
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  /**
+   * Register cross-cutting HTTP middlewares at the composition root.
+   *
+   * Ordering matters (NestJS applies them in the order .apply() is called):
+   *   1. CorrelationMiddleware — mints X-Correlation-Id header first so it
+   *      is available in ProblemJsonFilter (traceId in RFC 7807 responses).
+   *   2. EmpresaContextMiddleware — decodes the Bearer JWT and populates
+   *      AsyncLocalStorage before JwtAuthGuard runs (RULE-07).
+   *   3. RequestLoggerMiddleware — reads correlationId + empresaId set above
+   *      and emits a structured log entry per request/response pair.
+   *
+   * Registering all three middlewares here (composition root) instead of inside
+   * CompModule keeps modules/comp/* free of any infrastructure/ import
+   * (RULE-04 compliance — same pattern used by proj-service).
+   */
+  configure(consumer: MiddlewareConsumer): void {
+    consumer
+      .apply(CorrelationMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+
+    consumer
+      .apply(EmpresaContextMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+
+    consumer
+      .apply(RequestLoggerMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+  }
+}

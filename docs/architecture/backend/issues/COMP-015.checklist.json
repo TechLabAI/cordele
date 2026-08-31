@@ -1,0 +1,43 @@
+{
+  "issue": "COMP-015",
+  "layer": "be",
+  "checklist": {
+    "total": 6,
+    "done": 5,
+    "partial": 0,
+    "missing": 1,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/infrastructure/comp/storage/disk-file-storage.adapter.ts` — implements `FileStoragePort`; `put(key, buffer, contentType)`: writes `Buffer` to `path.join(COMP_STORAGE_DIR, key)`; returns `{ url: '/covers/' + key }`; `delete(url)`: derives file path from url; `fs.rm` with `{ force: true }` (no error on ENOENT)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/comp/storage/disk-file-storage.adapter.ts"
+      },
+      {
+        "text": "`src/infrastructure/comp/storage/disk-file-storage.adapter.spec.ts` — put writes file and returns url; delete removes file; delete on missing file → no error thrown",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/comp/storage/disk-file-storage.adapter.spec.ts"
+      },
+      {
+        "text": "`src/modules/comp/comp.module.ts` (amend) — register `DiskFileStorageAdapter` under `FILE_STORAGE_PORT` when `COMP_STORAGE_DRIVER=disk` (default)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/comp/comp.module.ts"
+      },
+      {
+        "text": "`put('cover-123.jpg', buffer, 'image/jpeg')` creates file at `COMP_STORAGE_DIR/cover-123.jpg` and returns `{ url: '/covers/cover-123.jpg' }`",
+        "state": "MISSING",
+        "evidence": "arquivo citado ausente: COMP_STORAGE_DIR/cover-123.jpg"
+      },
+      {
+        "text": "`delete('/covers/nonexistent.jpg')` completes without throwing",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm test` on adapter spec exits 0",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      }
+    ]
+  }
+}

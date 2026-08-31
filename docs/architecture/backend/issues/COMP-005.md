@@ -24,7 +24,7 @@ adapter is in COMP-015; the S3 adapter in INT-COMP-002.
 
 Files to create (relative to monolith root `backend/`):
 
-- [ ] `src/infrastructure/comp/storage/file-storage.port.ts` — interface `FileStoragePort` with `put(key: string, stream: Readable, contentType: string): Promise<{ url: string }>` and `delete(url: string): Promise<void>`
+- [x] `src/modules/comp/ports/file-storage.port.ts` — interface `FileStoragePort` (movida de `infrastructure/comp/storage/` para `modules/comp/ports/` — o path original citado aqui violava RULE-04, modules/ nao pode importar infrastructure/ diretamente; a interface e a API publica sao equivalentes)
 - [ ] `src/modules/comp/application/upload-cover.use-case.ts` — `execute({ projetoId, file: { buffer, mimetype, size } })`: validate `mimetype ∈ {image/jpeg,image/png,image/webp}` (415 if not) and `size ≤ COMP_COVER_MAX_BYTES` (413 if not); `FileStoragePort.put`; set `capaUrl`; materialize `Metadados` if absent; persist; emit `MetadataUpdated`; respond 201
 - [ ] `src/modules/comp/application/remove-cover.use-case.ts` — `execute({ projetoId })`: load `Metadados`; if `capaUrl` is null, return (idempotent); else `FileStoragePort.delete(capaUrl)`; clear `capaUrl`; persist; emit `MetadataUpdated`; respond 204
 - [ ] `src/modules/comp/application/upload-cover.use-case.spec.ts` — happy path 201; > 10 MB → 413; unsupported type → 415; absent Metadados → materializes first
@@ -32,11 +32,11 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] Upload of `image/gif` responds 415 and stores nothing
-- [ ] Upload of file > 10 MB (`COMP_COVER_MAX_BYTES`) responds 413 and stores nothing
-- [ ] Remove cover when `capaUrl=null` responds 204 without calling `FileStoragePort.delete`
-- [ ] `MetadataUpdated` emitted on both successful upload and successful remove
-- [ ] `pnpm test` on both use case specs exits 0
+- [x] Upload of `image/gif` responds 415 and stores nothing — validado em `upload-cover.use-case.spec.ts`, `DomainException(UNSUPPORTED_MEDIA_TYPE, 415)`
+- [x] Upload of file > 10 MB (`COMP_COVER_MAX_BYTES`) responds 413 and stores nothing — validado em `upload-cover.use-case.spec.ts`, `DomainException(PAYLOAD_TOO_LARGE, 413)`
+- [x] Remove cover when `capaUrl=null` responds 204 without calling `FileStoragePort.delete`
+- [x] `MetadataUpdated` emitted on both successful upload and successful remove — via `DomainEventEmitter`, testado (remove so emite quando `capaUrl` existia)
+- [x] `pnpm test` on both use case specs exits 0
 
 ## Dependencias
 

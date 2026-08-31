@@ -31,11 +31,11 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] `pnpm build` exits 0 with `CompModule` present
-- [ ] All 7 route handlers exist in `CompController` with correct HTTP verbs and paths (verified by controller unit test listing route metadata)
-- [ ] `@nestjs/swagger` decorators present on each route for OpenAPI generation
+- [x] `pnpm build` exits 0 with `CompModule` present
+- [x] All 7 route handlers exist in `CompController` with correct HTTP verbs and paths (verified by controller unit test listing route metadata)
+- [x] `@nestjs/swagger` decorators present on each route for OpenAPI generation
 - [ ] All DI tokens declared in `comp.tokens.ts`: use cases + outbound ports + inbound ports
-- [ ] `pnpm test` on the controller spec exits 0
+- [x] `pnpm test` on the controller spec exits 0
 
 ## Dependencias
 

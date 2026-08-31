@@ -27,18 +27,18 @@ cascade via FK), and the cover binary via `FileStoragePort.delete`. Already-abse
 
 Files to create (relative to monolith root `backend/`):
 
-- [ ] `src/modules/comp/application/project-metadata.use-case.ts` — `metadata(projetoIds: string[]): Promise<Map<string, { autor?: string }>>`: single `prisma.metadados.findMany({ where: { projetoId: { in: projetoIds } } })`; builds map; projects with no row omitted
-- [ ] `src/modules/comp/application/composition-erasure.use-case.ts` — `purge(projetoId: string): Promise<void>`: load `Metadados`; if `capaUrl`, call `FileStoragePort.delete(capaUrl)` (idempotent if file missing); `prisma.$transaction`: delete `metadados` row (cascade removes layout + overrides); no-op if already absent
-- [ ] `src/modules/comp/comp.module.ts` (amend) — export both use cases under `PROJECT_METADATA_PORT` and `COMPOSITION_ERASURE_PORT` tokens so `ProjModule` can inject
-- [ ] `src/modules/comp/application/composition-erasure.use-case.spec.ts` — purge existing project → rows deleted + FileStoragePort.delete called; purge already-absent → no-op, no error; FileStoragePort.delete on missing file → purge still completes
+- [x] `src/modules/comp/application/project-metadata.use-case.ts` — `metadata(projetoIds: string[]): Promise<Map<string, { autor?: string }>>`: single `prisma.metadados.findMany({ where: { projetoId: { in: projetoIds } } })`; builds map; projects with no row omitted
+- [x] `src/modules/comp/application/composition-erasure.use-case.ts` — `purge(projetoId: string): Promise<void>`: load `Metadados`; if `capaUrl`, call `FileStoragePort.delete(capaUrl)` (idempotent if file missing); `prisma.$transaction`: delete `metadados` row (cascade removes layout + overrides); no-op if already absent
+- [x] `src/modules/comp/comp.module.ts` (amend) — export both use cases under `PROJECT_METADATA_PORT` and `COMPOSITION_ERASURE_PORT` tokens so `ProjModule` can inject
+- [x] `src/modules/comp/application/composition-erasure.use-case.spec.ts` — purge existing project → rows deleted + FileStoragePort.delete called; purge already-absent → no-op, no error; FileStoragePort.delete on missing file → purge still completes
 
 ## Criterios de aceite
 
-- [ ] `metadata([id1, id2])` makes exactly 1 DB query regardless of input length
-- [ ] `purge(projetoId)` called twice on same project → second call is a no-op (no error)
-- [ ] `purge` calls `FileStoragePort.delete(capaUrl)` before deleting DB rows
-- [ ] Both ports exported from `CompModule` and injectable by `ProjModule` by DI token
-- [ ] `pnpm test` on erasure spec exits 0
+- [x] `metadata([id1, id2])` makes exactly 1 DB query regardless of input length
+- [x] `purge(projetoId)` called twice on same project → second call is a no-op (no error)
+- [x] `purge` calls `FileStoragePort.delete(capaUrl)` before deleting DB rows
+- [x] Both ports exported from `CompModule` and injectable by `ProjModule` by DI token
+- [x] `pnpm test` on erasure spec exits 0
 
 ## Dependencias
 

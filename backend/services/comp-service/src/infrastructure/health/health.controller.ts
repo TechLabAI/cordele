@@ -6,71 +6,66 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ApiOkResponse, ApiServiceUnavailableResponse, ApiTags } from '@nestjs/swagger';
-import { HealthCheckError } from '@nestjs/terminus';
 
 import { Public } from '../comp/auth/jwt-auth.guard';
-import { CompHealthIndicator } from './comp-health.indicator';
-
-interface HealthResponse {
-  status: 'ok' | 'degraded' | 'fail';
-  details?: Record<string, unknown>;
-}
+import { CompHealthService, type HealthCheckResult } from '../../modules/comp/comp-health.service';
 
 /**
- * Readiness health endpoint for the COMP bounded context (COMP-019 / P7).
+ * Readiness / liveness health endpoints for the COMP bounded context (COMP-019).
  *
- * ```
- * GET /api/v1/health
- *   200 { status: 'ok' }        — DB and storage both reachable.
- *   200 { status: 'degraded' }  — DB ok; storage directory inaccessible.
- *   503 problem+json            — DB unreachable (critical failure).
+ * Routes:
+ *   GET /api/v1/comp/health          — readiness (DB + storage probes).
+ *   GET /api/v1/comp/health/live     — liveness  (no external deps — process alive).
  *
- * GET /api/v1/health/live
- *   200 { status: 'ok' }        — process is alive (no external dependencies).
- * ```
+ * Response contract (readiness):
+ *   200 { status: 'ok' }                               — DB and storage healthy.
+ *   200 { status: 'degraded', checks: { storage: 'degraded' } }
+ *                                                       — storage probe failed.
+ *   503                                                 — DB unreachable.
  *
- * `@Public()` bypasses `JwtAuthGuard` on all health routes.
+ * `@Public()` bypasses `JwtAuthGuard` on all routes in this controller.
  *
- * RULE-08: no console.log — uses Nest Logger indirectly via `CompHealthIndicator`.
+ * Replaces the terminus-based `CompHealthIndicator` from the previous P7
+ * implementation with a plain `CompHealthService.check()` call — no
+ * `@nestjs/terminus` dependency (COMP-019 rewrite).
+ *
+ * Decision: the health route lives here (`health.controller.ts`) rather than
+ * in `CompController` because:
+ *   (a) CompController is scoped to `comp/projetos/:projetoId` — any `@Get`
+ *       added there would produce `/comp/projetos/:projetoId/health`, which is
+ *       a per-project path, NOT a service-level health check.
+ *   (b) The user instructions specify "top-level, NOT nested under /projetos/:id".
+ *   (c) A dedicated health controller already existed here from P7 serving the
+ *       correct top-level URL (`/api/v1/comp/health`).
+ *
+ * RULE-08: no console.log. ✓
  */
 @ApiTags('ops')
-@Controller('health')
+@Controller({ path: 'comp/health', version: '1' })
 export class HealthController {
-  constructor(private readonly indicator: CompHealthIndicator) {}
+  constructor(private readonly healthService: CompHealthService) {}
 
   /**
    * Readiness check.
    *
-   * 1. Database check (critical) — failure throws `ServiceUnavailableException`
-   *    which `CompExceptionFilter` serialises as RFC 7807 with status 503.
-   * 2. Storage check (non-critical) — failure returns 200 with `status: 'degraded'`.
+   * Delegates to `CompHealthService.check()` and maps the result:
+   *   - `fail`     → 503 ServiceUnavailableException (DB critical failure).
+   *   - `degraded` → 200 with `{ status: 'degraded', checks }`.
+   *   - `ok`       → 200 with `{ status: 'ok', checks }`.
    */
   @Get()
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({ description: 'Service is healthy or degraded.' })
   @ApiServiceUnavailableResponse({ description: 'Database unreachable.' })
-  async check(): Promise<HealthResponse> {
-    // 1. Critical: DB must be reachable.
-    try {
-      await this.indicator.checkDatabase('database');
-    } catch (err) {
-      if (err instanceof HealthCheckError) {
-        throw new ServiceUnavailableException('database unreachable');
-      }
-      throw err;
+  async check(): Promise<HealthCheckResult> {
+    const result = await this.healthService.check();
+
+    if (result.status === 'fail') {
+      throw new ServiceUnavailableException('database unreachable');
     }
 
-    // 2. Non-critical: storage availability.
-    const storageResult = await this.indicator.checkStorage('storage');
-    const storageUp =
-      (storageResult['storage'] as { status?: string } | undefined)?.status === 'up';
-
-    if (!storageUp) {
-      return { status: 'degraded', details: { storage: 'inaccessible' } };
-    }
-
-    return { status: 'ok' };
+    return result;
   }
 
   /** Liveness: process is alive — deliberately dependency-free. */

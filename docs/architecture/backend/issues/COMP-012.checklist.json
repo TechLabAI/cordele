@@ -1,0 +1,53 @@
+{
+  "issue": "COMP-012",
+  "layer": "be",
+  "checklist": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "missing": 0,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/infrastructure/persistence/prisma-empresa.service.ts` — `PrismaClient` por schema `emp_<slug>`; `AsyncLocalStorage` (`runWithSlug`/`getCurrentSlug`); valida slug com regex antes de interpolação",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/persistence/prisma-empresa.service.ts"
+      },
+      {
+        "text": "`src/infrastructure/auth/empresa-context.service.ts` + `empresa-context.middleware.ts` — popula o contexto de empresa a partir do claim JWT após o `JwtAuthGuard`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/auth/empresa-context.service.ts, empresa-context.middleware.ts"
+      },
+      {
+        "text": "Verificar que todos os repositories em COMP-010/COMP-011 usam `PrismaEmpresaService.getCurrentSlug()`/o `PrismaClient` escopado ao schema corrente em toda query (`findMany`/`findUnique`/`update`/`delete`) — nunca um client de schema fixo (confirmado em `infrastructure/comp/persistence/{metadados,configuracao-layout}.repository.ts`)",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Verificar que `comp.module.ts` injeta `EmpresaContextService`/`PrismaEmpresaService` nos adapters antes da fase P3 (ambos `@Global()` — `AuthModule` e `PersistenceModule` — disponíveis via `AppModule`, composition root; não precisa de import direto em `comp.module.ts` por RULE-04)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: comp.module.ts"
+      },
+      {
+        "text": "Todas as queries COMP passam pelo `PrismaClient` roteado ao schema da empresa ativa (verificado nas specs dos adapters, incluindo teste de tenant isolation com Testcontainers em `metadados.repository.spec.ts`/`configuracao-layout.repository.spec.ts`)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: metadados.repository.spec.ts, configuracao-layout.repository.spec.ts"
+      },
+      {
+        "text": "Contexto de empresa não populado (JWT ausente/inválido) resulta em erro antes de qualquer query BD (`EmpresaContextMiddleware` roda antes dos guards; `PrismaEmpresaService.getCurrentSlug()` lança se `AsyncLocalStorage` vazio)",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm test` nos specs de `PrismaEmpresaService`/`EmpresaContextService` exits 0",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Slug de empresa é validado (regex) antes de qualquer interpolação em nome de schema (proteção contra injection) — `prisma-empresa.service.ts`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: prisma-empresa.service.ts"
+      }
+    ]
+  }
+}

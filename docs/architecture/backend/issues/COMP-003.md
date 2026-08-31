@@ -28,10 +28,10 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] `Metadados.update({ titulo: '', autor: 'X', idioma: 'pt' })` throws `DomainException`
-- [ ] `Metadados.update({ titulo: 'T', autor: 'A', idioma: 'zz' })` throws `DomainException`
-- [ ] `Metadados.createDefault('id')` returns `{ materialized: false }`
-- [ ] `pnpm test` on the aggregate spec exits 0
+- [x] `Metadados.update({ titulo: '', autor: 'X', idioma: 'pt' })` throws `DomainException`
+- [x] `Metadados.update({ titulo: 'T', autor: 'A', idioma: 'zz' })` throws `DomainException`
+- [x] `Metadados.createDefault('id')` returns `{ materialized: false }`
+- [x] `pnpm test` on the aggregate spec exits 0
 
 ## Dependencias
 

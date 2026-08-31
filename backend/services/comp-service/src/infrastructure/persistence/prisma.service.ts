@@ -2,11 +2,21 @@ import { INestApplication, Injectable, Logger, OnModuleDestroy, OnModuleInit } f
 import { PrismaClient } from '@prisma/client';
 
 /**
- * The single PrismaClient for the process.
+ * Base PrismaClient for process-global operations (health, migrations check).
  *
- * Never instantiate `new PrismaClient()` in a repository: each instance opens
- * its own connection pool, and a handful of them will exhaust Postgres
- * `max_connections` under load.
+ * **Tenant data access (P3+):** do NOT use this service directly for COMP domain
+ * queries. Use `PrismaEmpresaService` instead — it creates one dedicated
+ * `PrismaClient` per tenant schema (`emp_<slug>`) and routes every query to the
+ * correct schema (D-619). Using `PrismaService` for tenant queries is a data
+ * isolation bug: it connects to the default schema in `DATABASE_URL` and ignores
+ * the `SET search_path` Prisma-level limitation.
+ *
+ * Allowed uses for `PrismaService`:
+ * - Health endpoint (`PrismaHealthIndicator`) — schema-agnostic `$queryRaw('SELECT 1')`.
+ * - Migration checks — `prisma migrate` reads the base schema for the migration table.
+ *
+ * Never instantiate `new PrismaClient()` in a repository — each instance opens
+ * its own connection pool and will exhaust Postgres `max_connections` under load.
  */
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {

@@ -34,11 +34,11 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] Re-sending identical PUT body makes 1 total repository write (no-op detected before second write)
-- [ ] GET before any PUT returns `{ materialized: false }` (no DB write)
-- [ ] `MetadataUpdated` emitted exactly once per successful mutating PUT
-- [ ] DomainException from aggregate propagates and is mapped to 400 by the exception filter
-- [ ] `pnpm test` on both use case specs exits 0
+- [x] Re-sending identical PUT body makes 1 total repository write (no-op detected before second write) — `Metadados.hasSameContentAs()` + no-op path em `UpdateMetadadosUseCase`, testado
+- [x] GET before any PUT returns `{ materialized: false }` (no DB write)
+- [x] `MetadataUpdated` emitted exactly once per successful mutating PUT — via `DomainEventEmitter` (COMP_EVENT_EMITTER), nao emitido no caminho no-op, testado
+- [ ] DomainException from aggregate propagates and is mapped to **422** (nao 400) pelo `ProblemJsonFilter` — comportamento correto (RFC 7807/`DomainException.status`); o criterio original desta issue citava 400, mas a validacao de dominio (titulo/autor/idioma) e uma violacao de regra de negocio, nao um erro de parsing — 422 Unprocessable Entity e o codigo correto. Nao marcado por divergir do texto literal da issue.
+- [x] `pnpm test` on both use case specs exits 0
 
 ## Dependencias
 

@@ -29,10 +29,10 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] Two `upsert` calls with same `projetoId` but different `titulo` result in exactly 1 row with second `titulo`
-- [ ] `findByProjetoId` on absent project returns `null` (never throws)
-- [ ] Mapped domain aggregate has `materialized=true`
-- [ ] `pnpm test` on repository spec exits 0
+- [x] Two `upsert` calls with same `projetoId` but different `titulo` result in exactly 1 row with second `titulo`
+- [x] `findByProjetoId` on absent project returns `null` (never throws)
+- [x] Mapped domain aggregate has `materialized=true`
+- [x] `pnpm test` on repository spec exits 0
 
 ## Dependencias
 

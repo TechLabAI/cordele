@@ -1,40 +1,52 @@
-# COMP-012 -- EmpresaContext empresaId tenant filter in COMP Prisma adapters (RULE-07)
+# COMP-012 -- EmpresaContext schema-per-tenant routing in COMP Prisma adapters (RULE-07)
 
-**Status:** INTACT -- gerado 2026-08-25 (escopo alinhado ao COMP-002 Opção C em M5)
+**Status:** INTACT -- gerado 2026-08-25, corrigido 2026-08-30 (premissa de A1 estava errada — ver nota)
 **Maturidade:** 0 -- Inicial
 **Done/Total:** 0/4 itens
 
+> **Nota de correção (2026-08-30):** o texto original desta issue afirmava que COMP-002 resolveu A1
+> como "Opção C — empresaId discriminador (precedente imp-service/proj-service)". Isso estava
+> **factualmente errado**: `proj-service` (`src/infrastructure/persistence/tenant-prisma.factory.ts`)
+> usa **schema-per-tenant** (um `PrismaClient` dinâmico por schema `emp_<slug>`), com um comentário no
+> próprio código explicando que `SET LOCAL search_path` sozinho não isola tenants corretamente com o
+> connection pooling do Prisma. Não existe coluna `empresaId` em nenhum model do `schema.prisma` de
+> nenhum service do monorepo. Isso também é o que `CLAUDE.md` documenta ("Isolation is per schema in
+> Postgres"). O escopo abaixo foi corrigido para o padrão real (schema-per-tenant), que o COMP já
+> implementa desde a P3 via `PrismaEmpresaService`.
+
 ## Contexto
 
-COMP-002 (M5) resolveu A1 como **Opção C — empresaId discriminador** (precedente imp-service /
-proj-service). Portanto o escopo desta issue NÃO é schema targeting (`SET search_path`) mas sim
-garantir que todos os adapters Prisma do COMP aplicam o filtro `WHERE empresaId = ?` derivado do
-`EmpresaContext` (NestJS `AsyncLocalStorage`). A ausência do filtro é um data leak silencioso.
-
-Schema-per-tenant (`SET search_path = emp_<slug>`) fica como upgrade futuro (gap G8/infra),
-fora do escopo desta issue e desta fase.
+Todo acesso a dado no COMP deve ser roteado para o schema Postgres da empresa ativa
+(`emp_<slug>`), nunca para `public` ou schema fixo. O roteamento é feito por
+`PrismaEmpresaService` (`src/infrastructure/persistence/prisma-empresa.service.ts`): mantém um
+`PrismaClient` por schema, resolve o slug via `AsyncLocalStorage` (`runWithSlug`/`getCurrentSlug`),
+e valida o slug com regex antes de qualquer interpolação (proteção contra injection via nome de
+schema). `EmpresaContextService`/`EmpresaContextMiddleware`
+(`src/infrastructure/auth/empresa-context.service.ts` + `.middleware.ts`) populam o contexto de
+requisição a partir do claim JWT logo após o `JwtAuthGuard`. A ausência de contexto populado é um
+data leak silencioso (query cairia no schema errado ou lançaria).
 
 ## Spec de referencia
-- SPEC-04 (data-model — `empresaId` leading all unique/index)
-- SPEC-06 (security — `empresaId` resolvido do claim JWT, nunca do caller)
-- Precedente: `backend/services/proj-service/src/infrastructure/` (empresaId pattern)
-- COMP-002 (decisão A1 — Opção C)
+- SPEC-04 (data-model — isolamento por empresa)
+- SPEC-06 (security — schema resolvido do claim JWT, nunca do caller)
+- Precedente real: `backend/services/proj-service/src/infrastructure/persistence/tenant-prisma.factory.ts` (schema-per-tenant, D-619)
+- `docs/architecture/shared/multi-empresa.md`
 
 ## Escopo
 
 Files to create or verify (relative to `backend/services/comp-service/`):
 
-- [ ] `src/infrastructure/auth/empresa-context.service.ts` — wraps `AsyncLocalStorage<{ empresaId: string }>` por request; resolve `empresaId` do claim JWT após autenticação pelo `JwtAuthGuard`
-- [ ] `src/infrastructure/auth/empresa-context.service.spec.ts` — mock EmpresaContext: `empresaId` UUID válido propagado; sem JWT → `UnauthorizedException` antes de qualquer query
-- [ ] Verificar que todos os repositories em COMP-010/COMP-011 passam `empresaId` como filtro obrigatório nas queries Prisma (leading condition de todos os `findMany`/`findUnique`/`update`/`delete`)
-- [ ] Verificar que `comp.module.ts` injeta `EmpresaContextService` nos adapters antes da fase P3
+- [x] `src/infrastructure/persistence/prisma-empresa.service.ts` — `PrismaClient` por schema `emp_<slug>`; `AsyncLocalStorage` (`runWithSlug`/`getCurrentSlug`); valida slug com regex antes de interpolação
+- [x] `src/infrastructure/auth/empresa-context.service.ts` + `empresa-context.middleware.ts` — popula o contexto de empresa a partir do claim JWT após o `JwtAuthGuard`
+- [x] Verificar que todos os repositories em COMP-010/COMP-011 usam `PrismaEmpresaService.getCurrentSlug()`/o `PrismaClient` escopado ao schema corrente em toda query (`findMany`/`findUnique`/`update`/`delete`) — nunca um client de schema fixo (confirmado em `infrastructure/comp/persistence/{metadados,configuracao-layout}.repository.ts`)
+- [x] Verificar que `comp.module.ts` injeta `EmpresaContextService`/`PrismaEmpresaService` nos adapters antes da fase P3 (ambos `@Global()` — `AuthModule` e `PersistenceModule` — disponíveis via `AppModule`, composition root; não precisa de import direto em `comp.module.ts` por RULE-04)
 
 ## Criterios de aceite
 
-- [ ] Todas as queries COMP incluem `WHERE "empresaId" = $empresaId` como primeira condição (verificado nas specs dos adapters)
-- [ ] `EmpresaContext` não populado (JWT ausente / inválido) resulta em `UnauthorizedException` antes de qualquer query BD
-- [ ] `pnpm test` no spec do EmpresaContextService exits 0
-- [ ] Schema Prisma de COMP tem `empresaId` em `Comp` base model (já gerado pelo scaffold M5)
+- [x] Todas as queries COMP passam pelo `PrismaClient` roteado ao schema da empresa ativa (verificado nas specs dos adapters, incluindo teste de tenant isolation com Testcontainers em `metadados.repository.spec.ts`/`configuracao-layout.repository.spec.ts`)
+- [x] Contexto de empresa não populado (JWT ausente/inválido) resulta em erro antes de qualquer query BD (`EmpresaContextMiddleware` roda antes dos guards; `PrismaEmpresaService.getCurrentSlug()` lança se `AsyncLocalStorage` vazio)
+- [x] `pnpm test` nos specs de `PrismaEmpresaService`/`EmpresaContextService` exits 0
+- [x] Slug de empresa é validado (regex) antes de qualquer interpolação em nome de schema (proteção contra injection) — `prisma-empresa.service.ts`
 
 ## Dependencias
 

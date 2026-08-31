@@ -29,10 +29,10 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] `fonte_corpo_tamanho=11` throws `DomainException` (below minimum 12)
-- [ ] `h1_tamanho=20, h2_tamanho=22` throws `DomainException` (h1<h2 violates heading order)
-- [ ] `LayoutOverride { tipo: 'imagem', alinhamento: undefined }` throws `DomainException`
-- [ ] `pnpm test` on the aggregate spec exits 0
+- [x] `fonte_corpo_tamanho=11` throws `DomainException` (below minimum 12)
+- [x] `h1_tamanho=20, h2_tamanho=22` throws `DomainException` (h1<h2 violates heading order)
+- [x] `LayoutOverride { tipo: 'imagem', alinhamento: undefined }` throws `DomainException`
+- [x] `pnpm test` on the aggregate spec exits 0
 
 ## Dependencias
 

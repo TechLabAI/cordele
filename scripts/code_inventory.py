@@ -62,8 +62,6 @@ def is_stub(path: Path) -> bool:
     low = stripped.lower()
     if any(sig in low for sig in _STUB_SIGNATURES):
         return True
-    if _EMPTY_CLASS.search(text):
-        return True
 
     effective = [
         s for line in text.splitlines()
@@ -71,7 +69,17 @@ def is_stub(path: Path) -> bool:
         and not _COMMENT_LINE.match(s)
         and not _IMPORT_LINE.match(s)
     ]
-    return len("".join(effective)) < _STUB_MAX_EFFECTIVE
+    effective_len = len("".join(effective))
+    if effective_len < _STUB_MAX_EFFECTIVE:
+        return True
+    # An empty class body (`class Foo {}`) is only a stub signal on its own
+    # when the file otherwise has little content. NestJS/Angular decorated
+    # classes (`@Module({...}) export class FooModule {}`) legitimately keep
+    # an empty body -- all the real content lives in the decorator args --
+    # so require it alongside low effective content, not standalone.
+    if _EMPTY_CLASS.search(text) and effective_len < _STUB_MAX_EFFECTIVE * 4:
+        return True
+    return False
 
 
 # ── Presence scan ────────────────────────────────────────────────────────────
@@ -103,6 +111,17 @@ def scan_presence(paths, root: Path, bases=None) -> dict:
             if "/" not in str(raw):
                 tries += [c / s / p for c in candidates for s in siblings]
             full = next((f for f in tries if f.is_file()), None)
+            # Bare filename not found at root/base or a cited sibling dir --
+            # last resort: bounded recursive search under each base (issues
+            # sometimes cite a bare filename with no directory context at
+            # all, e.g. "`comp.tokens.ts`" instead of the fully-qualified
+            # path already cited elsewhere in the same checklist).
+            if full is None and "/" not in str(raw):
+                full = next(
+                    (f for c in candidates if c.is_dir()
+                     for f in c.rglob(str(p)) if f.is_file()),
+                    None,
+                )
         if full is not None:
             result[str(raw)] = {
                 "exists": True,

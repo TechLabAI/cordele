@@ -1,0 +1,125 @@
+{
+  "terminals_requested": 3,
+  "terminals_effective": 3,
+  "streams": [
+    {
+      "terminal": 1,
+      "units": [
+        "P1",
+        "P4",
+        "P7"
+      ],
+      "files": [
+        "project-context.json",
+        "src/modules/comp/comp.tokens.ts"
+      ],
+      "weight": 3
+    },
+    {
+      "terminal": 2,
+      "units": [
+        "P2",
+        "P5",
+        "P8"
+      ],
+      "files": [
+        "docs/architecture/backend/adr/ADR-001-hexagonal-node.md",
+        "docs/architecture/backend/adr/ADR-002-modular-monolith.md",
+        "docs/architecture/backend/adr/ADR-003-multi-tenancy.md",
+        "docs/architecture/backend/issues/issues_map-COMP.md",
+        "docs/architecture/backend/services/comp-service/comp-service-spec.md",
+        "docs/architecture/backend/services/comp-service/contracts/api-contract.md",
+        "docs/architecture/backend/services/comp-service/contracts/data-model.md",
+        "docs/architecture/backend/services/comp-service/contracts/event-contracts.md",
+        "docs/architecture/backend/services/comp-service/contracts/integration-contracts.md",
+        "docs/architecture/backend/services/comp-service/generator-config.yml",
+        "docs/architecture/backend/services/comp-service/spec/backend/SPEC-01..10.md",
+        "pnpm test --testPathPattern=comp.e2e"
+      ],
+      "weight": 3
+    },
+    {
+      "terminal": 3,
+      "units": [
+        "P3",
+        "P6"
+      ],
+      "files": [
+        "CompositionErasurePort.purge",
+        "contracts/data-model.md",
+        "contracts/integration-contracts.md"
+      ],
+      "weight": 2
+    }
+  ],
+  "conflicts": {},
+  "warnings": [
+    "some units declare no file targets — their split is by unit only (ownership not verifiable). Add 'Alvos de alteração' paths to the plan."
+  ],
+  "module": "COMP",
+  "layer": "be",
+  "plan": "docs\\architecture\\backend\\plans\\plan-COMP.md",
+  "units": [
+    {
+      "id": "P1",
+      "heading": "Prioridade 1 -- Scaffold + decisão multi-tenancy",
+      "files": [
+        "project-context.json",
+        "src/modules/comp/comp.tokens.ts"
+      ]
+    },
+    {
+      "id": "P2",
+      "heading": "Prioridade 2 -- Domain + use cases (metadata, cover, layout, preview)",
+      "files": []
+    },
+    {
+      "id": "P3",
+      "heading": "Prioridade 3 -- Persistence + migrations",
+      "files": [
+        "contracts/data-model.md"
+      ]
+    },
+    {
+      "id": "P4",
+      "heading": "Prioridade 4 -- Infra adapters (ManuscriptContentPort stub + FileStoragePort disk)",
+      "files": []
+    },
+    {
+      "id": "P5",
+      "heading": "Prioridade 5 -- Security (JWT guard + EmpresaContext)",
+      "files": []
+    },
+    {
+      "id": "P6",
+      "heading": "Prioridade 6 -- Exported ports (PUB + PROJ integration)",
+      "files": [
+        "CompositionErasurePort.purge",
+        "contracts/integration-contracts.md"
+      ]
+    },
+    {
+      "id": "P7",
+      "heading": "Prioridade 7 -- Observabilidade + health",
+      "files": []
+    },
+    {
+      "id": "P8",
+      "heading": "Prioridade 8 -- BDD end-to-end",
+      "files": [
+        "docs/architecture/backend/adr/ADR-001-hexagonal-node.md",
+        "docs/architecture/backend/adr/ADR-002-modular-monolith.md",
+        "docs/architecture/backend/adr/ADR-003-multi-tenancy.md",
+        "docs/architecture/backend/issues/issues_map-COMP.md",
+        "docs/architecture/backend/services/comp-service/comp-service-spec.md",
+        "docs/architecture/backend/services/comp-service/contracts/api-contract.md",
+        "docs/architecture/backend/services/comp-service/contracts/data-model.md",
+        "docs/architecture/backend/services/comp-service/contracts/event-contracts.md",
+        "docs/architecture/backend/services/comp-service/contracts/integration-contracts.md",
+        "docs/architecture/backend/services/comp-service/generator-config.yml",
+        "docs/architecture/backend/services/comp-service/spec/backend/SPEC-01..10.md",
+        "pnpm test --testPathPattern=comp.e2e"
+      ]
+    }
+  ]
+}
