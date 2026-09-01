@@ -82,15 +82,21 @@ Interpretar por modo:
 
 ---
 
-## Contexto de decisões do framework (D-419)
+## Contexto de decisões do framework (D-419, cache D-552)
 
-**Executar uma vez no início (best-effort), em qualquer modo:**
+**Executar uma vez no início (best-effort), em qualquer modo.** `decision-context` e
+`spec-context` passam pelo cache de ciclo (`handoff.json`, D-552) — primeira chamada do
+ciclo popula, chamadas seguintes (validator/planner/implement do mesmo `<MODULO>`) reusam
+sem nova consulta ao ES enquanto o TTL (60 min) valer. Sempre passar **os dois** flags
+(`--cache-read` + `--cache-write` no mesmo path); o script decide sozinho ler ou popular:
 
 ```bash
-python scripts/pipeline-context.py decision-context --tags backend,validator,pipeline
+python scripts/pipeline-context.py decision-context --tags backend,validator,pipeline \
+  --cache-read tmp/pipeline-cycle/<MODULO>/handoff.json --cache-write tmp/pipeline-cycle/<MODULO>/handoff.json
 # D-434: specs do modulo via RAG (corpus D-432) — preferir a reler os .md crus; use --query "<tema>" para focar
-python scripts/pipeline-context.py spec-context --module <MODULE> --pack --semantic
-# D-460: issues relacionadas (cross-modulo, implementacoes semelhantes) — opcional
+python scripts/pipeline-context.py spec-context --module <MODULE> --pack --semantic \
+  --cache-read tmp/pipeline-cycle/<MODULO>/handoff.json --cache-write tmp/pipeline-cycle/<MODULO>/handoff.json
+# D-460: issues relacionadas (cross-modulo, implementacoes semelhantes) — opcional (fora do escopo do cache D-552)
 python scripts/pipeline-context.py issue-context --module <MODULE> --query "<tema da issue>" --semantic
 # D-611: known pitfalls (rework_pattern) desta camada — consulte ANTES de decidir/rotear
 python scripts/pipeline-context.py learning-context --module <MODULE> --layer be
@@ -101,6 +107,7 @@ python scripts/pipeline-context.py learning-context --module <MODULE> --layer be
 - `learning-context` (D-611/D-498/D-497) devolve **known pitfalls** (defeitos recorrentes cross-client agrupados por `defect_signature`): se um padrão conhecido explica a causa de um score baixo ou de um gap detectado, cite-o na decisão/README em vez de re-diagnosticar do zero. Não é responsabilidade do validator emitir sinal — isso acontece no `be-implement` quando o defeito é de fato corrigido.
 - `available: false` (ES indisponível) → prosseguir sem o pacote de decisões; **nunca bloquear**.
 - Não reler o consolidation doc — o índice ES é a fonte consultável.
+- **Cache de ciclo (D-552):** `tmp/pipeline-cycle/<MODULO>/handoff.json` é compartilhado entre este agente, `be-planner` e `be-implement` para o mesmo `<MODULO>` — evita repetir `spec-context --pack --semantic` (a chamada mais cara) a cada prioridade do B1-B6. Falha de cache (arquivo ausente/corrompido/TTL expirado) é sempre best-effort: o script cai para a consulta normal ao ES.
 
 ---
 

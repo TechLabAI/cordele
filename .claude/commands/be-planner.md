@@ -86,15 +86,21 @@ python scripts/pipeline-context.py module-state --module <MODULO>
 
 ---
 
-## Contexto de decisoes do framework (D-419)
+## Contexto de decisoes do framework (D-419, cache D-552)
 
-**Executar uma vez no inicio (best-effort):**
+**Executar uma vez no inicio (best-effort).** `decision-context` e `spec-context` passam
+pelo cache de ciclo (`handoff.json`, D-552) — compartilhado com `be-validator` (B1/B6) e
+`be-implement` (B4, uma vez por prioridade) do mesmo `<MODULO>`. Sempre passar **os dois**
+flags (`--cache-read` + `--cache-write` no mesmo path); primeira chamada do ciclo popula,
+as seguintes reusam sem nova consulta ao ES enquanto o TTL (60 min) valer:
 
 ```bash
-python scripts/pipeline-context.py decision-context --tags backend,planner,pipeline
+python scripts/pipeline-context.py decision-context --tags backend,planner,pipeline \
+  --cache-read tmp/pipeline-cycle/<MODULO>/handoff.json --cache-write tmp/pipeline-cycle/<MODULO>/handoff.json
 # D-434: specs do modulo via RAG (corpus D-432) — preferir a reler os .md crus; use --query "<tema>" para focar
-python scripts/pipeline-context.py spec-context --module <MODULE> --pack --semantic
-# D-460: issues relacionadas (cross-modulo, implementacoes semelhantes) — opcional
+python scripts/pipeline-context.py spec-context --module <MODULE> --pack --semantic \
+  --cache-read tmp/pipeline-cycle/<MODULO>/handoff.json --cache-write tmp/pipeline-cycle/<MODULO>/handoff.json
+# D-460: issues relacionadas (cross-modulo, implementacoes semelhantes) — opcional (fora do escopo do cache D-552)
 python scripts/pipeline-context.py issue-context --module <MODULE> --query "<tema da issue>" --semantic
 # D-611: known pitfalls (rework_pattern) desta camada — consulte ANTES de sequenciar prioridades
 python scripts/pipeline-context.py learning-context --module <MODULE> --layer be
@@ -105,6 +111,9 @@ python scripts/pipeline-context.py learning-context --module <MODULE> --layer be
 - `learning-context` (D-611/D-498/D-497) devolve **known pitfalls** cross-client agrupados por `defect_signature`: ao priorizar uma issue que toca a mesma camada de um pitfall recorrente, mencione o `recommended_generator_fix` no plano para o `be-implement` aplicar proativamente.
 - `available: false` (ES indisponivel) → prosseguir sem o pacote de decisoes; **nunca bloquear**.
 - Nao reler o consolidation doc — o indice ES e a fonte consultavel.
+- **Cache de ciclo (D-552):** `tmp/pipeline-cycle/<MODULO>/handoff.json`. Falha de cache
+  (ausente/corrompido/TTL expirado) e sempre best-effort — o script cai para a consulta
+  normal ao ES.
 
 ---
 

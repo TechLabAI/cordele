@@ -145,15 +145,23 @@ Nao pular fases, nao reordenar, nao misturar prioridades, nao alterar plano.
 - Nao criar abstracoes nao previstas no plano
 - Contratos verificaveis com `pnpm lint` (ver `node-hexagonal-patterns.md`)
 
-### Decisoes do framework como guarda-corpos (D-419)
+### Decisoes do framework como guarda-corpos (D-419, cache D-552)
 
-**Executar uma vez no inicio (best-effort):**
+**Executar uma vez no inicio (best-effort) — a cada prioridade.** `decision-context` e
+`spec-context` sao os mais caros dessa lista (pacote de spec completo via RAG semantico) e
+sao exatamente o que o cache de ciclo (`handoff.json`, D-552) existe para evitar repetir:
+numa mesma corrida de `/be-autopilot <MODULO>`, `be-validator` (B1) ja populou o cache
+para este `<MODULO>` — cada prioridade do B4 deve **reusar**, nao reconsultar o ES. Sempre
+passar **os dois** flags (`--cache-read` + `--cache-write` no mesmo path); o script decide
+sozinho ler (hit) ou popular (miss/expirado):
 
 ```bash
-python scripts/pipeline-context.py decision-context --tags backend,implementer,pipeline
+python scripts/pipeline-context.py decision-context --tags backend,implementer,pipeline \
+  --cache-read tmp/pipeline-cycle/<MODULO>/handoff.json --cache-write tmp/pipeline-cycle/<MODULO>/handoff.json
 # D-434: specs do modulo via RAG (corpus D-432) — preferir a reler os .md crus; use --query "<tema>" para focar
-python scripts/pipeline-context.py spec-context --module <MODULE> --pack --semantic
-# D-460: issues relacionadas (cross-modulo, implementacoes semelhantes) — opcional
+python scripts/pipeline-context.py spec-context --module <MODULE> --pack --semantic \
+  --cache-read tmp/pipeline-cycle/<MODULO>/handoff.json --cache-write tmp/pipeline-cycle/<MODULO>/handoff.json
+# D-460: issues relacionadas (cross-modulo, implementacoes semelhantes) — opcional (fora do escopo do cache D-552)
 python scripts/pipeline-context.py issue-context --module <MODULE> --query "<tema da issue>" --semantic
 # D-498/D-497: known pitfalls (rework_pattern) desta camada — consulte ANTES de codar e NAO os reproduza
 python scripts/pipeline-context.py learning-context --module <MODULE> --layer be
@@ -163,6 +171,11 @@ python scripts/pipeline-context.py learning-context --module <MODULE> --layer be
 - `learning-context` (D-498/D-497) devolve um bloco de **known pitfalls** (defeitos recorrentes cross-client agrupados por `defect_signature`): para cada um, aplique o `recommended_generator_fix` de forma proativa em vez de re-resolver o mesmo defeito. Refine `--layer` por artefato (`be/test`, `be/web`). Best-effort: `available:false` → prossiga.
 - **Nao e fonte de escopo:** o *que* implementar vem exclusivamente do plano. As decisoes apenas restringem padroes (ex.: clientes HTTP em `src/infrastructure/http`, hexagonal, RAG-first).
 - `available: false` (ES indisponivel) → prosseguir com as regras deste arquivo + CLAUDE.md; **nunca bloquear**.
+- **Cache de ciclo (D-552):** `tmp/pipeline-cycle/<MODULO>/handoff.json`, TTL 60 min,
+  compartilhado entre `be-validator`/`be-planner`/`be-implement` do mesmo `<MODULO>` — e
+  o que reduz o antigo "17 chamadas de spec-context por ciclo" a 1-2. Falha de cache
+  (ausente/corrompido/TTL expirado) e sempre best-effort — o script cai para a consulta
+  normal ao ES; nunca bloqueia a implementacao.
 
 ---
 
