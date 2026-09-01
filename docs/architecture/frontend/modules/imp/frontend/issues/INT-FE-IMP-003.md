@@ -1,6 +1,6 @@
 ## [INT-FE-IMP-003] Handoff para COMP — navegação pós-confirmação de estrutura
 
-**Status:** 🔲 ABERTA
+**Status:** ✅ COMPLETA (P4 validação 2026-08-31T17:50Z)
 **GitHub:** [#TBD]
 
 **Outcome:**

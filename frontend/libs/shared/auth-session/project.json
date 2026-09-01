@@ -3,7 +3,27 @@
   "projectType": "library",
   "sourceRoot": "libs/shared/auth-session/src",
   "tags": [
-    "type:data-access",
+    "type:domain",
     "scope:shared"
-  ]
+  ],
+  "targets": {
+    "build": {
+      "executor": "@nx/angular:ng-packagr-lite",
+      "outputs": ["{workspaceRoot}/dist/{projectRoot}"],
+      "options": {
+        "project": "libs/shared/auth-session/ng-package.json",
+        "tsConfig": "libs/shared/auth-session/tsconfig.lib.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "libs/shared/auth-session/tsconfig.lib.prod.json"
+        },
+        "development": {}
+      },
+      "defaultConfiguration": "production"
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
 }

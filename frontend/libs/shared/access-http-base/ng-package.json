@@ -1,0 +1,7 @@
+{
+  "$schema": "../../../node_modules/ng-packagr/ng-package.schema.json",
+  "dest": "../../../dist/libs/shared/access-http-base",
+  "lib": {
+    "entryFile": "src/index.ts"
+  }
+}

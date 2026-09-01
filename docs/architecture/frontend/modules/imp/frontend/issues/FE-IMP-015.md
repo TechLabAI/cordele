@@ -1,6 +1,6 @@
 ## [FE-IMP-015] Componentes T04 — ChapterToc, PendingFragmentRow, PendingFragmentsPanel
 
-**Status:** 🔲 ABERTA
+**Status:** ✅ COMPLETA (P4 validação 2026-08-31T17:50Z)
 **GitHub:** [#TBD]
 
 **Outcome:**

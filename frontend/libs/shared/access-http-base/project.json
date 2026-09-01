@@ -3,7 +3,27 @@
   "projectType": "library",
   "sourceRoot": "libs/shared/access-http-base/src",
   "tags": [
-    "type:data-access",
+    "type:domain",
     "scope:shared"
-  ]
+  ],
+  "targets": {
+    "build": {
+      "executor": "@nx/angular:ng-packagr-lite",
+      "outputs": ["{workspaceRoot}/dist/{projectRoot}"],
+      "options": {
+        "project": "libs/shared/access-http-base/ng-package.json",
+        "tsConfig": "libs/shared/access-http-base/tsconfig.lib.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "libs/shared/access-http-base/tsconfig.lib.prod.json"
+        },
+        "development": {}
+      },
+      "defaultConfiguration": "production"
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
 }

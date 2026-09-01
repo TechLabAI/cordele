@@ -1,0 +1,6 @@
+{
+  "type": "urn:cordele:imp:parse-failed",
+  "title": "Falha de parsing",
+  "status": 422,
+  "detail": "Arquivo corrompido ou formato não reconhecido pelo parser"
+}
