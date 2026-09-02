@@ -60,8 +60,11 @@ import { PubObservabilityModule } from './modules/pub/observability/pub-observab
     // receives port tokens without importing infrastructure/ directly (RULE-04).
     ValidationModule,
     StorageModule,
-    // StubsModule always loaded — provides COMP stubs (INT-PUB-002 pending).
-    // IMP/PROJ stubs are overridden below when PUB_USE_STUBS != true.
+    // StubsModule always loaded — provides stubs for all cross-service ports
+    // (IMP, COMP, PROJ). Real HTTP adapters override IMP/PROJ/COMP tokens in
+    // PubInfraBindingsModule when PUB_USE_STUBS != true and NODE_ENV != test.
+    // INT-PUB-002 (DONE P10): CompCompositionMetadataAdapter/CompCompositionLayoutAdapter
+    // are registered in PubInfraBindingsModule and override the COMP stubs in production.
     StubsModule,
     PubInfraBindingsModule,
     PubObservabilityModule,

@@ -51,7 +51,7 @@ export class CompCompositionMetadataAdapter implements CompositionMetadataPort {
     config: ConfigService,
     private readonly empresaContext: EmpresaContextService,
   ) {
-    this.compBaseUrl = config.get<string>('COMP_SERVICE_URL') ?? 'http://localhost:3003';
+    this.compBaseUrl = config.get<string>('COMP_SERVICE_URL') ?? 'http://localhost:3001';
   }
 
   async get(projetoId: string): Promise<MetadadosRead | null> {

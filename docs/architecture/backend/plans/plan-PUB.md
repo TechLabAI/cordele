@@ -11,7 +11,8 @@
 - P7 -- DONE (PUB-017: Correlation interceptor + structured logging. PUB-018: Health endpoint com epubcheck liveness check. 2026-08-26 17:59)
 - P8 -- DONE (PUB-019: BDD step definitions manuais + execução dos 3 feature files; 22/22 scenarios PASS @ 2026-08-26 19:08)
 - P9 -- pendente (PUB-020: Runbook de reconciliação de build órfão)
-- P10 -- pendente (INT-PUB-002: CompositionReadPort HTTP adapter real para comp-service)
+- P10 -- DONE (INT-PUB-002: adapters HTTP CompCompositionMetadataAdapter + CompCompositionLayoutAdapter criados; wiring em PubInfraBindingsModule; test=PASS lint=PASS build=PASS arch-conformance=OK 5/5 @ 2026-09-02)
+- P11 -- DONE (REGRESS-INT-PUB-002: asserções runAs corrigidas com 3º arg bearerToken; prisma-client/** adicionado aos ignores ESLint; test=PASS 143/143 lint=PASS build=PASS arch-conformance=OK 5/5 @ 2026-09-02)
 
 ---
 
@@ -809,8 +810,196 @@ ser importado por nenhum módulo da aplicação — é estritamente one-shot ope
 
 ---
 
+### Prioridade 11 -- Corrigir regressão de INT-PUB-002 (testes e lint)
+Status: DONE (2026-09-02 — test=PASS 143/143, lint=PASS, build=PASS, arch-conformance=OK 5/5)
+
+#### Issues cobertas
+- INT-PUB-002 (regressão introduzida durante implementação de P10)
+
+#### Objetivo / Problema / Resultado esperado
+
+Restaurar gates `test=PASS` e `lint=PASS` após a implementação do INT-PUB-002 (P10).
+Os adapters HTTP (`CompCompositionMetadataAdapter`, `CompCompositionLayoutAdapter`) e o
+wiring em `PubInfraBindingsModule` estão corretos e não devem ser revertidos.
+Os dois problemas a corrigir são ortogonais: (1) asserções de teste desatualizadas e
+(2) path do Prisma client gerado fora da lista de ignores do ESLint.
+
+#### Problemas identificados
+
+**Problema 1 — 2 falhas de teste em `generate-publication.use-case.spec.ts`**
+
+O use-case chama `this.empresaContextRunner.runAs(empresaId, fn, bearerToken)` com
+3 argumentos após INT-PUB-002 (o `bearerToken` é o terceiro argumento, adicionado para
+propagar o token para os adapters HTTP de COMP dentro do job assíncrono).
+
+As seguintes asserções do spec ainda esperam 2 argumentos e falham por exact matching do Jest:
+
+- Linha 166: `expect(empresaContextRunner.runAs).toHaveBeenCalledWith('empresa-aetos', expect.any(Function))`
+- Linha 249: `expect(runnerA.runAs).toHaveBeenCalledWith('empresa-aetos', expect.any(Function))`
+- Linha 250: `expect(runnerB.runAs).toHaveBeenCalledWith('empresa-beta', expect.any(Function))`
+
+**Problema 2 — Lint: Prisma client gerado não está na lista de ignores do ESLint**
+
+O `schema.prisma` define `output = "../src/infrastructure/prisma-client"`, portanto o
+Prisma client é gerado em `backend/services/pub-service/src/infrastructure/prisma-client/`.
+Essa pasta não está na lista de ignores do `eslint.config.mjs` — o ESLint escaneia os
+arquivos `.ts` gerados e reporta erros (tipos gerados pelo Prisma com patterns incompatíveis
+com as regras `@typescript-eslint`). O `build=PASS` confirma que é um problema de ESLint, não
+de compilação TypeScript.
+
+#### Correcões mandatórias
+
+**Correção 1 — Atualizar asserções no spec do use-case**
+
+Arquivo: `backend/services/pub-service/src/modules/pub/use-cases/generate-publication.use-case.spec.ts`
+
+Substituir as 3 asserções incompletas de `runAs`:
+
+- Linha 166:
+  ```ts
+  // ANTES:
+  expect(empresaContextRunner.runAs).toHaveBeenCalledWith('empresa-aetos', expect.any(Function));
+  // DEPOIS:
+  expect(empresaContextRunner.runAs).toHaveBeenCalledWith('empresa-aetos', expect.any(Function), expect.any(String));
+  ```
+- Linha 249:
+  ```ts
+  // ANTES:
+  expect(runnerA.runAs).toHaveBeenCalledWith('empresa-aetos', expect.any(Function));
+  // DEPOIS:
+  expect(runnerA.runAs).toHaveBeenCalledWith('empresa-aetos', expect.any(Function), expect.any(String));
+  ```
+- Linha 250:
+  ```ts
+  // ANTES:
+  expect(runnerB.runAs).toHaveBeenCalledWith('empresa-beta', expect.any(Function));
+  // DEPOIS:
+  expect(runnerB.runAs).toHaveBeenCalledWith('empresa-beta', expect.any(Function), expect.any(String));
+  ```
+
+Nota: o mock de `runAs` já usa `mockImplementation((_id: string, fn: () => unknown) => fn())`
+que ignora o terceiro argumento — nenhuma mudança no mock é necessária.
+
+**Correção 2 — Adicionar path do Prisma client gerado ao ESLint ignores**
+
+Arquivo: `backend/services/pub-service/eslint.config.mjs`
+
+Adicionar `'src/infrastructure/prisma-client/**'` ao array `ignores`:
+
+```js
+ignores: [
+  'dist/**',
+  'node_modules/**',
+  'coverage/**',
+  'coverage-e2e/**',
+  'prisma/migrations/**',
+  'src/infrastructure/prisma-client/**',  // Prisma client gerado — não é código autoral
+  'eslint.config.mjs',
+],
+```
+
+#### Alvos de alteração (caminhos completos relativos ao repositório)
+
+Arquivos a modificar:
+- `backend/services/pub-service/src/modules/pub/use-cases/generate-publication.use-case.spec.ts`
+  — 3 asserções de `runAs` (linhas 166, 249, 250)
+- `backend/services/pub-service/eslint.config.mjs`
+  — adicionar `'src/infrastructure/prisma-client/**'` ao array `ignores`
+
+#### Contrato operacional
+
+Deve existir:
+- `pnpm test -- --testPathPattern="generate-publication.use-case.spec"` exits 0 (0 falhas)
+- `pnpm lint` exits 0 (0 lint errors)
+- As 3 asserções de `runAs` no spec verificam os 3 argumentos: `(empresaId, Function, String)`
+
+Não deve existir:
+- Reversão dos adapters HTTP (`comp-composition-metadata.adapter.ts`, `comp-composition-layout.adapter.ts`)
+- Reversão do wiring em `pub-infra-bindings.module.ts`
+- Alteração na lógica de `runAs` (a assinatura com `bearerToken?` opcional permanece)
+
+Verificação objetiva:
+- `pnpm test -- --testPathPattern="generate-publication.use-case.spec"` → 5/5 testes passam
+- `pnpm lint` exits 0
+- `pnpm exec tsc --noEmit` exits 0
+- `python scripts/arch-conformance.py check --layer be --target backend/services/pub-service` exits 0
+
+Condição de bloqueio:
+- Se `pnpm lint` ainda reportar erros após as Fases 1 e 2, o implementador deve corrigir
+  os erros residuais antes de marcar P11 como DONE.
+
+#### Sequência de execução
+
+**Fase 1 — Corrigir asserções no spec do use-case**
+
+Editar `src/modules/pub/use-cases/generate-publication.use-case.spec.ts`:
+- Linha 166: adicionar terceiro argumento `expect.any(String)` à asserção de `empresaContextRunner.runAs`
+- Linha 249: idem para `runnerA.runAs`
+- Linha 250: idem para `runnerB.runAs`
+Verificar: `pnpm test -- --testPathPattern="generate-publication.use-case.spec" --runInBand` exits 0.
+
+**Fase 2 — Adicionar Prisma client gerado à lista de ignores do ESLint**
+
+Editar `eslint.config.mjs`: adicionar `'src/infrastructure/prisma-client/**'` ao array `ignores`.
+Verificar: `pnpm lint` exits 0 (sem erros de lint em arquivos gerados pelo Prisma).
+
+**Fase 3 — Verificar erros de lint residuais**
+
+Executar `pnpm lint 2>&1` e corrigir qualquer erro restante que não seja coberto pelas
+Fases 1 e 2 (improvável mas mandatório verificar).
+
+**Fase 4 — Gate final completo**
+
+```bash
+cd backend/services/pub-service
+pnpm test -- --testPathPattern="generate-publication.use-case.spec"
+pnpm lint
+pnpm exec tsc --noEmit
+python scripts/arch-conformance.py check --layer be --target backend/services/pub-service
+```
+
+Todos devem retornar exit 0.
+
+#### Política de testes
+
+- Apenas atualização de asserções — nenhuma lógica de teste muda
+- O mock de `runAs` não precisa ser alterado (o implementador aceita 2 args e ignora o terceiro)
+- `pnpm lint` deve passar sem `--max-warnings` pendentes
+
+#### Multi-empresa
+
+Nenhuma alteração na lógica multi-empresa. A asserção atualizada reflete que `runAs`
+agora propaga o `bearerToken` (terceiro argumento) para o ALS do job assíncrono, o que
+é correto e esperado pelo INT-PUB-002.
+
+#### Migrações Prisma Migrate necessárias
+
+Nenhuma.
+
+#### Critérios de aceite
+
+- `pnpm test -- --testPathPattern="generate-publication.use-case.spec"` exits 0
+- `pnpm lint` exits 0
+- `pnpm exec tsc --noEmit` exits 0
+- `python scripts/arch-conformance.py check --layer be --target backend/services/pub-service` exits 0
+
+#### Riscos
+
+- Pode existir erros de lint residuais além do Prisma client se os novos adapters tiverem
+  alguma violação de regra não detectada antes (improvável dado que `build=PASS` e as regras
+  ESLint são simples). O implementador deve corrigir qualquer erro residual na Fase 3.
+
+#### Instrução para implementador
+
+Executar Fase 1 e Fase 2 de forma independente (são alterações em arquivos distintos).
+Na Fase 4, confirmar que o gate completo passa antes de emitir DONE.
+Não reverter nenhum dos adapters HTTP ou wiring do módulo — a implementação de INT-PUB-002
+está correta; apenas as asserções de teste e o ignore do ESLint precisam de atualização.
+
+---
+
 ### Prioridade 10 -- CompositionReadPort HTTP adapter real (INT-PUB-002)
-Status: pendente
+Status: PARTIAL (adapters HTTP criados em infrastructure/http/; wiring em PubInfraBindingsModule; testes e lint introduzidos por esta implementação corrigidos em P11)
 
 #### Issues cobertas
 - INT-PUB-002 (CompositionReadPort adapter: HTTP client para comp-service)

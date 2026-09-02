@@ -29,7 +29,7 @@ import { RequiredScopes } from './decorators/require-scope.decorator';
 import { PublicacaoHistoryItemDto } from './dto/publicacao-history-item.dto';
 import { PublicacaoStatusDto } from './dto/publicacao-status.dto';
 import { PublicationStatsDto } from './dto/publication-stats.dto';
-import { SignedDownloadUrlDto } from './dto/signed-download-url.dto';
+import { DownloadUrlDto } from './dto/download-url.dto';
 import { ValidationMessageItemDto } from './dto/validation-message-item.dto';
 import {
   GENERATE_PUBLICATION_USE_CASE,
@@ -151,14 +151,14 @@ export class PubController {
   @Get('projetos/:projetoId/publicacoes/:publicacaoId/download')
   @RequiredScopes('pub:read')
   @ApiOperation({ summary: 'Mint a short-TTL signed download URL (T08, D-F/D-R)' })
-  @ApiOkResponse({ type: SignedDownloadUrlDto })
+  @ApiOkResponse({ type: DownloadUrlDto })
   @ApiConflictResponse({ description: 'Artifact not available (erros_criticos or pendente).' })
   @ApiNotFoundResponse({ description: 'publicacaoId not found in this project/empresa.' })
   async downloadUrl(
     @Param('projetoId', ParseUUIDPipe) projetoId: string,
     @Param('publicacaoId', ParseUUIDPipe) publicacaoId: string,
     @CurrentUser() user: AuthenticatedUser,
-  ): Promise<SignedDownloadUrlDto> {
+  ): Promise<DownloadUrlDto> {
     return this.downloadUrlUseCase.execute({ projetoId, publicacaoId }, user);
   }
 

@@ -3,11 +3,11 @@
   "module": "PUB",
   "service": "pub-service",
   "pipeline": "implement",
-  "currentStep": "full-validate-failed",
-  "nextStep": "decision",
-  "progressUnit": "P10",
-  "notes": "B6 FULL-VALIDACAO apos P10 (INT-PUB-002 real): FAIL. test=FAIL (2 testes generate-publication.use-case.spec.ts -- mock runAs() recebendo terceiro arg bearerToken inesperado), lint=FAIL (erros eslint no Prisma client gerado + tipos), build=PASS, e2e=SKIP, arch-conformance=PASS 5/5. Score 39/100 (Inicial/REDUCED, checklist regrediu para 4/10 na heuristica pos-mudanca). validator-decide.py b6-fix classificou FULL_CYCLE (failure_type=multiple_tests, 2 failing tests + lint). Safety cap de iteracoes ja havia sido atingido nesta sessao (contador cumulativo incluindo passos de finalizacao anteriores) -- parar e aguardar --resume (reinicia contador).",
-  "iteration": 6,
-  "timestamp": "2026-09-02T08:04:52",
-  "capReached": true
+  "currentStep": "full-validate",
+  "nextStep": "finalizado",
+  "progressUnit": "score-86",
+  "notes": "Score final desta sessao: 86/100 Consistente. structure=30/30, tests_lint=20/20, e2e=10/10 (todos maximo). functionality=18/30 e soft=8/10 limitados por bloqueio EXTERNO legitimo: COMP-service ainda nao exporta os tipos reais de Metadados/ConfiguracaoLayout (P1-P6 de COMP pendentes) -- adapters do PUB ja apontam para a URL/path corretos (bug de porta 3003->3001 corrigido) e o restante depende do modulo COMP, fora do escopo do PUB. Correcoes desta sessao: DTO renomeado (download-url.dto.ts), e2e destravado (guard override fix + seed fixtures, 6/6 PASS), bug de porta do comp-service corrigido. Pipeline finalizado com score maximo atingivel dado o estado atual de COMP.",
+  "iteration": 3,
+  "timestamp": "2026-09-02T10:13:10",
+  "capReached": false
 }

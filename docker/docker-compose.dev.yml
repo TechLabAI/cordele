@@ -86,6 +86,7 @@ services:
       PUB_USE_STUBS: "true"
       PUB_MANUSCRIPT_STUB_NULL: "false"
       PUB_METADADOS_STUB_NULL: "false"
+      COMP_SERVICE_URL: http://comp-service:3000
       IMP_SERVICE_URL: http://imp-service:3000
       PROJ_SERVICE_BASE_URL: http://proj-service:3000
     ports:

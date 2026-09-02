@@ -1,6 +1,8 @@
 {
-  "test": "fail",
+  "test": "pass",
+  "test_count": "161/161",
   "build": "pass",
-  "e2e": "skip",
-  "lint": "fail"
+  "e2e": "pass",
+  "e2e_count": "6/6",
+  "lint": "pass"
 }

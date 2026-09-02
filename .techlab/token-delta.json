@@ -1,6 +1,6 @@
 {
-  "pending_input": 940653,
-  "pending_output": 5200,
+  "pending_input": 577303,
+  "pending_output": 2053,
   "watermarks": {
     "695a150f-7620-46cf-b347-80c6aaa696eb": {
       "input": 2145696,
@@ -208,10 +208,10 @@
       "seq": 316
     },
     "34829ffc-a281-432f-8225-91ec17ceb48b": {
-      "input": 535440,
-      "output": 3088,
-      "seq": 317
+      "input": 11313072,
+      "output": 51728,
+      "seq": 337
     }
   },
-  "seq": 317
+  "seq": 337
 }

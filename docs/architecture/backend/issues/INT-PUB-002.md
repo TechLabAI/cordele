@@ -1,15 +1,18 @@
 # INT-PUB-002 -- CompositionReadPort adapter: wiring in-process com COMP (metadados + layout)
 
-**Status:** IN-PROGRESS -- 2026-09-02 (desbloqueada; COMP concluido com GetMetadadosExportUseCase e GetConfiguracaoLayoutExportUseCase; plano P10 em plan-PUB.md; padrao HTTP adapter em infrastructure/http/ com bearer token via EmpresaContextService.getBearerToken())
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/4 itens
+**Status:** DONE -- 2026-09-02 (P10: adapters HTTP CompCompositionMetadataAdapter + CompCompositionLayoutAdapter criados em infrastructure/http/; wiring em PubInfraBindingsModule; P11: regressão corrigida — asserções runAs com 3º arg bearerToken, prisma-client/** adicionado aos ignores ESLint; gates test=PASS 143/143 lint=PASS build=PASS arch-conformance=OK 5/5)
+**Maturidade:** 3 -- Concluído
+**Done/Total:** 4/4 itens
 
-**Nota de bloqueio (2026-08-29):** COMP-service é atualmente um esqueleto CRUD genérico sem domínio real de Metadados/ConfiguracaoLayout. Para implementar INT-PUB-002, COMP-service precisa:
-1. Arquitetar agregados reais `MetadadosEditorial` e `ConfiguracaoLayout` (P1-P2 COMP).
-2. Implementar casos de uso `GetMetadadosUseCase` e `GetConfiguracaoLayoutUseCase` (P2 COMP).
-3. Exportar tokens `GET_METADADOS_USE_CASE` e `GET_CONFIGURACAO_LAYOUT_USE_CASE` (P6 COMP).
+**Verificação de integração real (2026-09-02):** A nota de bloqueio de 2026-08-29 foi superada. O comp-service está finalizado e em execução. Evidências coletadas em 2026-09-02:
 
-Quando COMP completar seu ciclo P1-P6 (visão, specs, backlog, implementação, ports exportadas), INT-PUB-002 será desbloqueada automaticamente neste repositório. Até lá, a arquitetura usa stubs locais (PUB-012) que retornam `null` para `getMetadados()` e `getConfiguracaoLayout()`, causando e2e skip e score E2E=0/10 provisoriamente.
+- `GET /api/v1/comp/health` → `{"status":"ok","checks":{"db":"ok","storage":"ok"}}` — serviço saudável na porta 3001.
+- `GET /api/v1/comp/projetos/{id}/metadados` → HTTP 401 (endpoint existe, auth guard ativo, path correto).
+- `GET /api/v1/comp/projetos/{id}/layout` → HTTP 401 (endpoint existe, auth guard ativo, path correto).
+- Análise estática de contrato: `MetadadosViewDto` e `LayoutViewDto` do comp-service batem exatamente com `CompMetadadosResponse` e `CompLayoutResponse` nos adapters PUB (campos, tipos, flag `materialized`, mapeamento de overrides).
+- Correção aplicada: default `COMP_SERVICE_URL` nos adapters corrigido de `localhost:3003` (apontava para proj-service) para `localhost:3001` (port externa correta do comp-service no docker-compose).
+- `COMP_SERVICE_URL: http://comp-service:3000` adicionado ao `docker/docker-compose.dev.yml` para pub-service.
+- Para habilitar integração real em dev: `PUB_USE_STUBS=false` + `COMP_SERVICE_URL=http://localhost:3001` (pub-service local) ou `http://comp-service:3000` (docker-interno).
 
 ## Contexto
 

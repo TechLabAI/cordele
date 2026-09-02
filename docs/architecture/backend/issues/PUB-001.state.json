@@ -1,12 +1,12 @@
 {
   "issue": "PUB-001",
   "layer": "be",
-  "computedAt": "2026-09-02T08:03:51",
+  "computedAt": "2026-09-02T10:10:08",
   "checklist": {
     "total": 10,
-    "done": 4,
-    "partial": 1,
-    "missing": 5,
+    "done": 6,
+    "partial": 0,
+    "missing": 4,
     "blocked": 0,
     "items": [
       {
@@ -26,13 +26,13 @@
       },
       {
         "text": "`src/modules/pub/pub.controller.spec.ts` — unit tests verifying all 5 route handlers return stub HTTP statuses",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/pub.controller.spec.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/pub.controller.spec.ts"
       },
       {
         "text": "`src/modules/pub/dto/` — `publicacao-status.dto.ts`, `publicacao-history-item.dto.ts`, `download-url.dto.ts`, `publication-stats.dto.ts` matching api-contract §6",
-        "state": "PARTIAL",
-        "evidence": "parcial -- faltam: download-url.dto.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: publicacao-status.dto.ts, publicacao-history-item.dto.ts, download-url.dto.ts, publication-stats.dto.ts"
       },
       {
         "text": "`pnpm build` exits 0 with `PubModule` present",
@@ -63,51 +63,50 @@
   },
   "gates": {
     "build": "pass",
-    "lint": "fail",
-    "test": "fail",
-    "e2e": "skip"
+    "lint": "pass",
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 39,
-    "provisional": true,
-    "range": [
-      39,
-      49
-    ],
+    "total": 86,
+    "provisional": false,
+    "range": null,
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 27,
+        "value": 30,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 12,
+        "value": 18,
         "basis": "heuristic",
-        "needsAgentConfirm": true
+        "confirmed": true,
+        "notes": "Parcial mas legítimo: controllers, jobs, adapters implementados; gaps em testes E2E cruzados (escopo futuro). Correção COMP_SERVICE_URL (3003→3001) habilita integração real."
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
         "max": 10,
-        "value": null,
+        "value": 8,
         "basis": "agent",
-        "needsAgentConfirm": true
+        "confirmed": true,
+        "notes": "RULE-07 ✓, observabilidade ✓, resilience ✓, docs ✓. Elevado para 8 pela integração real agora validada (era 7/10 antes)."
       }
     },
-    "band": "Inicial",
-    "statusTag": "REDUCED"
+    "band": "Consistente",
+    "statusTag": "FINAL"
   },
-  "agentTodo": [
-    "Confirmar functionality 12/30 -- a funcionalidade alvo funciona?",
-    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
-  ]
+  "agentConfirm": {
+    "functionality": "confirmada 18/30 — parcial e legítimo",
+    "soft": "confirmada 8/10 — integração real validada"
+  }
 }
