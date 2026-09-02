@@ -1,4 +1,4 @@
-import type { Prisma, Publicacao as PublicacaoModel } from '@prisma/client';
+import type { Prisma, Publicacao as PublicacaoModel } from '../prisma-client';
 
 import { EpubcheckStatus } from '../../domain/pub/epubcheck-status.enum';
 import { PublicacaoEntity } from '../../domain/pub/publicacao.entity';

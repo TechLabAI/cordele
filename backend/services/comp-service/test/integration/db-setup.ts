@@ -23,7 +23,7 @@
  */
 
 import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../src/infrastructure/prisma-client';
 import * as fs from 'fs';
 import * as path from 'path';
 

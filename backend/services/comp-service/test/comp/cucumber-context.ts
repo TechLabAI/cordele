@@ -75,7 +75,7 @@ import {
 } from 'src/modules/comp/comp.tokens';
 import type { ManuscriptContentPort, ContentTreeDto } from 'src/modules/comp/ports/manuscript-content.port';
 import { COMP_DATABASE_HEALTH_PORT } from 'src/modules/comp/ports/database-health.port';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../src/infrastructure/prisma-client';
 
 import {
   startTestDatabase,

@@ -1,6 +1,6 @@
 {
-  "pending_input": 58691721,
-  "pending_output": 40530,
+  "pending_input": 1989794,
+  "pending_output": 12405,
   "watermarks": {
     "695a150f-7620-46cf-b347-80c6aaa696eb": {
       "input": 2145696,
@@ -148,10 +148,60 @@
       "seq": 118
     },
     "4b816d14-f20b-44c5-b4c4-126e3f2c8d93": {
-      "input": 157084360,
-      "output": 247544,
-      "seq": 189
+      "input": 179011434,
+      "output": 263950,
+      "seq": 191
+    },
+    "80581bb4-465d-4b62-8579-7951ed1d98ea": {
+      "input": 16093144,
+      "output": 64413,
+      "seq": 226
+    },
+    "4f28b5c3-ccee-47d2-9b72-a606ea8d8f91": {
+      "input": 4095686,
+      "output": 26193,
+      "seq": 215
+    },
+    "bc1b85f6-d37f-4df3-8a39-4c8bc6b241d0": {
+      "input": 3421868,
+      "output": 24580,
+      "seq": 231
+    },
+    "bf851f42-2165-4054-ab5c-322f05a9d18a": {
+      "input": 1078643,
+      "output": 6606,
+      "seq": 233
+    },
+    "d5d63413-a2c3-45be-bb0f-459efcd41b0c": {
+      "input": 2627956,
+      "output": 15408,
+      "seq": 259
+    },
+    "f2d26398-4234-4dd0-8150-9a66fe974c81": {
+      "input": 3289805,
+      "output": 20085,
+      "seq": 266
+    },
+    "3d0b6d22-fb30-4680-9b22-64e8f22124bc": {
+      "input": 40216293,
+      "output": 117291,
+      "seq": 300
+    },
+    "0a8c76e2-4f6e-4043-ad13-bb39190a7011": {
+      "input": 3474898,
+      "output": 23189,
+      "seq": 280
+    },
+    "587c52a0-8d21-4b36-99be-d0f9296462fe": {
+      "input": 5297164,
+      "output": 26766,
+      "seq": 308
+    },
+    "8ba880e6-2a25-465f-bc32-9baa407bb50f": {
+      "input": 2475737,
+      "output": 14326,
+      "seq": 307
     }
   },
-  "seq": 189
+  "seq": 308
 }

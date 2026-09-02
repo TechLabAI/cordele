@@ -1,4 +1,4 @@
-import type { Metadados as MetadadosModel } from '@prisma/client';
+import type { Metadados as MetadadosModel } from '../../prisma-client';
 
 import { MetadadosEntity, type Idioma } from '../../../domain/comp/metadados.aggregate';
 

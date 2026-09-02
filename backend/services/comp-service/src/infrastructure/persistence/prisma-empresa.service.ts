@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'async_hooks';
 
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../prisma-client';
 
 /**
  * Tenant routing service for COMP — one PrismaClient per schema (D-619).

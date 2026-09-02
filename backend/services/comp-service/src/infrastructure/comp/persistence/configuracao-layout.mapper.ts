@@ -1,7 +1,7 @@
 import type {
   ConfiguracaoLayout as ConfiguracaoLayoutModel,
   LayoutOverride as LayoutOverrideModel,
-} from '@prisma/client';
+} from '../../prisma-client';
 
 import { ConfiguracaoLayout } from '../../../domain/comp/configuracao-layout.aggregate';
 import { LayoutOverride, type OverrideTipo, type Alinhamento } from '../../../domain/comp/layout-override.entity';
