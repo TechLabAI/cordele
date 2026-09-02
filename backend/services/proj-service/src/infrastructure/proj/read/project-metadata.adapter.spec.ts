@@ -57,7 +57,9 @@ describe('CompProjectMetadataAdapter', () => {
     expect(result.get('id-1')?.autor).toBe('Eliana Moraes');
   });
 
-  it('returns { autor: null } when COMP has no metadata for a project', async () => {
+  it('returns { autor: null } when COMP returns project without autor field', async () => {
+    // COMP responds with the project but omits the autor field — adapter normalises to null.
+    // autor is typed as string | null | undefined; adapter uses `?? null` to be explicit.
     mockFetch.mockResolvedValue({
       ok: true,
       json: async () => [{ projetoId: 'id-1' }],
@@ -66,6 +68,21 @@ describe('CompProjectMetadataAdapter', () => {
     const result = await adapter.metadata(['id-1'], 'emp-aetos');
 
     expect(result.get('id-1')?.autor).toBeNull();
+  });
+
+  it('project absent from COMP response is absent from the Map — no metadata is not an error', async () => {
+    // When COMP has no record for a project it simply omits it from the batch response.
+    // The adapter must NOT insert the project into the Map with an undefined/null value;
+    // it must leave it absent — callers treat absence as "no COMP data yet" (not degraded).
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => [],  // COMP returns empty array — project has no COMP metadata yet
+    });
+
+    const result = await adapter.metadata(['id-1'], 'emp-aetos');
+
+    expect(result.has('id-1')).toBe(false);
+    expect(result.size).toBe(0);
   });
 
   it('returns empty Map (not thrown error) when COMP is unavailable', async () => {

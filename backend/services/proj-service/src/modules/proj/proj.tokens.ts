@@ -112,9 +112,12 @@ export const PROJECT_EVENT_PUBLISHER = Symbol('ProjectEventPublisher');
 
 /**
  * Injection token for the ProjetoEditorialLookup inbound port.
- * Real provider (ProjetoEditorialLookupAdapter) registered in P2 (PROJ-006).
+ * Symbol declared in the domain port file; re-exported here so modules/ consumers
+ * have a single import point without importing domain/ directly (RULE-04).
+ * Real provider (ProjetoEditorialLookupAdapter) registered via LookupPortsModule
+ * (@Global()) imported in AppModule (PROJ-006 / PROJ-008).
  */
-export const PROJETO_EDITORIAL_LOOKUP = Symbol('ProjetoEditorialLookup');
+export { ProjetoEditorialLookupPort as PROJETO_EDITORIAL_LOOKUP } from '../../domain/proj/ports/inbound/projeto-editorial-lookup.port';
 
 // --- Outbound erasure port tokens (wired in P6) ---
 // Re-exported from the domain port files so that infrastructure/ (the global

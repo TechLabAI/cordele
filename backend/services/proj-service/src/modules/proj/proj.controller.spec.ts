@@ -1,6 +1,19 @@
+// Auth integration tests (supertest) below need a fake Passport strategy — set
+// the env var before any module import so JwtStrategy construction does not fail
+// if it ends up being instantiated in a sibling test run.
+process.env.JWT_ISSUER_URI ??= 'http://test-issuer/realms/test';
+process.env.JWT_AUDIENCE ??= 'proj-service-test';
+
+import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
+import request from 'supertest';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const passport = require('passport');
 
 import { ProjController } from './proj.controller';
+import { JwtAuthGuard } from '../../infrastructure/auth/jwt-auth.guard';
+import { EmpresaContextStore } from '../../infrastructure/context/empresa.context';
 import { REQUIRED_SCOPES_KEY } from './decorators/require-scope.decorator';
 import {
   ADVANCE_PROJETO_STATUS_USE_CASE,
@@ -219,6 +232,22 @@ describe('ProjController', () => {
       expect(result.arquivoUrl).toBeDefined();
       expect(result.expiresAt).toBeDefined();
     });
+
+    it('returns only the signed URL (no byte streaming) — PROJ-013 contract', async () => {
+      // PROJ-013 clause: controller NEVER proxies bytes; it returns only { publicacaoId, arquivoUrl, expiresAt }.
+      // A streaming response would be an instance of StreamableFile or have a `pipe` method.
+      const projetoId = '11111111-1111-1111-1111-111111111111';
+      const publicacaoId = '22222222-2222-2222-2222-222222222222';
+
+      const result = await controller.getDownloadUrl(projetoId, publicacaoId, user);
+
+      // Shape: only URL fields, no stream interface
+      expect(typeof result.arquivoUrl).toBe('string');
+      expect(typeof result.publicacaoId).toBe('string');
+      expect(typeof result.expiresAt).toBe('string');
+      // Not a stream (no pipe method)
+      expect((result as any).pipe).toBeUndefined();
+    });
   });
 
   // ---------------------------------------------------------------------------
@@ -357,18 +386,292 @@ describe('ProjController', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // P5 (PROJ-014): @RequiredScopes metadata — enforced by JwtAuthGuard (403)
+  // Shared mock providers for the supertest-based integration suites (Auth
+  // gates and EmpresaContextStore ALS population). Declared at this scope so
+  // both sibling describe blocks can reference the same array without
+  // duplicating the provider definitions.
+  //
+  // The jest.fn() instances are created once; the outer beforeEach calls
+  // jest.clearAllMocks() to reset call tracking between unit tests without
+  // touching the mock implementations (mockResolvedValue) that the supertest
+  // suites rely on.
+  // ---------------------------------------------------------------------------
+
+  const ALL_MOCK_PROVIDERS = [
+    { provide: CREATE_PROJETO_USE_CASE, useValue: { execute: jest.fn().mockResolvedValue({}) } },
+    { provide: REOPEN_PROJECT_USE_CASE, useValue: { reopen: jest.fn().mockResolvedValue({}) } },
+    {
+      provide: GET_PROJETO_LIBRARY_USE_CASE,
+      useValue: { execute: jest.fn().mockResolvedValue({ cards: [], degraded: false }) },
+    },
+    {
+      provide: GET_PROJETO_DETAIL_USE_CASE,
+      useValue: { execute: jest.fn().mockResolvedValue(null) },
+    },
+    {
+      provide: GET_PUBLICATION_HISTORY_USE_CASE,
+      useValue: { execute: jest.fn().mockResolvedValue([]) },
+    },
+    {
+      provide: GET_SIGNED_DOWNLOAD_URL_USE_CASE,
+      useValue: { execute: jest.fn().mockResolvedValue({}) },
+    },
+    { provide: DELETE_PROJETO_USE_CASE, useValue: { execute: jest.fn().mockResolvedValue(undefined) } },
+    {
+      provide: ADVANCE_PROJETO_STATUS_USE_CASE,
+      useValue: { advanceTo: jest.fn().mockResolvedValue({}) },
+    },
+  ];
+
+  // ---------------------------------------------------------------------------
+  // P9 (PROJ-014): Auth integration (supertest) — 401 and 403 behavior
+  //
+  // These tests spin up a minimal NestJS HTTP application backed by
+  // TestingModule (no real DB, no real Keycloak) to verify that the HTTP layer
+  // returns the correct status codes when authentication fails or scope is
+  // insufficient. Passport is controlled directly via `passport.use()` so the
+  // JWKS round-trip never happens.
+  // ---------------------------------------------------------------------------
+
+  describe('Auth gates (supertest integration) — PROJ-014', () => {
+    let authApp: INestApplication;
+
+    beforeAll(async () => {
+      // Register a Passport strategy that always fails — simulates a missing or
+      // invalid Bearer token without needing a real Keycloak / JWKS endpoint.
+      passport.use('jwt', {
+        name: 'jwt',
+        authenticate(this: { fail: (challenge: string) => void }) {
+          this.fail('Bearer realm="cordele"');
+        },
+      });
+
+      const module: TestingModule = await Test.createTestingModule({
+        controllers: [ProjController],
+        providers: [
+          { provide: APP_GUARD, useClass: JwtAuthGuard },
+          ...ALL_MOCK_PROVIDERS,
+        ],
+      }).compile();
+
+      authApp = module.createNestApplication();
+      authApp.setGlobalPrefix('api');
+      authApp.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
+      authApp.useGlobalPipes(
+        new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+      );
+      await authApp.init();
+    });
+
+    afterAll(async () => {
+      await authApp?.close();
+      // Restore passport to the always-fail strategy so it does not bleed into
+      // other test suites that run in the same Jest worker.
+      passport.use('jwt', {
+        name: 'jwt',
+        authenticate(this: { fail: (challenge: string) => void }) {
+          this.fail('Bearer realm="cordele"');
+        },
+      });
+    });
+
+    it('GET /projetos returns 401 when Authorization header is absent', async () => {
+      await request(authApp.getHttpServer())
+        .get('/api/v1/proj/projetos')
+        .expect(401);
+    });
+
+    it('DELETE /projetos/:id returns 401 when Authorization header is absent', async () => {
+      await request(authApp.getHttpServer())
+        .delete('/api/v1/proj/projetos/11111111-1111-1111-1111-111111111111')
+        .expect(401);
+    });
+
+    it('POST /projetos returns 401 when Authorization header is absent', async () => {
+      await request(authApp.getHttpServer())
+        .post('/api/v1/proj/projetos')
+        .send({ nome: 'test' })
+        .expect(401);
+    });
+
+    it('401 response body contains urn:cordele:proj:unauthorized type', async () => {
+      const response = await request(authApp.getHttpServer())
+        .get('/api/v1/proj/projetos')
+        .expect(401);
+
+      // The JwtAuthGuard.handleRequest() override produces a typed error body.
+      expect(response.body).toMatchObject({ type: 'urn:cordele:proj:unauthorized' });
+    });
+
+    it('DELETE /projetos/:id returns 403 when token is valid but proj:delete scope is missing', async () => {
+      // Override the strategy to succeed with a user holding proj:read and
+      // proj:write but NOT proj:delete — the DELETE handler requires proj:delete
+      // (api-contract §2, privileged LGPD scope) so the request must 403.
+      passport.use('jwt', {
+        name: 'jwt',
+        authenticate(
+          this: {
+            success: (user: { userId: string; username: string; roles: string[]; scopes: string[]; empresaId: string }) => void;
+          },
+        ) {
+          this.success({
+            userId: 'readonly-user',
+            username: 'readonly',
+            roles: [],
+            scopes: ['proj:read', 'proj:write'], // proj:delete is missing → DELETE must 403
+            empresaId: 'aetos',
+          });
+        },
+      });
+
+      await request(authApp.getHttpServer())
+        .delete('/api/v1/proj/projetos/11111111-1111-1111-1111-111111111111')
+        .set('Authorization', 'Bearer any-token')
+        .expect(403);
+
+      // Restore always-fail strategy for subsequent tests.
+      passport.use('jwt', {
+        name: 'jwt',
+        authenticate(this: { fail: (challenge: string) => void }) {
+          this.fail('Bearer realm="cordele"');
+        },
+      });
+    });
+
+    it('403 response body contains urn:cordele:proj:forbidden type', async () => {
+      // Provide a valid JWT with proj:read + proj:write but no proj:delete.
+      passport.use('jwt', {
+        name: 'jwt',
+        authenticate(
+          this: {
+            success: (user: { userId: string; username: string; roles: string[]; scopes: string[]; empresaId: string }) => void;
+          },
+        ) {
+          this.success({
+            userId: 'write-user',
+            username: 'write',
+            roles: [],
+            scopes: ['proj:read', 'proj:write'],
+            empresaId: 'aetos',
+          });
+        },
+      });
+
+      const response = await request(authApp.getHttpServer())
+        .delete('/api/v1/proj/projetos/11111111-1111-1111-1111-111111111111')
+        .set('Authorization', 'Bearer any-token')
+        .expect(403);
+
+      // The JwtAuthGuard.enforceScopes() override produces a typed error body.
+      expect(response.body).toMatchObject({ type: 'urn:cordele:proj:forbidden' });
+
+      // Restore always-fail strategy for subsequent tests.
+      passport.use('jwt', {
+        name: 'jwt',
+        authenticate(this: { fail: (challenge: string) => void }) {
+          this.fail('Bearer realm="cordele"');
+        },
+      });
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // P9 (PROJ-014): EmpresaContextStore ALS population
+  //
+  // Verifies that after JwtAuthGuard authenticates a request, the empresaId
+  // from the JWT claim is passed to EmpresaContextStore.enterWith() — which
+  // is the canonical way to prove that the context comes from the JWT (never
+  // from body or path params). Testing via spy is more reliable than reading
+  // getEditoraId() inside the handler, because AsyncLocalStorage.enterWith()
+  // propagation across async boundaries in supertest depends on Node internals
+  // that are not the focus of this contract test.
+  // ---------------------------------------------------------------------------
+
+  describe('EmpresaContextStore ALS population (PROJ-014)', () => {
+    let alsApp: INestApplication;
+
+    beforeAll(async () => {
+      // Strategy that succeeds and carries empresaId 'aetos' — simulates a
+      // validated JWT whose `empresa_id` claim is 'aetos'.
+      passport.use('jwt', {
+        name: 'jwt',
+        authenticate(
+          this: {
+            success: (user: { userId: string; username: string; roles: string[]; scopes: string[]; empresaId: string }) => void;
+          },
+        ) {
+          this.success({
+            userId: 'als-test-user',
+            username: 'als-test',
+            roles: [],
+            scopes: ['proj:read'],
+            empresaId: 'aetos',
+          });
+        },
+      });
+
+      const module: TestingModule = await Test.createTestingModule({
+        controllers: [ProjController],
+        providers: [
+          { provide: APP_GUARD, useClass: JwtAuthGuard },
+          ...ALL_MOCK_PROVIDERS,
+        ],
+      }).compile();
+
+      alsApp = module.createNestApplication();
+      alsApp.setGlobalPrefix('api');
+      alsApp.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
+      await alsApp.init();
+    });
+
+    afterAll(async () => {
+      await alsApp?.close();
+      // Restore always-fail strategy for subsequent test suites.
+      passport.use('jwt', {
+        name: 'jwt',
+        authenticate(this: { fail: (challenge: string) => void }) {
+          this.fail('Bearer realm="cordele"');
+        },
+      });
+    });
+
+    it('EmpresaContextStore.getEditoraId() returns the empresaId from the JWT claim', async () => {
+      // Spy on enterWith: the PROJ-014 criterion is that JwtAuthGuard reads
+      // empresaId from the JWT claim and passes it to EmpresaContextStore —
+      // never from body or path params.  The spy captures the argument without
+      // relying on AsyncLocalStorage propagation across async boundaries.
+      const enterWithSpy = jest.spyOn(EmpresaContextStore, 'enterWith');
+
+      await request(alsApp.getHttpServer())
+        .get('/api/v1/proj/projetos')
+        .set('Authorization', 'Bearer valid-token')
+        .expect(200);
+
+      // JwtAuthGuard.canActivate() must have called enterWith with { editoraId: 'aetos' }
+      // (the value from the JWT claim), not from body/path/query (PROJ-014 criterion 3).
+      expect(enterWithSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ editoraId: 'aetos' }),
+      );
+      enterWithSpy.mockRestore();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // P5 (PROJ-014): @RequiredScopes metadata — enforced by JwtAuthGuard
   // ---------------------------------------------------------------------------
 
   describe('@RequiredScopes metadata', () => {
     const scopesOf = (handler: keyof ProjController): string[] =>
       Reflect.getMetadata(REQUIRED_SCOPES_KEY, ProjController.prototype[handler]);
 
-    it('requires proj:write for mutating routes', () => {
+    it('requires proj:write for write/mutating routes (non-delete)', () => {
       expect(scopesOf('create')).toEqual(['proj:write']);
-      expect(scopesOf('remove')).toEqual(['proj:write']);
       expect(scopesOf('reopen')).toEqual(['proj:write']);
       expect(scopesOf('advanceStatus')).toEqual(['proj:write']);
+    });
+
+    it('requires proj:delete for the DELETE /projetos/:id route (privileged LGPD scope — api-contract §2)', () => {
+      expect(scopesOf('remove')).toEqual(['proj:delete']);
     });
 
     it('requires proj:read for read routes', () => {

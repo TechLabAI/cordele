@@ -35,10 +35,20 @@ describe('CompCompositionErasureAdapter', () => {
     adapter = new CompCompositionErasureAdapter(mockConfig);
   });
 
-  it('resolves when COMP responds 2xx', async () => {
+  it('resolves when COMP responds 2xx — calls COMP erase port exactly once', async () => {
+    // Batching invariant: exactly 1 call to COMP per erase invocation.
     mockFetch.mockResolvedValue({ ok: true, status: 204 });
 
     await expect(adapter.erase('projeto-1', 'emp-aetos')).resolves.toBeUndefined();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves (idempotent) when project has no COMP compositions — COMP returns 204 no-op', async () => {
+    // COMP is idempotent: when there are no compositions for the project it returns 204 (safe no-op).
+    // The adapter must complete without error so the LGPD cascade (PROJ-016) can proceed.
+    mockFetch.mockResolvedValue({ ok: true, status: 204 });
+
+    await expect(adapter.erase('projeto-sem-composicao', 'emp-aetos')).resolves.toBeUndefined();
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 

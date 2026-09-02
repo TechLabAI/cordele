@@ -7,7 +7,11 @@ import type {
   CreateProjetoEditorialInput,
   UpdateStatusInput,
   ProjetoEditorialFilter,
+  AdvanceStatusAtomicInput,
+  AdvanceStatusAtomicResult,
 } from '../../../domain/proj/ports/outbound/projeto-editorial-repository.port';
+import { ProjectStatusVO } from '../../../domain/proj/value-objects/project-status.vo';
+import type { ProjetoStatus } from '../../../domain/proj/value-objects/project-status.vo';
 import { TenantPrismaFactory } from '../tenant-prisma.factory';
 
 // ---------------------------------------------------------------------------
@@ -182,6 +186,95 @@ export class PrismaProjetoEditorialRepository
       });
 
       return toData(updated, input.empresaId);
+    });
+  }
+
+  /**
+   * Atomically advances the status of a ProjetoEditorial — PROJ-004 TOCTOU fix.
+   *
+   * Within a single Prisma $transaction (via TenantPrismaFactory.withTenant):
+   *   1. SELECT ... FOR UPDATE acquires a row-level lock BEFORE reading status.
+   *      Concurrent advanceTo calls for the same projetoId serialize here.
+   *   2. ProjectStatusVO.advanceTo validates the transition UNDER the lock
+   *      (if the first caller already committed, the second sees the new status
+   *      and returns changed=false — idempotent no-op, no double-emit).
+   *   3. Only on a real change: UPDATE projeto_editorial + INSERT historico
+   *      in the same transaction. Lock released on commit.
+   *
+   * RULE-08: $queryRaw is used here (a repository method) — not in modules/.
+   * Infrastructure importing domain (ProjectStatusVO) is the correct direction.
+   */
+  async advanceStatusAtomic(
+    input: AdvanceStatusAtomicInput,
+  ): Promise<AdvanceStatusAtomicResult | null> {
+    this.logger.log(
+      `advanceStatusAtomic ProjetoEditorial ${input.id} → ${input.targetStatus}`,
+    );
+
+    return this.tenantFactory.withTenant(input.empresaId, async (tx) => {
+      // Step 1: acquire row-level lock before reading current status.
+      // Prisma parameterises ${input.id} as $1; ::uuid cast handles UUID column type.
+      // The schema is already resolved by TenantPrismaFactory (datasourceUrl with
+      // ?schema=emp_<slug>), so table names are unqualified — no empresaId interpolation.
+      const rows = await tx.$queryRaw<PrismaProjetoRow[]>`
+        SELECT id,
+               editora_id    AS "editoraId",
+               nome,
+               status,
+               descricao,
+               criado_em     AS "criadoEm",
+               atualizado_em AS "atualizadoEm"
+        FROM   projeto_editorial
+        WHERE  id = ${input.id}::uuid
+        FOR UPDATE
+      `;
+
+      if (rows.length === 0) {
+        return null;
+      }
+
+      const locked = rows[0];
+      const currentStatus = locked.status as ProjetoStatus;
+
+      // Step 2: validate transition UNDER the lock.
+      // Throws IllegalStatusTransitionError for illegal moves (same as before).
+      const { newStatus, changed } = ProjectStatusVO.advanceTo(
+        currentStatus,
+        input.targetStatus,
+      );
+
+      if (!changed) {
+        // Idempotent no-op: the second concurrent caller lands here because the
+        // first already committed the status change before this lock was acquired.
+        return {
+          data: toData(locked, input.empresaId),
+          previousStatus: currentStatus,
+          changed: false,
+        };
+      }
+
+      // Step 3: apply writes WITHIN the same transaction (lock still held).
+      const updated = await tx.projetoEditorial.update({
+        where: { id: input.id },
+        data: { status: newStatus, atualizadoEm: new Date() },
+      });
+
+      await tx.projetoStatusHistorico.create({
+        data: {
+          id: randomUUID(),
+          projetoId: input.id,
+          statusDe: currentStatus,
+          statusPara: newStatus,
+          solicitadoPor: input.changedBy,
+          criadoEm: new Date(),
+        },
+      });
+
+      return {
+        data: toData(updated, input.empresaId),
+        previousStatus: currentStatus,
+        changed: true,
+      };
     });
   }
 

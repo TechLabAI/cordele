@@ -35,10 +35,20 @@ describe('ImpManuscriptErasureAdapter', () => {
     adapter = new ImpManuscriptErasureAdapter(mockConfig);
   });
 
-  it('resolves when IMP responds 2xx', async () => {
+  it('resolves when IMP responds 2xx — calls IMP erase port exactly once', async () => {
+    // Batching invariant: exactly 1 call to IMP regardless of project size.
     mockFetch.mockResolvedValue({ ok: true, status: 204 });
 
     await expect(adapter.erase('projeto-1', 'emp-aetos')).resolves.toBeUndefined();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves (idempotent) when project has no manuscripts — IMP returns 204 no-op', async () => {
+    // IMP is idempotent: when there are no manuscripts for the project it returns 204 (safe no-op).
+    // The adapter must complete without error so the LGPD cascade (PROJ-016) can proceed.
+    mockFetch.mockResolvedValue({ ok: true, status: 204 });
+
+    await expect(adapter.erase('projeto-sem-manuscritos', 'emp-aetos')).resolves.toBeUndefined();
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 

@@ -44,7 +44,8 @@ describe('CreateProjetoEditorialUseCase', () => {
       updateStatus: jest.fn(),
       existsByIdAndEmpresa: jest.fn(),
       delete: jest.fn(),
-        findAll: jest.fn(),
+      findAll: jest.fn(),
+      advanceStatusAtomic: jest.fn(),
     };
 
     mockPublisher = {
@@ -173,6 +174,34 @@ describe('CreateProjetoEditorialUseCase', () => {
         useCase.execute({ nome: '' }, makeUser()),
       ).rejects.toThrow();
       expect(mockPublisher.publish).not.toHaveBeenCalled();
+    });
+
+    // ---------------------------------------------------------------------------
+    // PROJ-003 criterion 4: error type maps to HTTP 400 urn:cordele:proj:validation
+    // ---------------------------------------------------------------------------
+
+    it('throws with type=urn:cordele:proj:validation when nome is empty (400 mapping)', async () => {
+      let caught: unknown;
+      try {
+        await useCase.execute({ nome: '' }, makeUser());
+      } catch (err) {
+        caught = err;
+      }
+      expect(caught).toBeDefined();
+      expect((caught as { type?: string }).type).toBe('urn:cordele:proj:validation');
+      expect(mockRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('throws with type=urn:cordele:proj:validation when nome exceeds 200 chars', async () => {
+      let caught: unknown;
+      try {
+        await useCase.execute({ nome: 'A'.repeat(201) }, makeUser());
+      } catch (err) {
+        caught = err;
+      }
+      expect(caught).toBeDefined();
+      expect((caught as { type?: string }).type).toBe('urn:cordele:proj:validation');
+      expect(mockRepository.create).not.toHaveBeenCalled();
     });
   });
 

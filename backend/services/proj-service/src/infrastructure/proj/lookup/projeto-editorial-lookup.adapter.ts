@@ -5,7 +5,8 @@
  * Cross-tenant safety is guaranteed by the repository's `existsByIdAndEmpresa`:
  * it returns false — never throws — when the project belongs to a different empresa.
  *
- * Bound under `PROJETO_EDITORIAL_LOOKUP` token in proj.module.ts (PROJ-006).
+ * Bound under `ProjetoEditorialLookupPort` token (PROJETO_EDITORIAL_LOOKUP alias)
+ * in LookupPortsModule (@Global()), imported by AppModule (PROJ-006 / PROJ-008).
  *
  * RULE-05: this file is in infrastructure/ — it must NOT import from modules/.
  * The `ProjetoEditorialRepository` symbol is declared in domain/ and used directly
@@ -18,6 +19,7 @@ import {
   ProjetoEditorialRepository,
 } from '../../../domain/proj/projeto-editorial.repository';
 import { type ProjetoEditorialLookupPort } from '../../../domain/proj/ports/inbound/projeto-editorial-lookup.port';
+import { EmpresaContextStore } from '../../context/empresa.context';
 
 @Injectable()
 export class ProjetoEditorialLookupAdapter implements ProjetoEditorialLookupPort {
@@ -29,11 +31,18 @@ export class ProjetoEditorialLookupAdapter implements ProjetoEditorialLookupPort
   /**
    * Returns true iff projetoId exists in the active empresa's schema.
    *
-   * EmpresaContext is read from AsyncLocalStorage by the underlying repository
-   * adapter (wired in P3 / P5). For P2, the stub repository receives an empty
-   * string — P3 will replace this with `EmpresaContext.getEmpresaId()`.
+   * `empresaId` is resolved from the AsyncLocalStorage store populated by
+   * `JwtAuthGuard.canActivate()` (via `EmpresaContextStore.enterWith()`).
+   * This guarantees that a project belonging to empresa-A is invisible
+   * when the request carries an empresa-B JWT — the Prisma tenant factory
+   * executes `SET LOCAL search_path TO emp_<empresaId>`, so empresa-A's
+   * rows are physically absent from the query scope.
+   *
+   * Never throws: any repository-level exception propagates to the caller;
+   * cross-tenant access (wrong schema) returns false by design.
    */
   async exists(projetoId: string): Promise<boolean> {
-    return this.repository.existsByIdAndEmpresa(projetoId, '');
+    const empresaId = EmpresaContextStore.getEditoraId();
+    return this.repository.existsByIdAndEmpresa(projetoId, empresaId);
   }
 }

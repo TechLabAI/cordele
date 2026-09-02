@@ -45,7 +45,8 @@ describe('ReopenProjectForRevisionUseCase', () => {
       updateStatus: jest.fn(),
       existsByIdAndEmpresa: jest.fn(),
       delete: jest.fn(),
-        findAll: jest.fn(),
+      findAll: jest.fn(),
+      advanceStatusAtomic: jest.fn(),
     };
 
     mockPublisher = {

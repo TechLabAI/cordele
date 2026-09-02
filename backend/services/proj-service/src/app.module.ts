@@ -10,6 +10,7 @@ import { CorrelationIdInterceptor } from './infrastructure/http/correlation-id.i
 import { HealthModule } from './infrastructure/health/health.module';
 import { ReadPortsModule } from './infrastructure/proj/read-ports.module';
 import { ErasurePortsModule } from './infrastructure/proj/erasure-ports.module';
+import { LookupPortsModule } from './infrastructure/proj/lookup-ports.module';
 import { ProjModule } from './modules/proj/proj.module';
 
 /**
@@ -38,6 +39,7 @@ import { ProjModule } from './modules/proj/proj.module';
     PersistenceModule,
     ReadPortsModule,
     ErasurePortsModule,
+    LookupPortsModule,
     AuthModule,
     ProjModule,
   ],

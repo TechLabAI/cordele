@@ -253,7 +253,7 @@ export class ProjController {
 
   @Delete('projetos/:projetoId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @RequiredScopes('proj:write')
+  @RequiredScopes('proj:delete')
   @ApiOperation({
     summary: 'Delete a project and cascade LGPD erasure across all contexts',
   })
