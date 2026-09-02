@@ -251,7 +251,28 @@ Roda a suite completa de testes: `test,build,e2e,lint`.
    - Se algum gate falha, o agent tambem escreve `tmp/pipeline-cycle/<MODULO>/b6-failure.json`
      (D-554) antes de retornar — ver `be-validator.md` Modo 4 / Resultado.
    - Aguardar a mensagem final do agent (score final + resultado de todos os gates).
-2. Se todos os gates passam: ir para Finalizacao.
+2. Gates passando **nao e sozinho criterio de Finalizacao** (correcao: um modulo
+   (PROJ) foi dado por concluido com checklist real em 70% so porque test/build/e2e/lint
+   passavam -- "gates completos = criterio" sem checar checklist real e score foi
+   revertido). Aplicar a MESMA regra de `validator-decide.py`
+   (`checklist 100% DONE AND score >= 80 -> ENCERRAR`), somando os itens reais de
+   `checklist.total/done` de **todas** as issues do modulo (nao a leitura solta de
+   "P1-P9 estruturalmente DONE"):
+   - Todos os gates passam **E** checklist real 100% DONE **E** score >= 80: ir para Finalizacao.
+   - Todos os gates passam mas checklist real < 100% DONE (ou score < 80) **E** o loop
+     B2->B5 chegou aqui pelo caminho normal (nao pelo safety cap): **NAO finalizar**.
+     Checkpoint (`currentStep: "full-validate-passed-incomplete"`, `nextStep: "decision"`,
+     notes com done/total e score real). Voltar para B2 (Decisao) -- o gap fica visivel
+     (`IMPLEMENTADOR` ou `PLANNER`) e o ciclo continua fechando prioridades reais em vez
+     de parar por os gates estarem verdes.
+   - Todos os gates passam mas o loop chegou aqui via **Safety cap** (5 iteracoes
+     atingidas): seguir a secao "Safety cap" abaixo -- interromper e pedir `--resume`,
+     nunca reportar como Finalizacao.
+   - Antes de aceitar um item de checklist como `MISSING` que bloqueia os 100%, conferir
+     se ele so descreve um gate ja registrado em `gates.*` (ex.: "pnpm build exits 0",
+     "pnpm test ... exits 0") -- se o gate correspondente ja esta `pass`, tratar o item
+     como coberto por evidencia indireta em vez de deixar a score presa por uma limitacao
+     do heuristico de deteccao de artefato (nao reinterpretar itens de funcionalidade real).
 3. Se algum gate falha, rotear deterministicamente (D-554) — **nao decidir a mao**:
    ```bash
    python scripts/validator-decide.py b6-fix --failure-report tmp/pipeline-cycle/<MODULO>/b6-failure.json

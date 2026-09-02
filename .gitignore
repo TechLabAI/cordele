@@ -79,6 +79,7 @@ frontend/*.log
 backend/services/*/lint-output.txt
 backend/services/*/test-output.log
 backend/services/*/test-e2e-output.log
+backend/services/*/README.md.scaffold
 tmp/*.py
 
 # Ephemeral runtime/observability state — trace context (F2, D-423),

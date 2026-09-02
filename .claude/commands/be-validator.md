@@ -230,6 +230,24 @@ Escreve `docs/architecture/backend/issues/<MODULO>-NNN.state.json`: checklist co
 `state.json`** ao preencher a secao 7 (Maturidade) do README; confirme a functionality e
 julgue os 10 soft (RULE-07 contexto de empresa enforcement, observabilidade).
 
+**Persistencia de itens comportamentais confirmados (D-624).** `score` **re-deriva o
+checklist do zero a cada chamada**, direto dos checkboxes markdown da issue + presenca de
+arquivo -- ele NUNCA le o `.state.json` anterior. Um item sem caminho de arquivo citavel
+(assertion comportamental pura, ex.: "makes exactly 1 call to X's port") so conta como
+`DONE` se o checkbox correspondente no `.md` da issue estiver litealmente `[x]`. Se voce
+confirmou um item assim lendo o conteudo real do spec/teste (nao so presenca de arquivo),
+**marque o checkbox de verdade** antes de reportar -- senao a confirmacao desaparece na
+proxima chamada de `score` (inclusive a do proprio B6):
+
+```bash
+python scripts/validator-score.py mark --issue <MODULO>-NNN --layer be \
+  --item "<trecho unico do texto do item>"
+```
+
+Erra (exit 1) se o trecho casar com 0 ou 2+ itens -- ajuste `--item` para ser unico. Rode
+`mark` para cada item confirmado e SO DEPOIS rode `score` de novo para gerar o
+`.state.json` final -- nunca edite `.state.json` a mao.
+
 No tier leve: `test`, `build` e `e2e` ficam como `"deferred"` no `gates.json` — o score
 desconta esses slots provisoriamente até que o Modo 4 (FULL-VALIDACAO) rode ao final.
 
@@ -266,6 +284,12 @@ python scripts/arch-conformance.py check --layer be --target backend/services/<s
 python scripts/validator-score.py score --issue <MODULO>-NNN --layer be \
   --gates tmp/gates.json --report
 ```
+
+**Antes de rodar `score` acima**, para cada issue do modulo cujo checklist voce ja
+confirmou por leitura de conteudo em uma rodada leve (B5) anterior nesta mesma
+invocacao, rode `validator-score.py mark` (ver secao "Persistencia de itens
+comportamentais confirmados (D-624)" acima) — senao o FULL-VALIDACAO re-deriva do
+zero e desfaz essas confirmacoes, mesmo com todos os gates passando.
 
 ### Resultado
 
