@@ -16,8 +16,7 @@
  * Track D: created by fe-architect-promote PUB @ cordele (D-494).
  */
 import { Routes } from '@angular/router';
-import { pubProjetoGuard } from './access/pub-projeto.guard';
-import { pubStatusGuard } from './access/pub-status.guard';
+import { pubProjetoGuard, pubStatusGuard } from '@cordele/pub-access';
 
 export const PUB_ROUTES: Routes = [
   {

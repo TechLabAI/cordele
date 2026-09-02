@@ -1,6 +1,6 @@
 ## [FE-PUB-021] pubProjetoGuard — UUID bem-formado, redirect em parâmetro inválido
 
-**Status:** 🔲 ABERTA
+**Status:** ✅ DONE
 **GitHub:** [#TBD]
 
 **Outcome:**

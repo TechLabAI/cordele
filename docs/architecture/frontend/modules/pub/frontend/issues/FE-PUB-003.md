@@ -1,6 +1,6 @@
 ## [FE-PUB-003] Module descriptor + bootstrap — pub.descriptor.ts, pub.bootstrap.ts
 
-**Status:** 🔲 ABERTA
+**Status:** ✅ DONE
 **GitHub:** [#TBD]
 
 **Outcome:**

@@ -1,6 +1,6 @@
 ## [FE-PUB-001] Module contract — pub.contract.ts, permission-map, feature-flags
 
-**Status:** 🔲 ABERTA
+**Status:** ✅ DONE
 **GitHub:** [#TBD]
 
 **Outcome:**

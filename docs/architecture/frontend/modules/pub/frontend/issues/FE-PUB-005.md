@@ -1,6 +1,6 @@
 ## [FE-PUB-005] Navigation config — PUB_NAV_CONFIG, StepBarComponent stage 4
 
-**Status:** 🔲 ABERTA
+**Status:** ✅ DONE
 **GitHub:** [#TBD]
 
 **Outcome:**

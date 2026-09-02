@@ -1,6 +1,6 @@
 ## [FE-PUB-004] Shell registration — PUB_MODULE_DESCRIPTOR em module-descriptors.ts
 
-**Status:** 🔲 ABERTA
+**Status:** ✅ DONE
 **GitHub:** [#TBD]
 
 **Outcome:**
