@@ -42,24 +42,28 @@ try:
     from cli_utils import force_utf8_stdio
     from issue_state import (
         LAYER_PROFILES,
+        UNVERIFIABLE_EVIDENCE,
         atomic_write,
         consolidate,
         find_root,
         issue_bases,
         parse_checklist,
         resolve_issue,
+        toggle_checkbox,
     )
 except ImportError:  # pragma: no cover
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from cli_utils import force_utf8_stdio
     from issue_state import (
         LAYER_PROFILES,
+        UNVERIFIABLE_EVIDENCE,
         atomic_write,
         consolidate,
         find_root,
         issue_bases,
         parse_checklist,
         resolve_issue,
+        toggle_checkbox,
     )
 
 
@@ -76,17 +80,35 @@ _GATE_ALIAS = {
     "test": "test",
     "e2e": "e2e", "integrationTest": "e2e",
 }
-_VERDICTS = {"pass", "fail", "warn", "skip", "unknown"}
+# Single source of truth: a verdict is valid iff compute_score can weigh it.
+_VERDICTS = frozenset(_BUILD_FACTOR)
+
+# Keys accepted, in precedence order, when a gate value is a rich object
+# (``{"status": "pass", "suites": 26}``) instead of a bare verdict string.
+_RICH_VERDICT_KEYS = ("status", "verdict", "result")
 
 
 # ── Scoring ────────────────────────────────────────────────────────────────────
 
 def normalize_gates(raw: dict, layer: str) -> dict:
+    """Map raw gate names onto the canonical slots, loudly rejecting junk.
+
+    An unrecognised verdict scores 0.0 in ``_BUILD_FACTOR``; degrading in
+    silence has cost this project real rework, so it is reported on stderr
+    and stored as an explicit ``unknown``.
+    """
     canon = {"build": "unknown", "lint": "unknown", "test": "unknown", "e2e": "unknown"}
     for key, verdict in raw.items():
         slot = _GATE_ALIAS.get(key, key)
-        if slot in canon and verdict:
-            canon[slot] = verdict
+        if slot not in canon or not verdict:
+            continue
+        if verdict not in _VERDICTS:
+            shown = str(verdict)[:60]
+            print(f"warn: gate '{slot}' com veredito irreconhecivel: {shown!r} "
+                  f"-- esperado {'|'.join(sorted(_VERDICTS))}; tratado como unknown",
+                  file=sys.stderr)
+            verdict = "unknown"
+        canon[slot] = verdict
     return canon
 
 
@@ -165,12 +187,21 @@ def verdict_from_log(path: str) -> str:
     return "unknown"
 
 
+def gate_verdict(value) -> str:
+    """Verdict of one gate entry: bare scalar, or rich object keyed by status."""
+    if isinstance(value, dict):
+        for key in _RICH_VERDICT_KEYS:
+            if key in value:
+                return str(value[key]).lower()
+    return str(value).lower()
+
+
 def collect_gates(args) -> dict:
     raw: dict[str, str] = {}
     if args.gates:
         try:
             data = json.loads(Path(args.gates).read_text(encoding="utf-8"))
-            raw.update({k: str(v).lower() for k, v in data.items()})
+            raw.update({k: gate_verdict(v) for k, v in data.items()})
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
             print(f"error: --gates ilegivel: {exc}", file=sys.stderr)
             raise SystemExit(1) from exc
@@ -211,6 +242,34 @@ def write_back(issue_file: Path, block: str) -> None:
     atomic_write(issue_file, new)
 
 
+# ── Unverified-item warning (never degrade in silence) ───────────────────────
+
+def count_unverified(checklist: dict) -> int:
+    """Items MISSING only because the heuristic had nothing to inspect.
+
+    An unchecked item citing no file path (a behavioral assertion such as
+    "retorna 502 com urn:...") never reaches any code -- it is scored MISSING
+    regardless of the implementation. MISSING for an absent/stub file is a real
+    gap and is deliberately NOT counted here.
+    """
+    return sum(1 for it in checklist["items"]
+               if it["state"] == "MISSING" and it["evidence"] == UNVERIFIABLE_EVIDENCE)
+
+
+def warn_unverified(issue: str, layer: str, checklist: dict) -> int:
+    """Report the unverifiable items on stderr. Returns how many there were."""
+    n = count_unverified(checklist)
+    if n:
+        print(f"warn: {issue}: {n} de {checklist['total']} itens do checklist NAO foram "
+              f"verificados contra o codigo -- sao assercoes comportamentais sem arquivo "
+              f"citado, que o heuristico nao consegue conferir e conta como MISSING.",
+              file=sys.stderr)
+        print(f"warn: confirme cada um com: python scripts/validator-score.py mark "
+              f"--issue {issue} --layer {layer} --item \"<substring do item>\"",
+              file=sys.stderr)
+    return n
+
+
 # ── Subcommands ──────────────────────────────────────────────────────────────
 
 def _load_issue(args) -> tuple[str, Path, Path, str]:
@@ -237,10 +296,35 @@ def cmd_checklist(args) -> int:
         print(f"error: issue sem checklist parseavel: {issue_file}", file=sys.stderr)
         return 2
     checklist = consolidate(items, root, issue_bases(args.issue, layer, root))
+    warn_unverified(args.issue, layer, checklist)
     public = {k: v for k, v in checklist.items() if not k.startswith("_")}
     _emit(args, {"issue": args.issue, "layer": layer, "checklist": public},
           issue_file, default_suffix="checklist")
     print(f"OK: checklist {public['done']}/{public['total']} -- {issue_file.stem}.checklist.json")
+    return 0
+
+
+def cmd_mark(args) -> int:
+    """Persist an agent's content-verified confirmation of one checklist item.
+
+    ``validator-score.py score`` re-derives the checklist from the issue's
+    markdown checkboxes on every run (D-317/D-319) -- it never reads a prior
+    ``.state.json`` back. An item with no file path cited (a pure behavioral
+    assertion, e.g. "makes exactly 1 call to X's port") is classified DONE
+    only if its markdown checkbox is literally ``[x]``. This subcommand is
+    the supported way to flip it once an agent has read the actual test/spec
+    content and confirmed the assertion is really implemented -- skipping it
+    means the confirmation is silently discarded on the next ``score`` run.
+    """
+    layer, root, issue_file, text = _load_issue(args)
+    try:
+        new_text, matched = toggle_checkbox(text, args.item, checked=not args.undone)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    atomic_write(issue_file, new_text)
+    state = "desmarcado" if args.undone else "marcado [x]"
+    print(f"OK: item {state} em {issue_file.name}: {matched}")
     return 0
 
 
@@ -252,6 +336,7 @@ def cmd_score(args) -> int:
         return 2
 
     checklist = consolidate(items, root, issue_bases(args.issue, layer, root))
+    unverified = warn_unverified(args.issue, layer, checklist)
     gates = normalize_gates(collect_gates(args), layer)
     score = compute_score(checklist, gates)
 
@@ -284,6 +369,12 @@ def cmd_score(args) -> int:
 
     print(f"OK: score {score['total']} ({score['band']}) -- {out_path.name} "
           f"[Done/Total {checklist['done']}/{checklist['total']}]")
+
+    limit = getattr(args, "strict_unverified", None)
+    if limit is not None and unverified > limit:
+        print(f"error: --strict-unverified {limit}: {unverified} itens nao verificados "
+              f"em {args.issue}", file=sys.stderr)
+        return 2
     return 0
 
 
@@ -327,11 +418,23 @@ def main() -> None:
     sc.add_argument("--gates", metavar="PATH", help="JSON file of gate verdicts")
     sc.add_argument("--write-back", action="store_true",
                     help="(opt-in) update the status block in the issue, atomically")
+    sc.add_argument("--strict-unverified", nargs="?", type=int, const=0, default=None,
+                    metavar="N",
+                    help="(CI) exit 2 when more than N checklist items could not be "
+                         "verified against code (default N=0 when the flag is given)")
     sc.set_defaults(func=cmd_score)
 
     cl = sub.add_parser("checklist", help="consolidate checklist only -> JSON")
     _add_common(cl)
     cl.set_defaults(func=cmd_checklist)
+
+    mk = sub.add_parser("mark", help="persist a content-verified checklist confirmation (flips the issue's markdown checkbox)")
+    _add_common(mk)
+    mk.add_argument("--item", required=True, metavar="TEXT",
+                     help="substring (case-insensitive) uniquely identifying the checklist item")
+    mk.add_argument("--undone", action="store_true",
+                     help="uncheck instead of check (default: check)")
+    mk.set_defaults(func=cmd_mark)
 
     args = parser.parse_args()
     sys.exit(args.func(args))

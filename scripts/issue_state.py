@@ -105,6 +105,11 @@ def resolve_issue(issue: str, explicit_layer: str | None, issue_file: str | None
 _CHECKBOX = re.compile(r"^\s*[-*]\s*\[([ xX])\]\s+(.*\S)\s*$")
 _BLOCKED_MARK = re.compile(r"\bBLOCKED\b", re.IGNORECASE)
 
+# Evidence of the ONE case the heuristic cannot verify at all: an unchecked item
+# citing no file path (a purely behavioral assertion). Named so consumers can
+# recognise it without duplicating the literal (D-317/D-319).
+UNVERIFIABLE_EVIDENCE = "desmarcado (sem arquivo verificavel)"
+
 
 def parse_checklist(text: str) -> list[dict]:
     """Extract markdown checkbox items from an issue (any section)."""
@@ -141,7 +146,7 @@ def _classify_item(it: dict, root: Path, bases=None) -> tuple[str, str]:
         return "DONE", f"arquivo(s) presente(s) e nao-stub: {', '.join(existing)}"
     if it["checked"]:
         return "DONE", "marcado (sem arquivo verificavel)"
-    return "MISSING", "desmarcado (sem arquivo verificavel)"
+    return "MISSING", UNVERIFIABLE_EVIDENCE
 
 
 
@@ -203,6 +208,41 @@ def consolidate(items: list[dict], root: Path, bases=None) -> dict:
         "_filesCited": files_cited,
         "_filesExisting": files_existing,
     }
+
+
+def toggle_checkbox(text: str, item_substr: str, checked: bool) -> tuple[str, str]:
+    """Flip a single checklist checkbox whose item text contains ``item_substr``.
+
+    This is the ONLY persistence path a checklist item has (D-317/D-319):
+    ``validator-score.py score`` re-derives the whole checklist from these
+    markdown checkboxes (+ file presence) on every run, never from a
+    previously-written ``.state.json`` -- so an agent that confirms an item
+    via content-reading (not just file presence) must flip the checkbox here,
+    or the confirmation is silently discarded on the next score run.
+
+    Matches case-insensitively against the checklist item's text (the part
+    after ``- [ ] ``). Raises ValueError if zero or more than one line match,
+    so a caller never silently marks the wrong item.
+    """
+    lines = text.splitlines(keepends=True)
+    hits: list[int] = []
+    needle = item_substr.strip().lower()
+    for i, line in enumerate(lines):
+        m = _CHECKBOX.match(line)
+        if m and needle in m.group(2).lower():
+            hits.append(i)
+    if not hits:
+        raise ValueError(f"nenhum item de checklist contem: {item_substr!r}")
+    if len(hits) > 1:
+        preview = "\n".join(f"  - {lines[i].strip()}" for i in hits)
+        raise ValueError(f"{len(hits)} itens combinam com {item_substr!r} -- seja mais especifico:\n{preview}")
+    idx = hits[0]
+    m = _CHECKBOX.match(lines[idx])
+    mark = "x" if checked else " "
+    prefix, _, rest = lines[idx].partition("[")
+    _, _, after = rest.partition("]")
+    lines[idx] = f"{prefix}[{mark}]{after}"
+    return "".join(lines), m.group(2)
 
 
 # ── Atomic IO (shared) ─────────────────────────────────────────────────────────

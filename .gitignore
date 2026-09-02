@@ -77,6 +77,9 @@ tmp/backend-logs/
 frontend/tmp/
 frontend/*.log
 backend/services/*/lint-output.txt
+backend/services/*/test-output.log
+backend/services/*/test-e2e-output.log
+tmp/*.py
 
 # Ephemeral runtime/observability state — trace context (F2, D-423),
 # runtime learning signals + token-usage JSONL (techlab-runtime).
