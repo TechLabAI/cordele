@@ -63,6 +63,20 @@ tmp/fe-architecture-autopilot/
 tmp/be-autopilot/
 tmp/fe-autopilot/
 
+# Ad-hoc gate/build/lint/test run output dumped into tmp/, the repo root, or
+# frontend/ by manual pipeline invocations — regenerated on every run, never
+# meant to be reviewed from git history. Scoped with a leading slash / explicit
+# dirs so this does NOT swallow *.log files that are actually meant to be
+# tracked source elsewhere in the tree.
+/*.log
+tmp/*.log
+tmp/*.json
+tmp/*.txt
+tmp/backend-logs/
+frontend/tmp/
+frontend/*.log
+backend/services/*/lint-output.txt
+
 # Ephemeral runtime/observability state — trace context (F2, D-423),
 # runtime learning signals + token-usage JSONL (techlab-runtime).
 # Surgical: other .techlab/ artifacts (e.g. assembly-*.json) stay tracked.
