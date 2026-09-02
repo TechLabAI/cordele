@@ -1,6 +1,6 @@
 {
-  "pending_input": 1989794,
-  "pending_output": 12405,
+  "pending_input": 940653,
+  "pending_output": 5200,
   "watermarks": {
     "695a150f-7620-46cf-b347-80c6aaa696eb": {
       "input": 2145696,
@@ -193,15 +193,25 @@
       "seq": 280
     },
     "587c52a0-8d21-4b36-99be-d0f9296462fe": {
-      "input": 5297164,
-      "output": 26766,
-      "seq": 308
+      "input": 14652222,
+      "output": 56696,
+      "seq": 310
     },
     "8ba880e6-2a25-465f-bc32-9baa407bb50f": {
       "input": 2475737,
       "output": 14326,
       "seq": 307
+    },
+    "22f3f912-0ee9-4bf2-a029-6f45c2d9c2cc": {
+      "input": 3165546,
+      "output": 16032,
+      "seq": 316
+    },
+    "34829ffc-a281-432f-8225-91ec17ceb48b": {
+      "input": 535440,
+      "output": 3088,
+      "seq": 317
     }
   },
-  "seq": 308
+  "seq": 317
 }

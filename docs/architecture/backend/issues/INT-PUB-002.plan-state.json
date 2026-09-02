@@ -1,0 +1,43 @@
+{
+  "issue": "INT-PUB-002",
+  "layer": "be",
+  "computedAt": "2026-09-02T07:47:42",
+  "checklist": {
+    "total": 7,
+    "done": 0,
+    "partial": 0,
+    "missing": 7,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": false,
+    "file": null,
+    "phases": []
+  },
+  "delta": {
+    "done": [],
+    "partial": [],
+    "notStarted": [
+      "`src/infrastructure/pub/integration/comp-composition-read.adapter.ts` — implementa `ICompositionReadPort`; injeta `COMP_GET_METADADOS_USE_CASE` e `COMP_GET_CONFIGURACAO_LAYOUT_USE_CASE` tokens; `getMetadados` retorna `MetadadosRead | null`; `getConfiguracaoLayout` retorna `ConfiguracaoLayout | null` (null → defaults do EpubBuilder)",
+      "`src/modules/pub/pub.module.ts` — condicional: se `CompModule` disponível, usar `CompCompositionReadAdapter`; senão manter stub",
+      "`src/infrastructure/pub/integration/comp-composition-read.adapter.spec.ts` — unit tests: `getMetadados` com metadados completos, `getMetadados` retorna `null` quando COMP ainda não foi composto, `getConfiguracaoLayout` retorna `null` → EpubBuilder usa defaults",
+      "Verificar que `CompModule` exporta `GET_METADADOS_USE_CASE` e `GET_CONFIGURACAO_LAYOUT_USE_CASE` (via COMP-006 ou equivalente)",
+      "`pnpm test src/infrastructure/pub/integration/comp-composition-read.adapter.spec.ts` exits 0",
+      "Nenhum import direto de implementação concreta de COMP",
+      "`getConfiguracaoLayout` retornando `null` não quebra o `EpubBuilder` (usa defaults)"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [
+      "COMP-001",
+      "PUB-003",
+      "PUB-012"
+    ],
+    "notes": [
+      "- PUB-012 (stub a substituir)"
+    ]
+  },
+  "suggestedPlanType": "INCREMENTAL",
+  "needsAgentConfirm": true
+}

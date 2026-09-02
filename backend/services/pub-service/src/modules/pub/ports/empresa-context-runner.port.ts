@@ -37,6 +37,12 @@ export interface EmpresaContextRunnerPort {
    * Executa `fn` dentro de um contexto de empresa identificado por `empresaId`.
    *
    * Retorna o valor produzido por `fn` (pode ser uma Promise).
+   *
+   * `bearerToken` (INT-PUB-002): quando informado, é armazenado no ALS para
+   * que adapters HTTP de saída (CompCompositionMetadataAdapter, etc.) possam
+   * recuperá-lo via `EmpresaContextService.getBearerToken()` sem mudança de
+   * assinatura das portas. Parâmetro opcional — chamadas existentes sem o
+   * terceiro argumento continuam funcionando (bearer = undefined no ALS).
    */
-  runAs<T>(empresaId: string, fn: () => T): T;
+  runAs<T>(empresaId: string, fn: () => T, bearerToken?: string): T;
 }

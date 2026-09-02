@@ -1,10 +1,14 @@
 import { Global, Module, type Provider } from '@nestjs/common';
 
 import { EmpresaContextService } from '../auth/empresa-context.service';
+import { CompCompositionLayoutAdapter } from '../http/comp-composition-layout.adapter';
+import { CompCompositionMetadataAdapter } from '../http/comp-composition-metadata.adapter';
 import { ImpManuscriptContentAdapter } from '../http/imp-manuscript-content.adapter';
 import { ProjProjectStatusAdapter } from '../http/proj-project-status.adapter';
 import {
   ADVANCE_PROJETO_STATUS_PORT,
+  COMPOSITION_LAYOUT_PORT,
+  COMPOSITION_METADATA_PORT,
   EMPRESA_CONTEXT_RUNNER_PORT,
   MANUSCRIPT_CONTENT_PORT,
 } from '../../modules/pub/pub.tokens';
@@ -24,6 +28,9 @@ const httpAdapterProviders: Provider[] = useStubs
   : [
       // INT-PUB-001: real HTTP adapter for ManuscriptContentPort (IMP service).
       { provide: MANUSCRIPT_CONTENT_PORT, useClass: ImpManuscriptContentAdapter },
+      // INT-PUB-002: real HTTP adapters for CompositionMetadataPort and CompositionLayoutPort (COMP service).
+      { provide: COMPOSITION_METADATA_PORT, useClass: CompCompositionMetadataAdapter },
+      { provide: COMPOSITION_LAYOUT_PORT, useClass: CompCompositionLayoutAdapter },
       // INT-PUB-003: real HTTP adapter for AdvanceProjetoStatusPort (PROJ service).
       { provide: ADVANCE_PROJETO_STATUS_PORT, useClass: ProjProjectStatusAdapter },
     ];
@@ -65,6 +72,12 @@ const httpAdapterProviders: Provider[] = useStubs
   ],
   exports: useStubs
     ? [EMPRESA_CONTEXT_RUNNER_PORT]
-    : [EMPRESA_CONTEXT_RUNNER_PORT, MANUSCRIPT_CONTENT_PORT, ADVANCE_PROJETO_STATUS_PORT],
+    : [
+        EMPRESA_CONTEXT_RUNNER_PORT,
+        MANUSCRIPT_CONTENT_PORT,
+        COMPOSITION_METADATA_PORT,
+        COMPOSITION_LAYOUT_PORT,
+        ADVANCE_PROJETO_STATUS_PORT,
+      ],
 })
 export class PubInfraBindingsModule {}

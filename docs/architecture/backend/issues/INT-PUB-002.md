@@ -1,6 +1,6 @@
 # INT-PUB-002 -- CompositionReadPort adapter: wiring in-process com COMP (metadados + layout)
 
-**Status:** BLOCKED -- 2026-08-29 (documentada como bloqueada; aguardando COMP-service)
+**Status:** IN-PROGRESS -- 2026-09-02 (desbloqueada; COMP concluido com GetMetadadosExportUseCase e GetConfiguracaoLayoutExportUseCase; plano P10 em plan-PUB.md; padrao HTTP adapter em infrastructure/http/ com bearer token via EmpresaContextService.getBearerToken())
 **Maturidade:** 0 -- Inicial
 **Done/Total:** 0/4 itens
 

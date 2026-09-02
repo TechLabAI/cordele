@@ -163,7 +163,12 @@ describe('GeneratePublicationUseCase', () => {
       expect.objectContaining({ projetoId: PROJETO_ID, empresaId: 'empresa-aetos' }),
     );
     // INT-PUB-006: runAs must be called with the empresa captured before dispatch.
-    expect(empresaContextRunner.runAs).toHaveBeenCalledWith('empresa-aetos', expect.any(Function));
+    // INT-PUB-002: third arg is the bearerToken forwarded for ALS storage (empty when none supplied).
+    expect(empresaContextRunner.runAs).toHaveBeenCalledWith(
+      'empresa-aetos',
+      expect.any(Function),
+      '',
+    );
   });
 
   it('INT-PUB-006: two concurrent jobs for different empresas do not share EmpresaContext', async () => {
@@ -246,7 +251,7 @@ describe('GeneratePublicationUseCase', () => {
     // Assert: each runner was called with its own empresaId — no sharing.
     expect(capturedEmpresaIds).toContain('empresa-aetos');
     expect(capturedEmpresaIds).toContain('empresa-beta');
-    expect(runnerA.runAs).toHaveBeenCalledWith('empresa-aetos', expect.any(Function));
-    expect(runnerB.runAs).toHaveBeenCalledWith('empresa-beta', expect.any(Function));
+    expect(runnerA.runAs).toHaveBeenCalledWith('empresa-aetos', expect.any(Function), '');
+    expect(runnerB.runAs).toHaveBeenCalledWith('empresa-beta', expect.any(Function), '');
   });
 });

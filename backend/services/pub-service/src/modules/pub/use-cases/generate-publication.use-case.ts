@@ -120,13 +120,20 @@ export class GeneratePublicationUseCase {
     const bearerToken = input.bearerToken ?? '';
     Promise.resolve()
       .then(() =>
-        this.empresaContextRunner.runAs(empresaId, () =>
-          this.buildJob.run({
-            publicacaoId: saved.id,
-            projetoId: input.projetoId,
-            empresaId,
-            bearerToken,
-          }),
+        // INT-PUB-002: pass bearerToken as third arg so runAs stores it in the
+        // ALS context — CompCompositionMetadataAdapter / CompCompositionLayoutAdapter
+        // retrieve it via getBearerToken() inside the async job, without changing
+        // the port signatures for CompositionMetadataPort / CompositionLayoutPort.
+        this.empresaContextRunner.runAs(
+          empresaId,
+          () =>
+            this.buildJob.run({
+              publicacaoId: saved.id,
+              projetoId: input.projetoId,
+              empresaId,
+              bearerToken,
+            }),
+          bearerToken,
         ),
       )
       .catch((error: unknown) => {

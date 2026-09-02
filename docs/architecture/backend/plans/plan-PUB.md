@@ -7,10 +7,11 @@
 - P3 -- DONE
 - P4 -- DONE
 - P5 -- DONE
-- P6 -- PARTIAL (PUB-014 DONE, PUB-015 DONE, PUB-016 DONE; INT-PUB-001/002/003 BLOCKED [requer IMP/COMP/PROJ])
+- P6 -- PARTIAL (PUB-014 DONE, PUB-015 DONE, PUB-016 DONE; INT-PUB-001 DONE, INT-PUB-003 DONE; INT-PUB-002 desbloqueada -> P10)
 - P7 -- DONE (PUB-017: Correlation interceptor + structured logging. PUB-018: Health endpoint com epubcheck liveness check. 2026-08-26 17:59)
 - P8 -- DONE (PUB-019: BDD step definitions manuais + execução dos 3 feature files; 22/22 scenarios PASS @ 2026-08-26 19:08)
 - P9 -- pendente (PUB-020: Runbook de reconciliação de build órfão)
+- P10 -- pendente (INT-PUB-002: CompositionReadPort HTTP adapter real para comp-service)
 
 ---
 
@@ -238,7 +239,7 @@ explícito para `PublicationBuildJob.run`.
 ---
 
 ### Prioridade 6 -- Ports exportadas + integrações
-Status: PARTIAL (PUB-014 DONE, PUB-015 DONE; INT-PUB-001/002/003 BLOCKED por dependência externa; PUB-016 BLOCKED por ratificação FE)
+Status: PARTIAL (PUB-014 DONE, PUB-015 DONE, PUB-016 DONE; INT-PUB-001 DONE [adapter HTTP IMP], INT-PUB-003 DONE [adapter HTTP PROJ]; INT-PUB-002 desbloqueada -> P10 [COMP agora completo])
 
 #### Objetivo / Resultado esperado
 `PublicationHistoryPort` e `PublicationErasurePort` injetáveis em PROJ; adapters reais de IMP/COMP/PROJ.
@@ -808,17 +809,300 @@ ser importado por nenhum módulo da aplicação — é estritamente one-shot ope
 
 ---
 
+### Prioridade 10 -- CompositionReadPort HTTP adapter real (INT-PUB-002)
+Status: pendente
+
+#### Issues cobertas
+- INT-PUB-002 (CompositionReadPort adapter: HTTP client para comp-service)
+
+#### Objetivo / Problema / Resultado esperado
+
+Substituir os stubs `CompositionMetadataStub` e `CompositionLayoutStub` (PUB-012) pelos
+adapters HTTP reais que chamam `GET /api/comp/projetos/{projetoId}/metadados` e
+`GET /api/comp/projetos/{projetoId}/layout` no comp-service.
+
+Ao concluir: score E2E sobe de 0/10 para valor mensuravel; `PublicationBuildJob` usa
+metadados e layout reais de COMP em ambiente com `PUB_USE_STUBS=false`.
+
+#### Problemas identificados
+
+1. `EmpresaRequestContext` em `empresa-context.service.ts` armazena `userId` e `empresaId`
+   no ALS, mas nao armazena o bearer token raw. Os adapters HTTP de COMP precisam do token
+   para autenticar a chamada — sem ele resultam em 401.
+2. `CompositionMetadataPort.get(projetoId)` e `CompositionLayoutPort.get(projetoId)` nao
+   recebem `bearerToken` como parametro (diferente de `ManuscriptContentPort` e
+   `AdvanceProjetoStatusPort`). Adicionar bearer token nas assinaturas quebraria 10+
+   arquivos (stubs, use-cases, testes). Alternativa: obter o token do ALS via
+   `EmpresaContextService.getBearerToken()`.
+3. COMP retorna `materialized: false` quando nenhum dado real existe para o projeto
+   (retorno de default sintetico, nao 404). O adapter de metadata deve tratar
+   `materialized: false` como `null` para que o pre-flight de export rejeite com 422
+   (api-contract §7.1 — titulo/autor/idioma ausentes).
+4. COMP retorna `materialized: false` tambem para layout, mas `CompositionLayoutPort`
+   aceita `null` com graceful fallback (EpubBuilder usa defaults COMP §7.2). Portanto o
+   adapter de layout deve igualmente retornar `null` quando `materialized: false`.
+
+#### Correcoes mandatorias
+
+1. Estender `EmpresaRequestContext` com campo opcional `bearerToken?: string`.
+2. Adicionar metodo `getBearerToken(): string | null` em `EmpresaContextService`.
+3. Atualizar `EmpresaContextMiddleware` para armazenar o token raw no contexto ALS.
+4. Criar `CompCompositionMetadataAdapter` em `infrastructure/http/`.
+5. Criar `CompCompositionLayoutAdapter` em `infrastructure/http/`.
+6. Registrar os dois adapters em `PubInfraBindingsModule` sob os tokens
+   `COMPOSITION_METADATA_PORT` e `COMPOSITION_LAYOUT_PORT` quando `PUB_USE_STUBS != true`.
+7. Adicionar `COMP_SERVICE_URL` ao `.env.example` (ou equivalente documentado).
+
+#### Alvos de alteracao (caminhos completos relativos ao repositorio)
+
+Arquivos a modificar:
+- `backend/services/pub-service/src/infrastructure/auth/empresa-context.service.ts`
+  — estender `EmpresaRequestContext` com `bearerToken?: string`; adicionar `getBearerToken(): string | null`
+- `backend/services/pub-service/src/infrastructure/auth/empresa-context.middleware.ts`
+  — incluir `bearerToken: token` na chamada `this.empresaContextService.run({ userId, empresaId, bearerToken: token }, ...)`
+- `backend/services/pub-service/src/infrastructure/pub/pub-infra-bindings.module.ts`
+  — adicionar `CompCompositionMetadataAdapter` e `CompCompositionLayoutAdapter` ao array condicional
+- `backend/services/pub-service/docs/architecture/backend/issues/INT-PUB-002.md`
+  — atualizar status para IN-PROGRESS
+
+Novos arquivos a criar:
+- `backend/services/pub-service/src/infrastructure/http/comp-composition-metadata.adapter.ts`
+- `backend/services/pub-service/src/infrastructure/http/comp-composition-metadata.adapter.spec.ts`
+- `backend/services/pub-service/src/infrastructure/http/comp-composition-layout.adapter.ts`
+- `backend/services/pub-service/src/infrastructure/http/comp-composition-layout.adapter.spec.ts`
+
+#### Contrato operacional
+
+Deve existir:
+- `EmpresaContextService.getBearerToken()` retornando o bearer token do contexto ALS corrente, ou `null` se nao ha contexto (rotas publicas, jobs asincronos sem contexto HTTP)
+- `CompCompositionMetadataAdapter implements CompositionMetadataPort`:
+  - `get(projetoId)` → `GET ${COMP_SERVICE_URL}/api/comp/projetos/{projetoId}/metadados`
+  - `Authorization: Bearer <token>` obtido via `getBearerToken()`
+  - HTTP 200 + `materialized: true` → mapear para `MetadadosRead` (ignorar campo `materialized`)
+  - HTTP 200 + `materialized: false` → retornar `null`
+  - HTTP 404 → retornar `null`
+  - Erro de rede → logar + retornar `null` (nunca lancar excecao que interrompa o build job)
+- `CompCompositionLayoutAdapter implements CompositionLayoutPort`:
+  - `get(projetoId)` → `GET ${COMP_SERVICE_URL}/api/comp/projetos/{projetoId}/layout`
+  - `Authorization: Bearer <token>` obtido via `getBearerToken()`
+  - HTTP 200 + `materialized: true` → mapear para `LayoutRead` (filtrar `overrides` onde `tipo === 'imagem'` ou `'em-branco'`, manter campos do port)
+  - HTTP 200 + `materialized: false` → retornar `null`
+  - HTTP 404 → retornar `null`
+  - Erro de rede → logar + retornar `null`
+- Em `PubInfraBindingsModule`: quando `!useStubs`, adicionar:
+  ```
+  { provide: COMPOSITION_METADATA_PORT, useClass: CompCompositionMetadataAdapter },
+  { provide: COMPOSITION_LAYOUT_PORT, useClass: CompCompositionLayoutAdapter },
+  ```
+  e exportar ambos os tokens no array `exports`.
+
+Nao deve existir:
+- Import direto de qualquer tipo de `comp-service/src/` dentro de `pub-service/src/`
+- Bearer token hardcoded ou obtido de variavel de ambiente (somente via ALS)
+- `console.log` em qualquer adapter (RULE-08 — usar Nest Logger)
+- Chamada HTTP que propaga erros de rede como excecao para o caller (sempre absorver com log + null)
+
+Verificacao objetiva:
+- `pnpm test -- --testPathPattern="comp-composition"` exits 0 (2 spec files)
+- `pnpm exec tsc --noEmit` exits 0
+- `pnpm lint` exits 0
+- `python scripts/arch-conformance.py check --layer be --target backend/services/pub-service` exits 0
+
+Condicao de bloqueio:
+- `COMPOSITION_METADATA_PORT` e `COMPOSITION_LAYOUT_PORT` devem existir em `pub.tokens.ts`
+  como tokens DI antes de registrar os adapters; verificar antes da Fase 4.
+
+#### Sequencia de execucao
+
+**Fase 1 — Extensao do EmpresaContextService (auth)**
+
+Arquivo: `src/infrastructure/auth/empresa-context.service.ts`
+
+Modificar a interface `EmpresaRequestContext`:
+```ts
+interface EmpresaRequestContext {
+  readonly userId: string;
+  readonly empresaId: string;
+  readonly bearerToken?: string;  // <-- adicionar
+}
+```
+
+Adicionar metodo publico `getBearerToken()` apos `runAs`:
+```ts
+getBearerToken(): string | null {
+  return this.als.getStore()?.bearerToken ?? null;
+}
+```
+
+**Fase 2 — Atualizar EmpresaContextMiddleware**
+
+Arquivo: `src/infrastructure/auth/empresa-context.middleware.ts`
+
+Na linha onde `run()` e chamado, adicionar `bearerToken: token` ao objeto de contexto:
+```ts
+this.empresaContextService.run({ userId, empresaId, bearerToken: token }, () => next());
+```
+
+O `token` ja esta disponivel na variavel local (extraido do header `Authorization`).
+
+**Fase 3 — Criar CompCompositionMetadataAdapter**
+
+Arquivo: `src/infrastructure/http/comp-composition-metadata.adapter.ts`
+
+```ts
+@Injectable()
+export class CompCompositionMetadataAdapter implements CompositionMetadataPort {
+  private readonly logger = new Logger(CompCompositionMetadataAdapter.name);
+  private readonly compBaseUrl: string;
+
+  constructor(
+    config: ConfigService,
+    private readonly empresaContext: EmpresaContextService,
+  ) {
+    this.compBaseUrl = config.get<string>('COMP_SERVICE_URL') ?? 'http://localhost:3003';
+  }
+
+  async get(projetoId: string): Promise<MetadadosRead | null> { ... }
+}
+```
+
+Regras de mapeamento da resposta HTTP de COMP para `MetadadosRead` (port do PUB):
+- Campo `materialized: false` → retornar `null` (sem dados reais)
+- Campo `titulo`, `autor`, `idioma`, `isbn`, `categoria`, `capaUrl`, `editoraNome` → mapear diretamente; coercer para `null` se string vazia
+- Campo `atualizadoEm` → mapear para string ISO (o port define `atualizadoEm: string`)
+- Ignorar campo `materialized` no objeto retornado
+- COMP retorna `200` com `materialized: false` quando nenhuma composicao foi salva; tratar como null
+
+**Fase 4 — Criar CompCompositionLayoutAdapter**
+
+Arquivo: `src/infrastructure/http/comp-composition-layout.adapter.ts`
+
+Regras de mapeamento da resposta HTTP de COMP para `LayoutRead` (port do PUB):
+- Campo `materialized: false` → retornar `null`
+- Campos tipograficos (`fonteCorpoFamilia`, `fonteCorpoTamanho`, `espacamentoLinha`, `margemLateral`, `h1Tamanho`, `h2Tamanho`, `h3Tamanho`) → mapear diretamente
+- Campo `overrides` → filtrar apenas items com `tipo === 'imagem'` ou `'em-branco'`; mapear para `LayoutOverrideRead` do port
+- Ignorar campo `atualizadoEm` (nao existe em `LayoutRead` do port)
+- Ignorar campo `materialized` e qualquer campo extra
+
+**Fase 5 — Criar specs dos adapters**
+
+Arquivo: `src/infrastructure/http/comp-composition-metadata.adapter.spec.ts`
+
+Cenarios de teste (unit — sem HTTP real, fetch mockado):
+- Cenario 1: `200` com `materialized: true` e todos os campos → retorna `MetadadosRead` mapeado
+- Cenario 2: `200` com `materialized: false` → retorna `null`
+- Cenario 3: `404` → retorna `null`
+- Cenario 4: erro de rede (`fetch` rejeita) → retorna `null` (sem excecao propagada)
+- Cenario 5: bearer token `null` (sem contexto ALS) → chama fetch sem header `Authorization`; retorna `null` se COMP retornar 401
+
+Arquivo: `src/infrastructure/http/comp-composition-layout.adapter.spec.ts`
+
+Cenarios de teste:
+- Cenario 1: `200` com `materialized: true` e overrides → retorna `LayoutRead` com overrides filtrados
+- Cenario 2: `200` com `materialized: false` → retorna `null`
+- Cenario 3: `404` → retorna `null`
+- Cenario 4: erro de rede → retorna `null`
+
+**Fase 6 — Registrar adapters em PubInfraBindingsModule**
+
+Arquivo: `src/infrastructure/pub/pub-infra-bindings.module.ts`
+
+No array `httpAdapterProviders` (condicional `!useStubs`), adicionar:
+```ts
+{ provide: COMPOSITION_METADATA_PORT, useClass: CompCompositionMetadataAdapter },
+{ provide: COMPOSITION_LAYOUT_PORT, useClass: CompCompositionLayoutAdapter },
+```
+
+Adicionar os dois tokens ao array `exports` da secao `!useStubs`.
+
+Verificar que `COMPOSITION_METADATA_PORT` e `COMPOSITION_LAYOUT_PORT` existem em
+`src/modules/pub/pub.tokens.ts` (devem existir desde P2/PUB-012). Se nao existirem,
+criar antes desta fase.
+
+**Fase 7 — Verificacao final**
+
+```bash
+cd backend/services/pub-service
+pnpm exec tsc --noEmit
+pnpm lint
+pnpm test -- --testPathPattern="comp-composition"
+pnpm test -- --testPathPattern="empresa-context"   # verificar que extensao nao quebrou testes existentes
+python scripts/arch-conformance.py check --layer be --target backend/services/pub-service
+```
+
+#### Politica de testes
+
+- Unit tests obrigatorios para ambos os adapters (fetch mockado — `jest.spyOn(globalThis, 'fetch')`)
+- Nao ha teste de integracao (sem DB; HTTP mockado no unit test e suficiente)
+- Verificar que os testes de `empresa-context.service.spec.ts` (se existirem) continuam passando apos a extensao do ALS store
+- `pnpm lint` deve passar — sem `any` implicito, sem `console.log`
+
+#### Multi-empresa
+
+- O bearer token no ALS representa o usuario autenticado da requisicao HTTP original, que ja passou pelo `JwtAuthGuard` e tem `empresa_id` validado
+- Os adapters nao precisam propagar `empresa_id` explicitamente: o COMP service recebe o mesmo JWT Bearer e extrai o schema via seu proprio middleware
+- No job assincrono (`PublicationBuildJob`), o contexto ALS e propagado via `empresaContextService.runAs(empresaId, ...)` (P5/INT-PUB-006) — mas **nao inclui bearer token** (nao ha request HTTP no job). Os adapters de COMP, quando chamados dentro do job, receberao `getBearerToken() === null`. O implementador deve:
+  - Verificar que `PublicationBuildJobInput` inclui o `bearerToken` capturado antes do `Promise.resolve()` (analogo ao `empresaId`)
+  - Passar o token como campo do input do job e usa-lo explicitamente ao chamar os adapters de COMP
+  - Alternativa: estender `runAs(empresaId, bearerToken, fn)` para incluir bearer token no ALS do job
+
+  **Decisao do planner:** usar a alternativa — estender `runAs` para aceitar `bearerToken?: string` opcional:
+  ```ts
+  runAs<T>(empresaId: string, fn: () => T, bearerToken?: string): T {
+    return this.als.run({ userId: '', empresaId, bearerToken }, fn);
+  }
+  ```
+  E em `PublicationBuildJob`, capturar o bearer token antes do `Promise.resolve()` e passa-lo para `runAs`.
+
+  Arquivos adicionais afetados por esta decisao:
+  - `src/infrastructure/auth/empresa-context.service.ts` — extensao de `runAs` (ja na Fase 1)
+  - `src/modules/pub/application/publication-build.job.ts` — capturar e propagar bearer token
+  - `src/modules/pub/application/publication-build.job.spec.ts` — atualizar mock de `runAs`
+
+#### Migracoes Prisma Migrate necessarias
+
+Nenhuma. Esta prioridade e puramente de infraestrutura HTTP e nao toca o schema DB.
+
+#### Criterios de aceite
+
+- `pnpm test -- --testPathPattern="comp-composition"` exits 0 (cenarios de metadata e layout)
+- `pnpm exec tsc --noEmit` exits 0
+- `pnpm lint` exits 0
+- `python scripts/arch-conformance.py check --layer be --target backend/services/pub-service` exits 0
+- Com `PUB_USE_STUBS=false` e `COMP_SERVICE_URL` apontando para comp-service real: `POST /api/pub/projetos/{id}/export` usa metadados e layout reais (verificavel via log `CompCompositionMetadataAdapter`)
+- `EmpresaContextService.getBearerToken()` retorna o token do contexto corrente; retorna `null` fora de contexto HTTP
+
+#### Riscos
+
+- `bearerToken` pode ser `null` no job assincrono se `runAs` nao for estendido: COMP retornaria 401 e o adapter retornaria `null`, causando 422 `metadata-incomplete` mesmo com dados reais. Mitigacao: extensao de `runAs` obrigatoria antes do adapter.
+- COMP `GET /metadados` pode retornar `200` com `materialized: false` (default sintetico) ao inves de `404` quando o projeto nao tem dados reais. O adapter deve checar o campo `materialized`, nao apenas o status HTTP.
+- `COMP_SERVICE_URL` ausente em `.env.local`: o adapter usa `http://localhost:3003` como default — documentar no `.env.example`.
+
+#### Instrucao para implementador
+
+Executar as 7 fases na ordem. Fase 1 e pre-requisito de Fase 2, 3, 4 e da extensao do job.
+Verificar antes da Fase 6 que `COMPOSITION_METADATA_PORT` e `COMPOSITION_LAYOUT_PORT` existem
+em `pub.tokens.ts`; se ausentes, criar como `export const COMPOSITION_METADATA_PORT = Symbol(...)`.
+Nao alterar assinaturas de `CompositionMetadataPort.get()` nem `CompositionLayoutPort.get()` —
+o bearer token e obtido via `EmpresaContextService.getBearerToken()` internamente.
+A extensao de `runAs` na Fase 1 deve manter retrocompatibilidade: o parametro `bearerToken`
+e opcional; chamadas existentes sem o terceiro argumento continuam funcionando.
+
+---
+
 ## 3. Dependências externas
 
-| Dependência | Direção | Quem fornece | Quando necessário |
-|---|---|---|---|
-| `ManuscriptContentPort` (IMP) | PUB importa | ImpModule | P6 (INT-PUB-001); stub em P4 (PUB-012) |
-| `GetMetadadosUseCase` + layout (COMP) | PUB importa | CompModule | P6 (INT-PUB-002); stub em P4 |
-| `AdvanceProjetoStatusUseCase.advanceTo` (PROJ) | PUB chama | ProjModule | P6 (INT-PUB-003); stub em P4 |
-| `PublicationHistoryPort` | PROJ importa de PUB | PubModule | P6 (INT-PUB-004) |
-| `PublicationErasurePort` | PROJ importa de PUB | PubModule | P6 (INT-PUB-005) |
-| epubcheck JAR + JRE | PUB infra | ops/local | P4 (PUB-010); `EPUBCHECK_JAR_PATH` |
-| FileStorage (disco) | PUB infra | local disk | P4 (PUB-011); `PUB_STORAGE_ROOT` |
+| Dependência | Direção | Quem fornece | Quando necessário | Status |
+|---|---|---|---|---|
+| `ManuscriptContentPort` (IMP) | PUB importa | imp-service HTTP | P6 (INT-PUB-001) | DONE — `ImpManuscriptContentAdapter` |
+| `CompositionMetadataPort` (COMP) | PUB importa | comp-service HTTP | P10 (INT-PUB-002) | pendente — stub em PUB-012 |
+| `CompositionLayoutPort` (COMP) | PUB importa | comp-service HTTP | P10 (INT-PUB-002) | pendente — stub em PUB-012 |
+| `AdvanceProjetoStatusPort` (PROJ) | PUB chama | proj-service HTTP | P6 (INT-PUB-003) | DONE — `ProjProjectStatusAdapter` |
+| `PublicationHistoryPort` | PROJ importa de PUB | PubModule export | P6 (INT-PUB-004) | DONE |
+| `PublicationErasurePort` | PROJ importa de PUB | PubModule export | P6 (INT-PUB-005) | DONE |
+| epubcheck JAR + JRE | PUB infra | ops/local | P4 (PUB-010) | `EPUBCHECK_JAR_PATH` |
+| FileStorage (disco) | PUB infra | local disk | P4 (PUB-011) | `PUB_STORAGE_ROOT` |
+| comp-service URL | PUB infra | env var | P10 (INT-PUB-002) | `COMP_SERVICE_URL` (default `http://localhost:3003`) |
 
 ---
 

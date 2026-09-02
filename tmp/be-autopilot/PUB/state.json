@@ -3,11 +3,11 @@
   "module": "PUB",
   "service": "pub-service",
   "pipeline": "implement",
-  "currentStep": "gaps-closed",
-  "nextStep": "done",
-  "progressUnit": "P9",
-  "notes": "Gaps remanescentes tratados a pedido do usuario: INT-PUB-001 (IMP) e INT-PUB-003 (PROJ) reescritas como HTTP clients reais (arquitetura de microservicos, RULE-06) com propagacao de bearer token do usuario pelo fluxo assincrono (PublicationBuildJobInput). Endpoint novo POST /api/v1/proj/projetos/:projetoId/advance-status criado em proj-service. PUB-016 implementada e DONE (endpoint validation-messages). INT-PUB-002 (COMP) permanece BLOCKED e documentada -- comp-service e um esqueleto CRUD generico sem dominio real de Metadados/ConfiguracaoLayout, fora do escopo de PUB. Checklist 23/23 DONE. Score final 88/100 Maduro (e2e SKIP por causa de INT-PUB-002). Identificado bug de infra: prisma generate hoisted compartilhado entre os 4 servicos do workspace pnpm causa colisao de client -- nao corrigido (fora do escopo, precisa decisao arquitetural).",
-  "iteration": 2,
-  "timestamp": "2026-08-29T00:28:50",
-  "capReached": false
+  "currentStep": "full-validate-failed",
+  "nextStep": "decision",
+  "progressUnit": "P10",
+  "notes": "B6 FULL-VALIDACAO apos P10 (INT-PUB-002 real): FAIL. test=FAIL (2 testes generate-publication.use-case.spec.ts -- mock runAs() recebendo terceiro arg bearerToken inesperado), lint=FAIL (erros eslint no Prisma client gerado + tipos), build=PASS, e2e=SKIP, arch-conformance=PASS 5/5. Score 39/100 (Inicial/REDUCED, checklist regrediu para 4/10 na heuristica pos-mudanca). validator-decide.py b6-fix classificou FULL_CYCLE (failure_type=multiple_tests, 2 failing tests + lint). Safety cap de iteracoes ja havia sido atingido nesta sessao (contador cumulativo incluindo passos de finalizacao anteriores) -- parar e aguardar --resume (reinicia contador).",
+  "iteration": 6,
+  "timestamp": "2026-09-02T08:04:52",
+  "capReached": true
 }
