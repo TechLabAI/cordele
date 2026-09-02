@@ -62,6 +62,7 @@ tmp/be-architecture-autopilot/
 tmp/fe-architecture-autopilot/
 tmp/be-autopilot/
 tmp/fe-autopilot/
+tmp/pipeline-cycle/
 
 # Ad-hoc gate/build/lint/test run output dumped into tmp/, the repo root, or
 # frontend/ by manual pipeline invocations — regenerated on every run, never
