@@ -36,6 +36,7 @@
 | P7 | PUB-018 | Health/readiness endpoint incluindo disponibilidade do epubcheck | S |
 | P8 | PUB-019 | BDD Cucumber step definitions manuais: DataTable, JRE/JAR, emAndamento | M |
 | P9 | PUB-020 | Reconciliação de build órfão: runbook operacional para MVP | S |
+| P4 | PUB-021 | Decisão de produto pendente: fonte dos KPIs do EpubSummaryVM (BLOQUEADA) | XS |
 
 ---
 
@@ -84,15 +85,17 @@
 | Gap (origem M3) | Issue | Decisão |
 |---|---|---|
 | Lista detalhada de avisos {code,msg,location} — sem endpoint no api-contract | PUB-016 | Novo endpoint §4.6 — requer ratificação FE antes do promote |
-| KPIs de resumo do ePub (tamanho/páginas/capítulos/imagens) — sem campo-fonte | — | Fora do MVP (tile omitido); pós-POC se BA confirmar os dados |
+| KPIs de resumo do ePub (tamanho/páginas/capítulos/imagens) — sem campo-fonte | PUB-021 | BLOQUEADA aguardando decisão de produto (PM/Tech Lead); tile FE omitido até então |
 | Step `epubcheck cannot execute due to a missing JRE or JAR path` — step definition manual | PUB-019 | Step configurável via fake de EpubValidationPort |
 | Step DataTable `project {string} has the following publicacoes:` — step definition manual | PUB-019 | DataTable canônico para fixtures multi-linha |
 | Cenário BDD `emAndamento=1` — ausente no feature file atual | PUB-019 | Acrescentado ao feature file de polling |
 | Reconciliação de build órfão (crash em gerando/validando) — sem timeout automático no MVP | PUB-020 | Runbook operacional + script manual; sem automação no POC |
 
-> **Nota:** o gap de KPIs de tamanho/páginas/capítulos/imagens do ePub não está mapeado como issue porque
-> não há campo-fonte definido no api-contract nem na data-model. O tile FE permanece omitido até que o BA
-> confirme a fonte (pós-POC). Criar issue só após decisão de produto.
+> **Nota (atualizada 2026-09-01):** o gap de KPIs de tamanho/páginas/capítulos/imagens do ePub foi
+> formalizado em PUB-021 após bloquear `INT-FE-PUB-005` (FE) durante P4 do ciclo de execução. PUB-021
+> não é uma tarefa de implementação -- é um pedido de decisão de produto/arquitetura (fonte de cada
+> campo, ou omissão permanente de algum deles). Só após a decisão + emenda de `api-contract.md` §6 é
+> que uma issue de implementação deve ser aberta.
 
 ---
 

@@ -1,27 +1,39 @@
-## [INT-FE-PUB-005] KPIs de resumo ePub — decisão de produto pendente; tile omitido, nunca fabricado
+## [INT-FE-PUB-005] KPIs de resumo ePub — decisão de produto tomada (ADR-004); implementação pendente
 
-**Status:** 🔲 ABERTA — decisão de produto pendente
+**Status:** 🔓 DESBLOQUEADA — decisão registrada (ADR-004 / api-contract D-S, 2026-09-01); pronta para
+implementação (steps 3-4 abaixo)
 **GitHub:** [#TBD]
 
 **Outcome:**
-Documenta o gap de produto para os KPI tiles de `EpubSummaryVM` (Tamanho/Páginas/Capítulos/Imagens)
-em T07. Define o requisito de uma decisão de produto + emenda de api-contract antes de qualquer
-implementação dos tiles. Até então, os tiles são omitidos (não exibidos, não fabricados) — conforme
-SPEC-03 §3 e EARS pub-kpi-omit-missing.
+Fecha a decisão de produto para os KPI tiles de `EpubSummaryVM` em T07: Tamanho/Capítulos/Imagens
+ganham campo-fonte em `PublicacaoStatus` (§6.1); Páginas fica **permanentemente** omitido (não é mais
+gap, é decisão). Enquanto a implementação (steps 3-4) não landa, os tiles de Tamanho/Capítulos/Imagens
+continuam omitidos na prática (campo ainda não populado pelo BE) — mesmo comportamento
+`pub-kpi-omit-missing` de antes, agora transitório em vez de permanente para esses três.
 
 **Context / Problem statement:**
-- `contracts/backend-api-cross-link.md §6` GAP 2: `Tamanho/Páginas/Capítulos/Imagens` não têm
-  campo-fonte em `api-contract.md §6` (nem em PublicacaoStatus §6.1, nem em PublicacaoHistoryItem §6.2).
+- `contracts/backend-api-cross-link.md §6` GAP 2 — **RESOLVIDO**: `Tamanho/Capítulos/Imagens` agora têm
+  campo-fonte em `api-contract.md §6.1` (`PublicacaoStatus.tamanhoBytes/.totalCapitulos/.totalImagens`,
+  não-nulo iff `status=publicado`). `Páginas` não terá campo — ePub reflowable não tem paginação fixa
+  (ADR-004, decisão de produto, não uma fonte a determinar).
 - O protótipo hardcodava esses valores — removidos em FE-PUB-012 (promote).
-- EpubSummaryGridComponent (FE-PUB-015) já trata `null` corretamente (tile oculto).
-- Decisão de produto pendente: reconciliar fonte (build metadata do pub-service vs contagem de Manuscrito vs field novo).
+- EpubSummaryGridComponent (FE-PUB-015) já trata `null` corretamente (tile oculto) — nenhuma mudança de
+  comportamento necessária ali além de consumir os novos campos.
+- Fonte definida: BE (`pub-service`) conta capítulos/imagens durante o walk que `EpubBuilder` já faz via
+  `ManuscriptContentPort` (nenhuma porta nova cross-context) e mede o tamanho do `.epub` na escrita em
+  `FileStoragePort`. Ver `PUB-021` / `adr/ADR-004-epub-summary-kpi-field-sources.md`.
 
 **Approach (execution path):**
-1. [DECISÃO DE PRODUTO] Definir fonte dos campos Tamanho/Páginas/Capítulos/Imagens.
-2. Emenda de api-contract.md §6 com os novos campos na resposta adequada.
-3. Atualizar modelos TS em `libs/pub/data-access/models`.
-4. ExportFacade: popular `summary` com os campos quando disponíveis.
-5. Atualizar `contracts/backend-api-cross-link.md §6` com GAP 2 fechado.
+1. ~~[DECISÃO DE PRODUTO] Definir fonte dos campos Tamanho/Páginas/Capítulos/Imagens.~~ **FEITO** —
+   ADR-004 / api-contract D-S.
+2. ~~Emenda de api-contract.md §6 com os novos campos na resposta adequada.~~ **FEITO** — §6.1
+   `PublicacaoStatus` (não §6.2, ver D-S).
+3. Atualizar modelos TS em `libs/pub/data-access/models` (`tamanhoBytes`, `totalCapitulos`,
+   `totalImagens` em `PublicacaoStatus`). **Pendente** — depende do BE (`pub-service`) implementar a
+   emenda de contrato (`EpubBuilder` popular as 3 colunas no assembly).
+4. ExportFacade: popular `summary` (`EpubSummaryVM`) com os campos quando disponíveis; `tamanho` formatado
+   (`formatBytes`), `paginas` fixo em `null`. **Pendente**.
+5. ~~Atualizar `contracts/backend-api-cross-link.md §6` com GAP 2 fechado.~~ **FEITO**.
 
 **Non-goals:**
 - Não inventar campos enquanto a decisão não for tomada.

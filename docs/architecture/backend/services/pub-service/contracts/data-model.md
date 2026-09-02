@@ -50,6 +50,9 @@ CREATE TABLE publicacao (
     resumo_erro      TEXT,
     total_erros      INTEGER     NOT NULL DEFAULT 0,
     total_avisos     INTEGER     NOT NULL DEFAULT 0,
+    tamanho_bytes    BIGINT,
+    total_capitulos  INTEGER,
+    total_imagens    INTEGER,
     iniciada_em      TIMESTAMPTZ NOT NULL DEFAULT now(),
     concluida_em     TIMESTAMPTZ,
     PRIMARY KEY (id),
@@ -58,6 +61,8 @@ CREATE TABLE publicacao (
     CONSTRAINT chk_publicacao_sequencia CHECK (sequencia >= 1),
     CONSTRAINT chk_publicacao_counts    CHECK (total_erros >= 0 AND total_avisos >= 0),
     CONSTRAINT chk_publicacao_artefato  CHECK ((status = 'publicado') = (artefato_ref IS NOT NULL)),
+    CONSTRAINT chk_publicacao_summary   CHECK ((status = 'publicado') = (tamanho_bytes IS NOT NULL AND total_capitulos IS NOT NULL AND total_imagens IS NOT NULL)),
+    CONSTRAINT chk_publicacao_summary_nonneg CHECK (tamanho_bytes IS NULL OR (tamanho_bytes >= 0 AND total_capitulos >= 0 AND total_imagens >= 0)),
     CONSTRAINT uq_publicacao_projeto_seq UNIQUE (projeto_id, sequencia),
     CONSTRAINT fk_publicacao_projeto    FOREIGN KEY (projeto_id) REFERENCES projeto_editorial (id) ON DELETE CASCADE
 );
@@ -72,6 +77,9 @@ COMMENT ON COLUMN publicacao.epubcheck_status IS 'epubcheck verdict: valido | av
 COMMENT ON COLUMN publicacao.artefato_ref     IS 'FileStoragePort key of the .epub; non-null iff status=publicado (chk_publicacao_artefato).';
 COMMENT ON COLUMN publicacao.sequencia        IS 'Per-project monotonic attempt number (history / T08).';
 COMMENT ON COLUMN publicacao.resumo_erro      IS 'Short human-readable failure summary; set when com_erros.';
+COMMENT ON COLUMN publicacao.tamanho_bytes    IS 'Byte size of the assembled .epub, measured at write time; non-null iff status=publicado (ADR-004).';
+COMMENT ON COLUMN publicacao.total_capitulos  IS 'Chapter count from the ManuscriptContentPort walk at this build; historical snapshot, not a live mirror of imp-service (ADR-004).';
+COMMENT ON COLUMN publicacao.total_imagens    IS 'Image-block count from the ManuscriptContentPort walk at this build; historical snapshot, not a live mirror of imp-service (ADR-004).';
 ```
 
 **Invariants:**
@@ -83,6 +91,10 @@ COMMENT ON COLUMN publicacao.resumo_erro      IS 'Short human-readable failure s
 - `THE SYSTEM SHALL set artefato_ref non-null exactly when status is publicado`
   (CHECK chk_publicacao_artefato — a published attempt always has an artifact; a non-published one never
   does).
+- `THE SYSTEM SHALL set tamanho_bytes, total_capitulos and total_imagens non-null exactly when status is
+  publicado, as a build-time snapshot taken from the same ManuscriptContentPort walk and the same artifact
+  write that populate artefato_ref` (CHECK chk_publicacao_summary — ADR-004; these are historical, not a
+  live mirror of imp-service's own manuscrito counts).
 - `THE SYSTEM SHALL assign a contiguous, unique sequencia per project` (UNIQUE `uq_publicacao_projeto_seq`;
   next value computed application-side within the tenant).
 - `WHEN a ProjetoEditorial is deleted, THE SYSTEM SHALL cascade-delete its publicacoes` (FK ON DELETE
