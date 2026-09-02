@@ -1,7 +1,7 @@
 {
   "issue": "PUB-001",
   "layer": "be",
-  "computedAt": "2026-09-02T10:10:08",
+  "computedAt": "2026-09-02T11:49:03",
   "checklist": {
     "total": 10,
     "done": 6,
@@ -68,9 +68,12 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 86,
-    "provisional": false,
-    "range": null,
+    "total": 78,
+    "provisional": true,
+    "range": [
+      78,
+      88
+    ],
     "breakdown": {
       "structure": {
         "max": 30,
@@ -81,8 +84,7 @@
         "max": 30,
         "value": 18,
         "basis": "heuristic",
-        "confirmed": true,
-        "notes": "Parcial mas legítimo: controllers, jobs, adapters implementados; gaps em testes E2E cruzados (escopo futuro). Correção COMP_SERVICE_URL (3003→3001) habilita integração real."
+        "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
@@ -96,17 +98,16 @@
       },
       "soft": {
         "max": 10,
-        "value": 8,
+        "value": null,
         "basis": "agent",
-        "confirmed": true,
-        "notes": "RULE-07 ✓, observabilidade ✓, resilience ✓, docs ✓. Elevado para 8 pela integração real agora validada (era 7/10 antes)."
+        "needsAgentConfirm": true
       }
     },
     "band": "Consistente",
-    "statusTag": "FINAL"
+    "statusTag": "REDUCED"
   },
-  "agentConfirm": {
-    "functionality": "confirmada 18/30 — parcial e legítimo",
-    "soft": "confirmada 8/10 — integração real validada"
-  }
+  "agentTodo": [
+    "Confirmar functionality 18/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
 }

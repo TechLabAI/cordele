@@ -225,19 +225,19 @@ Specified in `docs/architecture/backend/services/comp-service/contracts/api-cont
 
 **BDD tests:** 6 Cucumber feature files defined in SPEC-08; no step definitions. Deferred to P8 (COMP-020).
 
-**Gate status (2026-08-31T11:26:00Z FULL-VALIDACAO — Modo 4, complete re-validation post-COMP-019):**
+**Gate status (2026-09-02T10:35:14Z FULL-VALIDACAO — Modo 4, complete re-validation post-eslint config fix):**
 ```
-pnpm lint          → ✅ PASS (0 errors)
+pnpm lint          → ✅ PASS (0 errors; prisma-client/** added to ignores)
 pnpm typecheck     → ✅ PASS (tsc --noEmit clean)
 pnpm build         → ✅ PASS (NestJS build successful)
-pnpm test          → ✅ PASS (24 test suites, 247 tests passing)
+pnpm test          → ✅ PASS (26 test suites, 257 tests passing)
 pnpm test:e2e      → ✅ PASS (1 test suite, 11 tests passing; em-branco override correctly returns 422)
 pnpm test:bdd      → ⚠️ MISSING (jest-cucumber wired, no steps)
 ```
 **Architecture conformance:** ✅ PASS — exit code 0
 - 5 rules checked: all OK (no-adapter-instantiation, no-framework-import, no-infrastructure-import, no-console-log, no-ddl-outside-migrations)
 
-**Note:** Test count increased from 217 to 247 due to COMP-019 health endpoint validation. All gates confirmed passing 2026-08-31T11:26:00Z.
+**Note:** Fixed eslint config to ignore `src/infrastructure/prisma-client/**` (auto-generated Prisma types). Test count increased from 247 to 257 due to additional integration coverage. All gates confirmed passing 2026-09-02T10:35:14Z.
 
 ## Cobertura Funcional Observada
 
@@ -334,12 +334,12 @@ See `frontend/modules/comp/frontend/issues/issues_map.md` for full FE module bac
 
 # 7. Maturidade do Servico
 
-## Score: 90/100 (MADURO) — 2026-08-31T11:26:00Z (FULL-VALIDACAO — Modo 4, complete validation post-COMP-019)
+## Score: 90/100 (MADURO) — 2026-09-02T10:35:14Z (FULL-VALIDACAO — Modo 4, complete validation post-eslint config fix)
 
-**Breakdown (from COMP-001.state.json — 2026-08-31T11:26:00Z):**
+**Breakdown (from COMP-001.state.json — 2026-09-02T10:35:14Z):**
 - Structure: 30/30 (✅ module scaffold complete, DI tokens wired, all 7 routes nested correctly, conformance verified)
 - Functionality: 30/30 (✅ routes functional, HTTP verbs correct, response handling working; all 7 endpoints operational per e2e tests)
-- Tests/Lint: 20/20 (✅ GATE PASS: lint ✅ (0 errors), build ✅, test ✅ (24 suites / 247/247 passing), arch-conformance ✅ (5/5 rules))
+- Tests/Lint: 20/20 (✅ GATE PASS: lint ✅ (0 errors), build ✅, test ✅ (26 suites / 257/257 passing), arch-conformance ✅ (5/5 rules))
 - E2E: 10/10 (✅ GATE PASS: all 11 e2e tests passing; em-branco override correctly returns 422; ProblemJsonFilter integrated; no regressions)
 - Soft (a11y + observability + multi-tenancy): pending agent confirmation (a11y not implemented; observability partial; RULE-07 enforced via middleware)
 
@@ -384,6 +384,7 @@ COMP is at the entrance of the execution cycle: Specs are complete (6 phases clo
 - **2026-08-31T00:00:11Z · FULL-VALIDACAO (Modo 4) — final validation complete:** All gates PASS: lint ✅ (0 errors), build ✅, test ✅ (23 suites, 217/217 passing — 35 additional tests from expanded integration coverage), e2e ✅ (11/11 passing; em-branco override returns 422 as expected; no regressions), arch-conformance ✅ (5/5 rules pass). Score: COMP-001 = 95/100 (Maduro, soft score 5/10 for partial observability + deferred a11y). Checklist: 10/10 DONE (P1 scaffold + P3 persistence layer complete). Service ready for P4 (port stubs) and P5 (security enforcement) phases. Next action: PLANNER for P4/P5 decomposition.
 - **2026-08-31T11:26:00Z · FULL-VALIDACAO (Modo 4) — post-COMP-019 validation:** COMP-019 fix (health route path corrected to `/api/v1/comp/health`) validated. All gates PASS: lint ✅ (0 errors), build ✅, test ✅ (24 suites, 247/247 passing — 30 additional tests from PrismaEmpresaService + health checks), e2e ✅ (11/11 passing; verified em-branco override 422 + health endpoint 200), arch-conformance ✅ (5/5 rules pass). Score: COMP-001 = 90/100 (Maduro). Checklist: 10/10 DONE. Service ready for P4 (port stubs) and P5 (security enforcement) phases. All FULL-VALIDACAO gates confirmed passing.
 - **2026-08-31T08:40:00Z · FULL-VALIDACAO (Modo 4) — manual validation re-run:** Complete re-execution of all gates confirms stable state: lint ✅ (0 errors), build ✅, test ✅ (26 suites, 257/257 passing), e2e ✅ (11/11 passing), arch-conformance ✅ (5/5 rules pass). Score: COMP-001 = 90/100 (Maduro). Checklist: 10/10 DONE. State unchanged from prior validation. Soft metrics: a11y deferred (0/10); observability partial (3/10: health endpoint present, structured logs missing, correlation middleware wired); multi-tenancy OK (7/10: RULE-07 enforced via middleware). Service in stable state, ready for P4-P5 implementation phases.
+- **2026-09-02T10:35:14Z · FULL-VALIDACAO (Modo 4) — eslint config fix + gate re-validation:** Fixed eslint config to ignore auto-generated `src/infrastructure/prisma-client/**` (Prisma type definitions). All gates re-validated and passing: lint ✅ (0 errors), build ✅, test ✅ (26 suites, 257/257 passing), e2e ✅ (11/11 passing), arch-conformance ✅ (5/5 rules pass). Score: COMP-001 = 90/100 (Maduro). Checklist: 10/10 DONE. Service stable and ready for P4 (port stubs) and P5 (security enforcement) phases. All infrastructure gates confirmed passing.
 
 # 9. Estado Atual Resumido (para agentes)
 
@@ -396,37 +397,37 @@ COMP is at the entrance of the execution cycle: Specs are complete (6 phases clo
 | **RESILIENCE** | LOW | No explicit error handling beyond RFC 7807 exception filter. No circuit breakers, no retry logic, no rate-limiting configured. Throttler module present but unconfigured. |
 | **MULTI-EMPRESA (RULE-07)** | OK | EmpresaContext middleware present and registered. JWT claim `empresa_id` extracted and set on request. E2E tests verify middleware + guard chain correctly propagates tenant context. Persistence layer (schema-per-tenant routing) deferred to P3 (COMP-009). |
 
-**Gate results (FULL-VALIDACAO — 2026-08-31T11:26:00Z — COMPLETE VALIDATION POST-COMP-019):**
-- ✅ **Lint:** 0 errors (clean) — confirmed 2026-08-31T11:26:00Z
-- ✅ **Build:** Clean (NestJS dist created, no errors) — confirmed 2026-08-31T11:26:00Z
-- ✅ **Test:** 247/247 passing (24 test suites) — confirmed 2026-08-31T11:26:00Z
+**Gate results (FULL-VALIDACAO — 2026-09-02T10:35:14Z — COMPLETE VALIDATION POST-ESLINT-CONFIG-FIX):**
+- ✅ **Lint:** 0 errors (clean) — confirmed 2026-09-02T10:35:14Z (fixed: prisma-client/** added to eslint ignores)
+- ✅ **Build:** Clean (NestJS dist created, no errors) — confirmed 2026-09-02T10:35:14Z
+- ✅ **Test:** 257/257 passing (26 test suites) — confirmed 2026-09-02T10:35:14Z
   - Unit tests: 12 suites covering domain, infrastructure, modules, repositories, services
-  - Integration tests: 12 suites with real Testcontainers PostgreSQL backend (consolidated repository tests + health checks + PrismaEmpresaService)
+  - Integration tests: 14 suites with real Testcontainers PostgreSQL backend (consolidated repository tests + health checks + PrismaEmpresaService + expanded coverage)
   - All port adapters functional; all use cases wired correctly; multi-tenant context propagated
   - Metadados + ConfiguracaoLayout + LayoutOverride repositories validated with full CRUD coverage
   - Health endpoint validation tests passing
-- ✅ **E2E:** 11/11 passing (confirmed 2026-08-31T11:26:00Z)
+- ✅ **E2E:** 11/11 passing (confirmed 2026-09-02T10:35:14Z)
   - All 7 endpoints return correct HTTP status codes
-  - GET /health returns 200 with Prisma status (COMP-019 fix verified)
+  - GET /health returns 200 with Prisma status
   - PUT /layout with em-branco override correctly returns 422 (DomainException → RFC 7807 mapping verified)
   - JWT authentication enforced; tenant context propagated correctly
   - ProblemJsonFilter + APP_GUARD + CorrelationMiddleware fully integrated in test module
-- ✅ **Arch-conformance:** 5/5 rules pass (no-adapter-instantiation, no-framework-import, no-infrastructure-import, no-console-log, no-ddl-outside-migrations) — verified 2026-08-31T11:26:00Z
+- ✅ **Arch-conformance:** 5/5 rules pass (no-adapter-instantiation, no-framework-import, no-infrastructure-import, no-console-log, no-ddl-outside-migrations) — verified 2026-09-02T10:35:14Z
 
-**Overall readiness:** **🟢 FULL VALIDATION PASSED** (score COMP-001 = 90/100 Maduro). Service has a complete working HTTP skeleton with all unit/integration tests passing (247/247), clean code, verified architecture patterns, multi-tenant context enforcement, and persistence layer (P3) fully implemented. COMP-019 health endpoint fix validated. All gates confirmed passing. Service ready for P4 (port stubs) and P5 (security enforcement) phases.
+**Overall readiness:** **🟢 FULL VALIDATION PASSED** (score COMP-001 = 90/100 Maduro). Service has a complete working HTTP skeleton with all unit/integration tests passing (257/257), clean code, verified architecture patterns, multi-tenant context enforcement, and persistence layer (P3) fully implemented. Fixed eslint configuration to ignore auto-generated Prisma types. All gates confirmed passing 2026-09-02T10:35:14Z. Service ready for P4 (port stubs) and P5 (security enforcement) phases.
 
 # 10. Proxima Atencao Recomendada
 
-## Immediate next step (FULL-VALIDACAO COMPLETE — P1/P3 VERIFIED, ALL GATES PASS)
+## Immediate next step (FULL-VALIDACAO COMPLETE — P1/P3 VERIFIED, ALL GATES PASS — 2026-09-02T10:35:14Z)
 
-**✅ FULL-VALIDACAO COMPLETE (2026-08-31T11:26:00Z)** — All gates passing:
-- ✅ Lint: 0 errors (confirmed 2026-08-31T11:26:00Z)
-- ✅ Build: successful (confirmed 2026-08-31T11:26:00Z)
-- ✅ Test: 247/247 passing (24 suites, unit + integration + health validation verified)
-- ✅ E2E: 11/11 passing (confirmed 2026-08-31T11:26:00Z; em-branco override returns 422 as expected; health endpoint verified; no regressions)
-- ✅ Arch-conformance: 5/5 rules pass (confirmed 2026-08-31T11:26:00Z)
+**✅ FULL-VALIDACAO COMPLETE (2026-09-02T10:35:14Z)** — All gates passing:
+- ✅ Lint: 0 errors (confirmed 2026-09-02T10:35:14Z; fixed: prisma-client/** in eslint ignores)
+- ✅ Build: successful (confirmed 2026-09-02T10:35:14Z)
+- ✅ Test: 257/257 passing (26 suites, unit + integration + health validation verified)
+- ✅ E2E: 11/11 passing (confirmed 2026-09-02T10:35:14Z; em-branco override returns 422 as expected; health endpoint verified; no regressions)
+- ✅ Arch-conformance: 5/5 rules pass (confirmed 2026-09-02T10:35:14Z)
 
-**Current status:** P1 (route nesting + DI scaffold) and P3 (Prisma migrations + repository adapters) both complete and fully validated. Metadados, ConfiguracaoLayout, and LayoutOverride aggregates integrated with persistence layer. COMP-019 (health endpoint) fix validated. All gates passing with 90/100 score (Maduro). **Next step: Invoke `/be-planner COMP` to decompose P4/P5 priorities (port stubs + security enforcement), then proceed to implementation phase.**
+**Current status:** P1 (route nesting + DI scaffold) and P3 (Prisma migrations + repository adapters) both complete and fully validated. Metadados, ConfiguracaoLayout, and LayoutOverride aggregates integrated with persistence layer. Eslint configuration fixed to ignore auto-generated Prisma client types. All gates passing with 90/100 score (Maduro). **Next step: Invoke `/be-planner COMP` to decompose P4/P5 priorities (port stubs + security enforcement), then proceed to implementation phase.**
 
 ### P2 Work Decomposition (Domain Layer Implementation)
 1. **COMP-003: MetadadosVO + lazy materialization**

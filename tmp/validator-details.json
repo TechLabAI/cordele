@@ -1,1 +1,1 @@
-﻿{"score":95,"maturity":"Maduro","checklist":{"done":10,"total":10,"gaps":[]},"gates":{"test":"pass","build":"pass","lint":"pass","e2e":"pass"},"next_action":"PLANNER"}
+﻿{"score":28,"maturity":"Parcial","checklist":{"done":25,"total":28,"gaps":["pnpm test/build deferred to B6"]},"gates":{"lint":"skip","build":"deferred","test":"deferred","e2e":"deferred"},"next_action":"IMPLEMENTADOR"}

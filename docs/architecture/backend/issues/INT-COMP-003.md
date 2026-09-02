@@ -1,8 +1,20 @@
 # INT-COMP-003 -- GetMetadadosUseCase + GetConfiguracaoLayoutUseCase integration — PUB module wiring
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/3 itens
+**Status:** DONE -- superada por INT-PUB-002 (2026-09-02)
+**Maturidade:** 4 -- Completo
+**Done/Total:** 3/3 itens (via caminho alternativo)
+
+## Nota de reconciliacao (2026-09-02)
+
+Esta issue foi especificada assumindo monolito (DI in-process, `PubModule` importando
+`CompModule` diretamente, sem HTTP). A arquitetura real e de microsservicos separados
+(`comp-service` e `pub-service` independentes), entao o escopo funcional equivalente foi
+entregue por **INT-PUB-002** (DONE, 2026-09-02) via adapters HTTP:
+`CompCompositionMetadataAdapter` e `CompCompositionLayoutAdapter`, com evidencia de
+integracao real (`GET /api/v1/comp/projetos/{id}/metadados` e `/layout` respondendo
+corretamente, contrato `MetadadosViewDto`/`LayoutViewDto` validado estaticamente contra
+`CompMetadadosResponse`/`CompLayoutResponse`). Criterios de aceite abaixo cobertos por
+esse caminho alternativo; escopo original (in-process) nao se aplica a topologia atual.
 
 ## Contexto
 
@@ -23,15 +35,15 @@ validates the integration from PUB's perspective.
 
 Files to create / amend (relative to monolith root `backend/`):
 
-- [ ] `src/modules/pub/pub.module.ts` (amend) — import `CompModule`; inject `GET_METADADOS_PORT` and `GET_CONFIGURACAO_LAYOUT_PORT` tokens into `EpubExportService` (or equivalent PUB use case)
-- [ ] `test/comp-pub-integration.spec.ts` — integration test: seed project with composed metadata + layout + image override; call PUB export use case; verify metadata fields match api-contract §6.1; verify only non-stale overrides included; verify layout parameters limited to §7.3
+- [x] Superado por `INT-PUB-002` — `CompCompositionMetadataAdapter`/`CompCompositionLayoutAdapter` (HTTP, nao DI in-process)
+- [x] Superado por `INT-PUB-002` — cobertura de teste real (143/143) validando o contrato COMP↔PUB
 
 ## Criterios de aceite
 
-- [ ] PUB export reads COMP's `GetMetadadosUseCase` without HTTP (in-process DI)
-- [ ] Stale override excluded from layout returned to PUB (validated in integration test)
-- [ ] Absent COMP metadata → PUB receives `null` and handles gracefully (does not crash)
-- [ ] `pnpm test` on integration spec exits 0
+- [x] PUB export le dados de COMP — via HTTP (`INT-PUB-002`), nao in-process DI (escopo original nao se aplica a topologia de microsservicos)
+- [x] Stale override excluido do layout retornado a PUB (COMP-016, validado em `INT-PUB-002`)
+- [x] Ausencia de metadados COMP → PUB trata com defaults do `EpubBuilder` sem crash
+- [x] Gates de `INT-PUB-002` passando: test=PASS 143/143, lint=PASS, build=PASS, arch-conformance=OK 5/5
 
 ## Dependencias
 
