@@ -20,5 +20,113 @@ services:
       timeout: 5s
       retries: 20
 
+  imp-service:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: imp-service
+    container_name: cordele-imp-service
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      LOG_LEVEL: debug
+      CORS_ORIGINS: "*"
+      DATABASE_URL: postgresql://cordele:cordele@postgres:5432/cordele_dev?schema=public
+      JWT_ISSUER_URI: http://host.docker.internal:8180/realms/cordele
+      JWT_AUDIENCE: imp-service
+      FILE_STORAGE_ADAPTER: local
+      FILE_STORAGE_BASE_DIR: /tmp/cordele-files
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  comp-service:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: comp-service
+    container_name: cordele-comp-service
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      LOG_LEVEL: debug
+      CORS_ORIGINS: "*"
+      DATABASE_URL: postgresql://cordele:cordele@postgres:5432/cordele_dev?schema=public
+      JWT_ISSUER_URI: http://host.docker.internal:8180/realms/cordele
+      JWT_AUDIENCE: comp-service
+    ports:
+      - "3001:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  pub-service:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: pub-service
+    container_name: cordele-pub-service
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      LOG_LEVEL: debug
+      CORS_ORIGINS: "*"
+      DATABASE_URL: postgresql://cordele:cordele@postgres:5432/cordele_dev?schema=public
+      JWT_ISSUER_URI: http://host.docker.internal:8180/realms/cordele
+      JWT_AUDIENCE: pub-service
+      EPUBCHECK_JAR_PATH: /opt/epubcheck/epubcheck.jar
+      PUB_STORAGE_ROOT: /var/pub-service/storage
+      PUB_DOWNLOAD_URL_TTL_SECONDS: "900"
+      PUB_SIGN_SECRET: change-me-in-production
+      PUB_USE_STUBS: "true"
+      PUB_MANUSCRIPT_STUB_NULL: "false"
+      PUB_METADADOS_STUB_NULL: "false"
+      IMP_SERVICE_URL: http://imp-service:3000
+      PROJ_SERVICE_BASE_URL: http://proj-service:3000
+    ports:
+      - "3002:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  proj-service:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      args:
+        SERVICE: proj-service
+    container_name: cordele-proj-service
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      LOG_LEVEL: debug
+      CORS_ORIGINS: "*"
+      DATABASE_URL: postgresql://cordele:cordele@postgres:5432/cordele_dev?schema=public
+      JWT_ISSUER_URI: http://host.docker.internal:8180/realms/cordele
+      JWT_AUDIENCE: proj-service
+    ports:
+      - "3003:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  cordele-web:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: cordele-web
+    ports:
+      - "4500:4500"
+    depends_on:
+      - imp-service
+      - comp-service
+      - pub-service
+      - proj-service
+
 volumes:
   cordele-pgdata:
