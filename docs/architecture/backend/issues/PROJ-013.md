@@ -29,11 +29,11 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] Returns `{ publicacaoId, arquivoUrl, expiresAt }` for `valido|avisos` publications
-- [ ] 409 `urn:cordele:proj:artifact-not-available` for `erros_criticos|pendente` publications
-- [ ] 404 when `publicacaoId` does not belong to `projetoId` or active empresa
-- [ ] PROJ never proxies bytes — the signed URL is opened by the SPA directly (no streaming in controller)
-- [ ] `pnpm test` on use case spec exits 0
+- [x] Returns `{ publicacaoId, arquivoUrl, expiresAt }` for `valido|avisos` publications
+- [x] 409 `urn:cordele:proj:artifact-not-available` for `erros_criticos|pendente` publications
+- [x] 404 when `publicacaoId` does not belong to `projetoId` or active empresa
+- [x] PROJ never proxies bytes — the signed URL is opened by the SPA directly (no streaming in controller)
+- [x] `pnpm test` on use case spec exits 0
 
 ## Dependencias
 

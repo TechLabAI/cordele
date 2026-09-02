@@ -32,9 +32,9 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] `POST /projetos/{id}/reopen` on `publicado` returns 200 with `ProjetoDetail` and `status=em_composicao`
-- [ ] Reopen when already `em_composicao` returns 200 with `changed=false` (idempotent, no event)
-- [ ] `POST /projetos/{id}/reopen` when `rascunho` returns 409 `urn:cordele:proj:illegal-status-transition`
+- [x] `POST /projetos/{id}/reopen` on `publicado` returns 200 with `ProjetoDetail` and `status=em_composicao`
+- [x] Reopen when already `em_composicao` returns 200 with `changed=false` (idempotent, no event)
+- [x] `POST /projetos/{id}/reopen` when `rascunho` returns 409 `urn:cordele:proj:illegal-status-transition`
 - [x] `ProjectStatusChanged` emitted with `solicitadoPor=editor` on actual change only
 - [x] `pnpm test` on use case spec exits 0
 

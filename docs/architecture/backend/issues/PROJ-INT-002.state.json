@@ -1,12 +1,12 @@
 {
   "issue": "PROJ-INT-002",
   "layer": "be",
-  "computedAt": "2026-08-28T10:36:36",
+  "computedAt": "2026-09-02T19:58:50",
   "checklist": {
     "total": 7,
-    "done": 3,
+    "done": 6,
     "partial": 0,
-    "missing": 4,
+    "missing": 1,
     "blocked": 0,
     "items": [
       {
@@ -26,18 +26,18 @@
       },
       {
         "text": "`metadata(projetoIds)` makes exactly 1 call to COMP's query port",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`autor=undefined` for projects with no COMP metadata (not an error)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "COMP unavailability returns empty `Map` — no rethrow",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`pnpm test` on adapter spec exits 0",
@@ -53,11 +53,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 73,
+    "total": 86,
     "provisional": true,
     "range": [
-      73,
-      83
+      86,
+      96
     ],
     "breakdown": {
       "structure": {
@@ -67,7 +67,7 @@
       },
       "functionality": {
         "max": 30,
-        "value": 13,
+        "value": 26,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -88,11 +88,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Consistente",
-    "statusTag": "REDUCED"
+    "band": "Maduro",
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 13/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 26/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

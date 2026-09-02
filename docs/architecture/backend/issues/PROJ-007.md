@@ -31,12 +31,12 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] `prisma migrate dev` runs without error and creates both tables (validado pelo Validator-Orchestrator com DB real)
+- [x] `prisma migrate dev` runs without error and creates both tables (validado pelo Validator-Orchestrator com DB real)
 - [x] `CHECK (status IN ('rascunho','em_composicao','publicado','com_erros'))` present on `projeto_editorial`
 - [x] `CHECK (solicitado_por IN ('imp','pub','comp','editor','system'))` present on `projeto_status_historico`
 - [x] FK `fk_psh_projeto` has `ON DELETE CASCADE` in migration SQL
 - [x] Three indexes on `projeto_editorial` (`editora_id`, `status`, `atualizado_em DESC`) match data-model.md
-- [ ] `pnpm build` exits 0 with generated Prisma client (validado pelo Validator-Orchestrator)
+- [x] `pnpm build` exits 0 with generated Prisma client (validado pelo Validator-Orchestrator)
 
 ## Dependencias
 

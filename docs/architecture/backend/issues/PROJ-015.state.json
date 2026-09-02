@@ -1,12 +1,12 @@
 {
   "issue": "PROJ-015",
   "layer": "be",
-  "computedAt": "2026-08-28T10:36:30",
+  "computedAt": "2026-09-02T19:58:50",
   "checklist": {
     "total": 11,
-    "done": 7,
+    "done": 11,
     "partial": 0,
-    "missing": 4,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -46,23 +46,23 @@
       },
       {
         "text": "All three port interfaces compiled; stubs implement them (TypeScript `implements` clause)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`erase(projetoId, empresaId)` on any stub resolves without error (safe no-op)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "Stubs are swappable by overriding DI tokens in the NestJS testing module",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`pnpm build` exits 0 with all 3 stubs registered",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       }
     ]
   },
@@ -73,11 +73,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 79,
+    "total": 90,
     "provisional": true,
     "range": [
-      79,
-      89
+      90,
+      100
     ],
     "breakdown": {
       "structure": {
@@ -87,7 +87,7 @@
       },
       "functionality": {
         "max": 30,
-        "value": 19,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -108,11 +108,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Consistente",
-    "statusTag": "REDUCED"
+    "band": "Maduro",
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 19/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

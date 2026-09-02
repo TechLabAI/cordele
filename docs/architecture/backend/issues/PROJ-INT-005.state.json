@@ -1,12 +1,12 @@
 {
   "issue": "PROJ-INT-005",
   "layer": "be",
-  "computedAt": "2026-08-28T10:36:37",
+  "computedAt": "2026-09-02T19:58:51",
   "checklist": {
     "total": 7,
-    "done": 3,
+    "done": 6,
     "partial": 0,
-    "missing": 4,
+    "missing": 1,
     "blocked": 0,
     "items": [
       {
@@ -26,18 +26,18 @@
       },
       {
         "text": "`erase(projetoId, empresaId)` calls COMP's erase port once",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`erase(projetoId, empresaId)` for a project with no COMP data completes without error",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "COMP port failure: adapter rethrows; PROJ-016 aborts with 502",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`pnpm test` on adapter spec exits 0",
@@ -53,11 +53,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 73,
+    "total": 86,
     "provisional": true,
     "range": [
-      73,
-      83
+      86,
+      96
     ],
     "breakdown": {
       "structure": {
@@ -67,7 +67,7 @@
       },
       "functionality": {
         "max": 30,
-        "value": 13,
+        "value": 26,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -88,11 +88,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Consistente",
-    "statusTag": "REDUCED"
+    "band": "Maduro",
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 13/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 26/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

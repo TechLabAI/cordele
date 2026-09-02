@@ -32,10 +32,10 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] All three port interfaces compiled; stubs implement them (TypeScript `implements` clause)
-- [ ] `erase(projetoId, empresaId)` on any stub resolves without error (safe no-op)
-- [ ] Stubs are swappable by overriding DI tokens in the NestJS testing module
-- [ ] `pnpm build` exits 0 with all 3 stubs registered
+- [x] All three port interfaces compiled; stubs implement them (TypeScript `implements` clause)
+- [x] `erase(projetoId, empresaId)` on any stub resolves without error (safe no-op)
+- [x] Stubs are swappable by overriding DI tokens in the NestJS testing module
+- [x] `pnpm build` exits 0 with all 3 stubs registered
 
 ## Dependencias
 

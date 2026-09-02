@@ -32,11 +32,11 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] Legal transition applies status, appends `projeto_status_historico` row in same DB transaction
+- [x] Legal transition applies status, appends `projeto_status_historico` row in same DB transaction
 - [x] `ProjectStatusChanged` emitted with unique `eventId`; NOT emitted on idempotent no-op
 - [x] `advanceTo(em_composicao, em_composicao)` returns `{ changed: false }` — IMP idempotency (SPEC-02)
 - [x] `advanceTo(rascunho, publicado)` throws `IllegalStatusTransitionError`
-- [ ] Concurrent `advanceTo` for same `projetoId` serializes safely (no double-emit)
+- [x] Concurrent `advanceTo` for same `projetoId` serializes safely (no double-emit)
 - [x] `pnpm test` on use case spec exits 0
 
 ## Dependencias

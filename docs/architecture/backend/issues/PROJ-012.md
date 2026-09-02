@@ -28,10 +28,10 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] Returns `PublicacaoHistoryItem[]` ordered by `criadoEm DESC`
-- [ ] Items with `epubcheckStatus in {erros_criticos, pendente}` have `arquivoUrl=null`
-- [ ] Cross-tenant or non-existent projetoId returns 404
-- [ ] `pnpm test` on use case spec exits 0
+- [x] Returns `PublicacaoHistoryItem[]` ordered by `criadoEm DESC`
+- [x] Items with `epubcheckStatus in {erros_criticos, pendente}` have `arquivoUrl=null`
+- [x] Cross-tenant or non-existent projetoId returns 404
+- [x] `pnpm test` on use case spec exits 0
 
 ## Dependencias
 

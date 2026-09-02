@@ -1,12 +1,12 @@
 {
   "issue": "PROJ-007",
   "layer": "be",
-  "computedAt": "2026-08-28T10:36:23",
+  "computedAt": "2026-09-02T19:58:48",
   "checklist": {
     "total": 9,
-    "done": 7,
+    "done": 9,
     "partial": 0,
-    "missing": 2,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -26,8 +26,8 @@
       },
       {
         "text": "`prisma migrate dev` runs without error and creates both tables (validado pelo Validator-Orchestrator com DB real)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`CHECK (status IN ('rascunho','em_composicao','publicado','com_erros'))` present on `projeto_editorial`",
@@ -51,8 +51,8 @@
       },
       {
         "text": "`pnpm build` exits 0 with generated Prisma client (validado pelo Validator-Orchestrator)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       }
     ]
   },
@@ -63,11 +63,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 83,
+    "total": 90,
     "provisional": true,
     "range": [
-      83,
-      93
+      90,
+      100
     ],
     "breakdown": {
       "structure": {
@@ -77,7 +77,7 @@
       },
       "functionality": {
         "max": 30,
-        "value": 23,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -102,7 +102,7 @@
     "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 23/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

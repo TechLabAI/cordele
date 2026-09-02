@@ -1,12 +1,12 @@
 {
   "issue": "PROJ-012",
   "layer": "be",
-  "computedAt": "2026-08-28T10:36:29",
+  "computedAt": "2026-09-02T19:58:49",
   "checklist": {
     "total": 7,
-    "done": 3,
+    "done": 7,
     "partial": 0,
-    "missing": 4,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -26,23 +26,23 @@
       },
       {
         "text": "Returns `PublicacaoHistoryItem[]` ordered by `criadoEm DESC`",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "Items with `epubcheckStatus in {erros_criticos, pendente}` have `arquivoUrl=null`",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "Cross-tenant or non-existent projetoId returns 404",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`pnpm test` on use case spec exits 0",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       }
     ]
   },
@@ -53,11 +53,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 73,
+    "total": 90,
     "provisional": true,
     "range": [
-      73,
-      83
+      90,
+      100
     ],
     "breakdown": {
       "structure": {
@@ -67,7 +67,7 @@
       },
       "functionality": {
         "max": 30,
-        "value": 13,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -88,11 +88,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Consistente",
-    "statusTag": "REDUCED"
+    "band": "Maduro",
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 13/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

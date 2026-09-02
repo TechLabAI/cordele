@@ -1,12 +1,12 @@
 {
   "issue": "PROJ-017",
   "layer": "be",
-  "computedAt": "2026-08-28T10:36:30",
+  "computedAt": "2026-09-02T19:58:50",
   "checklist": {
     "total": 7,
-    "done": 2,
+    "done": 7,
     "partial": 0,
-    "missing": 5,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -21,28 +21,28 @@
       },
       {
         "text": "Logger configuration (if not already shared) — structured JSON logger with fields: `correlationId`, `port` (when `degraded:true`), `level` (`WARN` on degraded), `module: 'proj'`",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`GET /api/proj/health` returns 200 `{ status: 'ok' }` when DB reachable",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "Every response includes `X-Correlation-Id` header matching the request header (or a new UUID if absent)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "When `ManuscriptSummaryPort` stub emits `degraded:true`, a `WARN` log entry contains `port=ManuscriptSummaryPort` and `correlationId` (verifiable via logger spy in integration test)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`pnpm build` exits 0 with health controller registered",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       }
     ]
   },
@@ -53,11 +53,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 69,
+    "total": 90,
     "provisional": true,
     "range": [
-      69,
-      79
+      90,
+      100
     ],
     "breakdown": {
       "structure": {
@@ -67,7 +67,7 @@
       },
       "functionality": {
         "max": 30,
-        "value": 9,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -88,11 +88,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Consistente",
-    "statusTag": "REDUCED"
+    "band": "Maduro",
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 9/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

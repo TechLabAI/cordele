@@ -35,11 +35,11 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] Stub adapters implement the port interfaces (TypeScript compiles with `implements` clause)
-- [ ] `summaries([])` and `latest([])` return empty `Map` (not error) — degraded path safe for zero projects
-- [ ] Each stub logs `WARN degraded:true port=<PortName>` on every call (verifiable in unit test via logger spy)
-- [ ] Integration tests can override stubs via `overrideProvider` in NestJS testing module
-- [ ] `pnpm build` exits 0 with all 3 stubs registered
+- [x] Stub adapters implement the port interfaces (TypeScript compiles with `implements` clause)
+- [x] `summaries([])` and `latest([])` return empty `Map` (not error) — degraded path safe for zero projects
+- [x] Each stub logs `WARN degraded:true port=<PortName>` on every call (verifiable in unit test via logger spy)
+- [x] Integration tests can override stubs via `overrideProvider` in NestJS testing module
+- [x] `pnpm build` exits 0 with all 3 stubs registered
 
 ## Dependencias
 

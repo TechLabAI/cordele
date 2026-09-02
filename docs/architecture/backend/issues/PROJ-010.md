@@ -34,11 +34,11 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] Three port calls total per request — `ManuscriptSummaryPort`, `ProjectMetadataPort`, `PublicationHistoryPort` each called once with the full `projetoIds` array (verified in spec by call-count assertion on port mocks)
-- [ ] When `ManuscriptSummaryPort` throws, cards still return own fields with `totalCapitulos=0, totalImagens=0` and no 500
-- [ ] `?status=rascunho` returns only projects in that status (DB filter)
-- [ ] `?limit` and `?cursor` accepted without 400 but not enforced in POC (all results returned)
-- [ ] `pnpm test` on use case spec exits 0
+- [x] Three port calls total per request — `ManuscriptSummaryPort`, `ProjectMetadataPort`, `PublicationHistoryPort` each called once with the full `projetoIds` array (verified in spec by call-count assertion on port mocks)
+- [x] When `ManuscriptSummaryPort` throws, cards still return own fields with `totalCapitulos=0, totalImagens=0` and no 500
+- [x] `?status=rascunho` returns only projects in that status (DB filter)
+- [x] `?limit` and `?cursor` accepted without 400 but not enforced in POC (all results returned)
+- [x] `pnpm test` on use case spec exits 0
 
 ## Dependencias
 

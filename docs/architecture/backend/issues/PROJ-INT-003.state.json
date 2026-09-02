@@ -1,12 +1,12 @@
 {
   "issue": "PROJ-INT-003",
   "layer": "be",
-  "computedAt": "2026-08-28T10:36:36",
+  "computedAt": "2026-09-02T19:58:50",
   "checklist": {
     "total": 8,
-    "done": 3,
+    "done": 7,
     "partial": 0,
-    "missing": 5,
+    "missing": 1,
     "blocked": 0,
     "items": [
       {
@@ -26,23 +26,23 @@
       },
       {
         "text": "`latest(projetoIds)` makes exactly 1 call to PUB's query port (batching invariant)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`signedDownloadUrl(publicacaoId)` returns `{ arquivoUrl: string, expiresAt: string }` from PUB's signed URL — PROJ never calls storage directly",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "PUB unavailability: `history()` returns `[]`, `latest()` returns empty Map (callers degrade gracefully)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`signedDownloadUrl` for a non-downloadable publication: the port itself does not 409; the use case (PROJ-013) enforces the 409 based on `epubcheckStatus`",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`pnpm test` on adapter spec exits 0",
@@ -58,11 +58,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 71,
+    "total": 86,
     "provisional": true,
     "range": [
-      71,
-      81
+      86,
+      96
     ],
     "breakdown": {
       "structure": {
@@ -72,7 +72,7 @@
       },
       "functionality": {
         "max": 30,
-        "value": 11,
+        "value": 26,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -93,11 +93,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Consistente",
-    "statusTag": "REDUCED"
+    "band": "Maduro",
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 11/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 26/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

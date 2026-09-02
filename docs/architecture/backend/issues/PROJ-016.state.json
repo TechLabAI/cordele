@@ -1,12 +1,12 @@
 {
   "issue": "PROJ-016",
   "layer": "be",
-  "computedAt": "2026-08-28T10:36:30",
+  "computedAt": "2026-09-02T19:58:50",
   "checklist": {
     "total": 10,
-    "done": 4,
+    "done": 10,
     "partial": 0,
-    "missing": 6,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -16,8 +16,8 @@
       },
       {
         "text": "`BadGatewayException` used instead of a custom error — carries type `urn:cordele:proj:erasure-failed` + `port` field indicating which erasure port failed",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`src/domain/proj/events/project-deleted.event.ts` — payload: `{ eventId, occurredAt, projetoId, editoraId }`",
@@ -36,28 +36,28 @@
       },
       {
         "text": "Full purge: 204 returned; `projeto_editorial` row deleted; `ProjectDeleted` emitted",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "PUB purge failure: 502 `urn:cordele:proj:erasure-failed`; `projeto_editorial` row still exists (verified in spec by repository mock assertion)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "Each purge step called exactly once per request in order: PUB → COMP → IMP → DB delete (verified by mock call order assertion in spec)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "Retried deletion (stubs return no-op on missing data) completes without error (idempotent)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`pnpm test` on use case spec exits 0",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       }
     ]
   },
@@ -68,11 +68,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 72,
+    "total": 90,
     "provisional": true,
     "range": [
-      72,
-      82
+      90,
+      100
     ],
     "breakdown": {
       "structure": {
@@ -82,7 +82,7 @@
       },
       "functionality": {
         "max": 30,
-        "value": 12,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -103,11 +103,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Consistente",
-    "statusTag": "REDUCED"
+    "band": "Maduro",
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 12/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

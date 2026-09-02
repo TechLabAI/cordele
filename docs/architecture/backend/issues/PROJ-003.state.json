@@ -1,12 +1,12 @@
 {
   "issue": "PROJ-003",
   "layer": "be",
-  "computedAt": "2026-08-28T10:36:23",
+  "computedAt": "2026-09-02T19:58:48",
   "checklist": {
     "total": 10,
-    "done": 6,
+    "done": 10,
     "partial": 0,
-    "missing": 4,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -31,23 +31,23 @@
       },
       {
         "text": "Valid `nome` persists `ProjetoEditorial` with `status=rascunho`, `editoraId` from JWT claim",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`projeto_status_historico` row appended in same transaction (`status_de=null, status_para=rascunho`)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`ProjectCreated` event emitted with unique `eventId` (UUID v4), never on rollback",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "400 `urn:cordele:proj:validation` when `nome` is missing or empty; nothing persisted",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "In-process port `CreateProjetoEditorialUseCase.create({ titulo })` returns `{ projetoId }` for IMP",
@@ -68,11 +68,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 78,
+    "total": 90,
     "provisional": true,
     "range": [
-      78,
-      88
+      90,
+      100
     ],
     "breakdown": {
       "structure": {
@@ -82,7 +82,7 @@
       },
       "functionality": {
         "max": 30,
-        "value": 18,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -103,11 +103,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Consistente",
-    "statusTag": "REDUCED"
+    "band": "Maduro",
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 18/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

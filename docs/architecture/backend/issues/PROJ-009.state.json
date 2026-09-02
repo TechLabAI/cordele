@@ -1,12 +1,12 @@
 {
   "issue": "PROJ-009",
   "layer": "be",
-  "computedAt": "2026-08-28T10:36:29",
+  "computedAt": "2026-09-02T19:58:49",
   "checklist": {
     "total": 12,
-    "done": 7,
+    "done": 12,
     "partial": 0,
-    "missing": 5,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -46,28 +46,28 @@
       },
       {
         "text": "Stub adapters implement the port interfaces (TypeScript compiles with `implements` clause)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`summaries([])` and `latest([])` return empty `Map` (not error) — degraded path safe for zero projects",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "Each stub logs `WARN degraded:true port=<PortName>` on every call (verifiable in unit test via logger spy)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "Integration tests can override stubs via `overrideProvider` in NestJS testing module",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`pnpm build` exits 0 with all 3 stubs registered",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       }
     ]
   },
@@ -78,11 +78,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 78,
+    "total": 90,
     "provisional": true,
     "range": [
-      78,
-      88
+      90,
+      100
     ],
     "breakdown": {
       "structure": {
@@ -92,7 +92,7 @@
       },
       "functionality": {
         "max": 30,
-        "value": 18,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -113,11 +113,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Consistente",
-    "statusTag": "REDUCED"
+    "band": "Maduro",
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 18/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }

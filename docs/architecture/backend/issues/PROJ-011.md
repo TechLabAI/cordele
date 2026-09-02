@@ -30,10 +30,10 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] `GET /projetos/{id}` returns `ProjetoDetail` with `status` from PROJ own row always present
-- [ ] When PUB unavailable, returns `publicationHistory=[]` and `degraded=true` — no 500
-- [ ] Cross-tenant projetoId returns 404 (never leaks cross-tenant existence)
-- [ ] `pnpm test` on use case spec exits 0
+- [x] `GET /projetos/{id}` returns `ProjetoDetail` with `status` from PROJ own row always present
+- [x] When PUB unavailable, returns `publicationHistory=[]` and `degraded=true` — no 500
+- [x] Cross-tenant projetoId returns 404 (never leaks cross-tenant existence)
+- [x] `pnpm test` on use case spec exits 0
 
 ## Dependencias
 

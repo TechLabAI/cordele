@@ -31,9 +31,9 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] `summaries(projetoIds)` makes exactly 1 call to IMP's query port regardless of `projetoIds.length`
-- [ ] Correct shape mapping: IMP `totalCapitulos` → `ManuscriptSummary.totalCapitulos`
-- [ ] IMP port unavailability returns empty `Map` (not thrown error) — callers degrade gracefully
+- [x] `summaries(projetoIds)` makes exactly 1 call to IMP's query port regardless of `projetoIds.length`
+- [x] Correct shape mapping: IMP `totalCapitulos` → `ManuscriptSummary.totalCapitulos`
+- [x] IMP port unavailability returns empty `Map` (not thrown error) — callers degrade gracefully
 - [ ] `pnpm test` on adapter spec exits 0
 
 ## Dependencias

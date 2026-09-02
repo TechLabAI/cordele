@@ -27,9 +27,9 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] `erase(projetoId, empresaId)` calls PUB's erase port once
-- [ ] `erase(projetoId, empresaId)` for a project with no publications completes without error (idempotent)
-- [ ] PUB port failure: adapter rethrows; PROJ-016 aborts and leaves `projeto_editorial` intact
+- [x] `erase(projetoId, empresaId)` calls PUB's erase port once
+- [x] `erase(projetoId, empresaId)` for a project with no publications completes without error (idempotent)
+- [x] PUB port failure: adapter rethrows; PROJ-016 aborts and leaves `projeto_editorial` intact
 - [ ] `pnpm test` on adapter spec exits 0
 
 ## Dependencias

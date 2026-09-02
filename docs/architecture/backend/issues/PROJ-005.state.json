@@ -1,12 +1,12 @@
 {
   "issue": "PROJ-005",
   "layer": "be",
-  "computedAt": "2026-08-28T10:36:23",
+  "computedAt": "2026-09-02T19:58:48",
   "checklist": {
     "total": 8,
-    "done": 5,
+    "done": 8,
     "partial": 0,
-    "missing": 3,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -26,18 +26,18 @@
       },
       {
         "text": "`POST /projetos/{id}/reopen` on `publicado` returns 200 with `ProjetoDetail` and `status=em_composicao`",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "Reopen when already `em_composicao` returns 200 with `changed=false` (idempotent, no event)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`POST /projetos/{id}/reopen` when `rascunho` returns 409 `urn:cordele:proj:illegal-status-transition`",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`ProjectStatusChanged` emitted with `solicitadoPor=editor` on actual change only",
@@ -58,11 +58,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 79,
+    "total": 90,
     "provisional": true,
     "range": [
-      79,
-      89
+      90,
+      100
     ],
     "breakdown": {
       "structure": {
@@ -72,7 +72,7 @@
       },
       "functionality": {
         "max": 30,
-        "value": 19,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -93,11 +93,11 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Consistente",
-    "statusTag": "REDUCED"
+    "band": "Maduro",
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 19/30 -- a funcionalidade alvo funciona?",
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?",
     "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
   ]
 }
