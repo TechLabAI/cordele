@@ -1,6 +1,7 @@
-## [INT-FE-PUB-004] Lista detalhada de avisos — DESBLOQUEADA (PUB-016 BE entregue)
+## [INT-FE-PUB-004] Lista detalhada de avisos — DONE
 
-**Status:** 🔓 DESBLOQUEADA (2026-09-03) — PUB-016 BE entregue (10/10, score 93, gates verdes);
+**Status:** ✅ DONE (2026-09-03) — implementada em `4497f05` + `077ff6b`, validada por /fe-validator PUB
+(score 82, gates verdes, path conferido contra o serviço vivo). PUB-016 BE entregue (10/10, score 93);
 §4.6 no api-contract.md linha 249; ratificação FE dispensada pelo proprietário do projeto
 (autorização explícita 2026-08-29). Rota viva em `GET /api/pub/projetos/:projetoId/publicacoes/
 :publicacaoId/validation-messages`. Pronta para implementação (steps 3-6).
@@ -23,10 +24,15 @@ e popula `ExportFacade.avisos: AvisoVM[]`. Até então, `avisos` permanece vazio
 1. ~~Aguardar aprovação do time FE da proposta §4.6 de PUB-016 BE.~~ **DISPENSADA** — autorização
    explícita do proprietário do projeto (2026-08-29), registrada em PUB-016.
 2. ~~Emenda de `api-contract.md` com §4.6 ratificado.~~ **FEITO** — §4.6, linha 249.
-3. Implementar `PublicacaoApiService.getAvisos(projetoId, publicacaoId)`: GET §4.6.
-4. ExportFacade: chamar getAvisos após terminal válido/avisos; popular `avisos` signal.
-5. WarningsDetailsComponent (FE-PUB-016): renderizar lista detalhada quando avisos.length > 0.
-6. Atualizar `contracts/backend-api-cross-link.md §6` com GAP 1 fechado.
+3. ~~Implementar `PublicacaoApiService.getAvisos(projetoId, publicacaoId)`: GET §4.6.~~ **FEITO** —
+   nomeado `getValidationMessages(projetoId, publicacaoId, severity?)`, seguindo o path real.
+4. ~~ExportFacade: chamar getAvisos após terminal válido/avisos; popular `avisos` signal.~~ **FEITO** —
+   `_loadAvisos()` dispara nos terminais `publicado`/`com_erros` (valores de `status`; `valido`/`avisos`
+   são de `epubcheckStatus`), populando o signal `avisos: Signal<AvisoVM[]>`.
+5. ~~WarningsDetailsComponent (FE-PUB-016): renderizar lista detalhada quando avisos.length > 0.~~
+   **FEITO** — tabela Severidade/Código/Mensagem/Localização; `location: null` → "—"; estado vazio
+   explícito; placeholder "detalhes em breve" removido.
+6. ~~Atualizar `contracts/backend-api-cross-link.md §6` com GAP 1 fechado.~~ **FEITO**.
 
 **Non-goals:**
 - Não implementar nada antes da ratificação (risco de quebra de contrato).
@@ -60,6 +66,11 @@ priority:P4
 - FE-PUB-007, FE-PUB-009, FE-PUB-016
 
 **Risks / Notes:**
+- Durante a implementação descobriu-se que o base path do `PublicacaoHttpAdapter` estava errado
+  (`/api/pub` → 404; o BE serve em `/api/v1/pub` por `setGlobalPrefix('api')` + `enableVersioning`).
+  Corrigido em `077ff6b` com guard de regressão de 9 testes. **Os adapters de imp/comp/proj têm o
+  mesmo bug e seguem por corrigir** — nenhum gate atual exercita URL real, então lint/test/build
+  passam com o path quebrado.
 - ATENÇÃO ao path real: a spec acima falava em `.../avisos`, mas o endpoint entregue é
   `.../validation-messages` com query param opcional `severity=error|warning|info`, retornando
   `ValidationMessageItem[]` (`{ id, severity, code, message, location, ordem }`) ordenado por `ordem ASC`.
