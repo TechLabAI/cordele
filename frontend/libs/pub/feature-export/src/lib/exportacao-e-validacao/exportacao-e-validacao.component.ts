@@ -32,7 +32,7 @@ import {
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ExportFacade } from '@cordele/pub-data-access';
-import { WarningsDetailsComponent } from '@cordele/pub-ui';
+import { EpubSummaryGridComponent, WarningsDetailsComponent } from '@cordele/pub-ui';
 
 const STEPS = [
   { n: 1, label: 'Importar' },
@@ -44,7 +44,7 @@ const STEPS = [
 @Component({
   selector: 'pub-exportacao-e-validacao',
   standalone: true,
-  imports: [RouterLink, WarningsDetailsComponent],
+  imports: [RouterLink, WarningsDetailsComponent, EpubSummaryGridComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="px-8 py-8 max-w-[var(--content-max-width)] mx-auto">
@@ -106,7 +106,12 @@ const STEPS = [
             </div>
           </div>
 
-          <!-- KPI grid: OMITIDO — INT-FE-PUB-005 (campos não existem no api-contract §6) -->
+          <!-- KPI grid: ePub summary (INT-FE-PUB-005 resolved — ADR-004) -->
+          <pub-epub-summary-grid
+            [tamanho]="facade.summary()?.tamanho ?? null"
+            [capitulos]="facade.summary()?.capitulos ?? null"
+            [imagens]="facade.summary()?.imagens ?? null"
+          />
 
           <!-- Avisos / Erros: delegados a WarningsDetailsComponent (FE-PUB-016) -->
           <pub-warnings-details

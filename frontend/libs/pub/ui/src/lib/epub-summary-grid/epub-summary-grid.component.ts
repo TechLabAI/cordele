@@ -1,18 +1,17 @@
 /**
  * epub-summary-grid.component.ts — FE-PUB-015 — Grid de KPIs do ePub.
  *
- * Tiles de KPI (Tamanho / Páginas / Capítulos / Imagens) BLOQUEADOS:
- * os campos correspondentes NÃO existem no api-contract §6 — aguarda decisão de produto.
- * // BLOCKED: INT-FE-PUB-005 — KPIs ePub sem campo-fonte no api-contract §6; aguarda PM/Tech Lead.
+ * Section A — Publication stats (total / publicadas / comAvisos / comErros):
+ *   Shown when ALL four inputs are non-null. Inputs come from PublicationStats (§6.3).
  *
- * Regra: NÃO fabricar dados. Renderizar estado vazio explícito enquanto bloqueado.
- * Quando INT-FE-PUB-005 for resolvido, adicionar @Input() com os campos ratificados
- * e substituir o empty-state pelo grid real.
+ * Section B — ePub KPI tiles (INT-FE-PUB-005 resolved — ADR-004 / api-contract §6.1):
+ *   tamanho: formatted size string (e.g. "1.4 MB"); null → tile hidden.
+ *   capitulos: chapter count; null → tile hidden.
+ *   imagens: image count; null → tile hidden.
+ *   paginas: PERMANENTLY absent from the grid — ADR-004 (ePub reflowable, no fixed pagination).
+ *   Each tile is null-safe: shown only when its value is non-null (never "N/D" or "--").
  *
- * Inputs: total, publicadas, comAvisos, comErros — primitivos (nullable).
- * Se todos null → estado vazio explícito.
- *
- * Boundary: type:ui — usa apenas primitivos; não importa type:data-access.
+ * Boundary: type:ui — accepts only primitives; does NOT import type:data-access.
  *
  * Track D: FE-PUB-015 — P3 Feature Libs.
  */
@@ -27,13 +26,8 @@ import {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!--
-      KPI tiles BLOQUEADOS — INT-FE-PUB-005: campos Tamanho/Páginas/Capítulos/Imagens
-      não existem no api-contract §6. Tiles ocultados por design até decisão de produto.
-      Renderiza estado vazio explícito (nunca omite silenciosamente).
-    -->
+    <!-- Section A: Publication stats (total / publicadas / comAvisos / comErros) -->
     @if (hasStats) {
-      <!-- Grid de stats (total / publicadas / comAvisos / comErros) -->
       <div class="grid grid-cols-2 gap-3 mb-6" role="list" aria-label="Estatísticas de publicação">
         <div class="rounded-xl p-4" style="background:var(--bg-surface);border:1px solid var(--border-subtle);" role="listitem">
           <p class="text-xs font-medium mb-1" style="color:var(--text-tertiary)">Total de exportações</p>
@@ -52,34 +46,66 @@ import {
           <p class="text-2xl font-bold" style="color:var(--color-error)">{{ comErros }}</p>
         </div>
       </div>
-    } @else {
-      <!-- Estado vazio explícito: sem dados de estatísticas disponíveis -->
-      <div class="rounded-xl p-4 mb-4 text-center text-sm"
-           style="background:var(--bg-surface);border:1px dashed var(--border-subtle);color:var(--text-tertiary);"
-           aria-label="Estatísticas indisponíveis">
-        Estatísticas de ePub indisponíveis
-        <span class="text-xs block mt-1">(INT-FE-PUB-005 — aguarda definição de campos no api-contract)</span>
+    }
+
+    <!-- Section B: ePub KPI tiles (INT-FE-PUB-005 — each tile hidden when null) -->
+    @if (hasKpis) {
+      <div class="grid grid-cols-2 gap-3 mb-4" role="list" aria-label="KPIs do ePub gerado">
+        @if (tamanho !== null) {
+          <div class="rounded-xl p-4" style="background:var(--bg-surface);border:1px solid var(--border-subtle);" role="listitem">
+            <p class="text-xs font-medium mb-1" style="color:var(--text-tertiary)">Tamanho do arquivo</p>
+            <p class="text-2xl font-bold" style="color:var(--text-primary)">{{ tamanho }}</p>
+          </div>
+        }
+        @if (capitulos !== null) {
+          <div class="rounded-xl p-4" style="background:var(--bg-surface);border:1px solid var(--border-subtle);" role="listitem">
+            <p class="text-xs font-medium mb-1" style="color:var(--text-tertiary)">Capítulos</p>
+            <p class="text-2xl font-bold" style="color:var(--text-primary)">{{ capitulos }}</p>
+          </div>
+        }
+        @if (imagens !== null) {
+          <div class="rounded-xl p-4" style="background:var(--bg-surface);border:1px solid var(--border-subtle);" role="listitem">
+            <p class="text-xs font-medium mb-1" style="color:var(--text-tertiary)">Imagens</p>
+            <p class="text-2xl font-bold" style="color:var(--text-primary)">{{ imagens }}</p>
+          </div>
+        }
+        <!-- paginas tile ABSENT by design — ADR-004: ePub reflowable has no fixed pagination -->
       </div>
     }
   `,
 })
 export class EpubSummaryGridComponent {
-  /** Total de publicações do projeto. null enquanto INT-FE-PUB-005 bloqueado. */
-  @Input() total: number | null = null;
-  /** Publicações com status valido|avisos. null enquanto INT-FE-PUB-005 bloqueado. */
+  // ── Section A: Publication stats ─────────────────────────────────────────
+  /** Total de publicações do projeto. */
+  @Input() total:      number | null = null;
+  /** Publicações com status valido|avisos. */
   @Input() publicadas: number | null = null;
-  /** Publicações com avisos não-bloqueantes. null enquanto INT-FE-PUB-005 bloqueado. */
-  @Input() comAvisos: number | null = null;
-  /** Publicações com erros críticos. null enquanto INT-FE-PUB-005 bloqueado. */
-  @Input() comErros: number | null = null;
+  /** Publicações com avisos não-bloqueantes. */
+  @Input() comAvisos:  number | null = null;
+  /** Publicações com erros críticos. */
+  @Input() comErros:   number | null = null;
 
-  /** Verdadeiro apenas quando todos os campos KPI estão presentes (não null). */
+  // ── Section B: ePub KPI tiles (INT-FE-PUB-005) ───────────────────────────
+  /** Formatted file size (e.g. "1.4 MB"). null → tile hidden (not "N/D"). */
+  @Input() tamanho:   string | null = null;
+  /** Chapter count. null → tile hidden. */
+  @Input() capitulos: number | null = null;
+  /** Image count. null → tile hidden. */
+  @Input() imagens:   number | null = null;
+  // paginas: PERMANENTLY absent — ADR-004; no @Input() provided intentionally.
+
+  /** True when ALL four publication stats are present (Section A). */
   get hasStats(): boolean {
     return (
-      this.total !== null &&
+      this.total      !== null &&
       this.publicadas !== null &&
-      this.comAvisos !== null &&
-      this.comErros !== null
+      this.comAvisos  !== null &&
+      this.comErros   !== null
     );
+  }
+
+  /** True when at least one ePub KPI tile is available (Section B). */
+  get hasKpis(): boolean {
+    return this.tamanho !== null || this.capitulos !== null || this.imagens !== null;
   }
 }

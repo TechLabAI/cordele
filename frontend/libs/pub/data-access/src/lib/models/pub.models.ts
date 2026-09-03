@@ -31,6 +31,44 @@ export interface PublicacaoStatus {
   arquivoDisponivel: boolean;
   iniciadaEm: string;          // ISO UTC
   concluidaEm: string | null;  // ISO UTC; null while non-terminal
+  /**
+   * ADR-004: ePub KPI fields — non-null only when status = 'publicado'.
+   * null for in-flight builds or builds with errors.
+   * totalPaginas intentionally absent: ePub reflowable has no fixed pagination (ADR-004 §D-S).
+   */
+  tamanhoBytes:   number | null;
+  totalCapitulos: number | null;
+  totalImagens:   number | null;
+}
+
+// ─── §3 — EpubSummaryVM (KPI view model — T07 / INT-FE-PUB-005) ──────────────
+
+/**
+ * View model for ePub KPI tiles shown in T07 after a successful export (SPEC-03 §3).
+ * Produced by ExportFacade.summary when status = 'publicado'; null otherwise.
+ *
+ * paginas is PERMANENTLY null — ADR-004: ePub reflowable has no fixed pagination;
+ * this is a product decision, not a data gap.
+ */
+export interface EpubSummaryVM {
+  /** Formatted size string (e.g. '1.4 MB'), or null when tamanhoBytes is null. */
+  tamanho:   string | null;
+  /** Always null — ADR-004. Do NOT display a tile for this field. */
+  paginas:   null;
+  /** Number of chapters, or null when not yet available. */
+  capitulos: number | null;
+  /** Number of images, or null when not yet available. */
+  imagens:   number | null;
+}
+
+/**
+ * Formats a byte count to a human-readable string.
+ * Used to populate EpubSummaryVM.tamanho from PublicacaoStatus.tamanhoBytes.
+ */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1_024) return `${bytes} B`;
+  if (bytes < 1_048_576) return `${(bytes / 1_024).toFixed(1)} KB`;
+  return `${(bytes / 1_048_576).toFixed(1)} MB`;
 }
 
 // ─── §6.2 — PublicacaoHistoryItem (T08 history list) ─────────────────────────

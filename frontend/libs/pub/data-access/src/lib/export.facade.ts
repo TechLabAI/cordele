@@ -6,7 +6,7 @@
  *   - Bounded poll: POST 202 + GET status with Retry-After (D-N; no SSE, no setInterval).
  *   - Progress is always indeterminate — PublicacaoStatus carries no percentage (D-N, SPEC-03).
  *   - podeBaixar = computed(epubcheckStatus ∈ {valido, avisos} AND arquivoDisponivel) — R4.
- *   - KPI tiles (Tamanho/Páginas/Capítulos/Imagens): no field in api-contract → always null → tiles hidden (INT-FE-PUB-005).
+   *   - KPI tiles (INT-FE-PUB-005 resolved): tamanhoBytes/totalCapitulos/totalImagens in api-contract §6.1;
  *   - Avisos detail (§4.6): NOT called — INT-FE-PUB-004 BLOCKED (PUB-016 not ratified).
  *   - setInterval: never used — all async via timer() + switchMap.
  *   - empresaChanged: ExportFacade injects PUB_EMPRESA_CHANGED token (Signal<number>) and
@@ -26,7 +26,7 @@ import { Router } from '@angular/router';
 import { Observable, Subject, switchMap, take, timer } from 'rxjs';
 import { PUB_EMPRESA_CHANGED } from './empresa-changed.token';
 import { PublicacaoApiService } from './publicacao-api.service';
-import { ExportPhase, PublicacaoStatus } from './models/pub.models';
+import { EpubSummaryVM, ExportPhase, PublicacaoStatus, formatBytes } from './models/pub.models';
 
 const DEFAULT_RETRY_MS = 2_000;
 const MAX_POLLS       = 60;
@@ -75,6 +75,22 @@ export class ExportFacade {
   readonly totalAvisos = computed(() => this._status()?.totalAvisos ?? 0);
   readonly totalErros  = computed(() => this._status()?.totalErros  ?? 0);
   readonly resumoErro  = computed(() => this._status()?.resumoErro  ?? null);
+
+  /**
+   * ePub KPI tiles view model (INT-FE-PUB-005 / SPEC-03 §3).
+   * Non-null only when status = 'publicado' (BE fields are non-null only then).
+   * paginas is PERMANENTLY null — ADR-004: ePub reflowable has no fixed pagination.
+   */
+  readonly summary = computed<EpubSummaryVM | null>(() => {
+    const s = this._status();
+    if (!s || s.status !== 'publicado') return null;
+    return {
+      tamanho:   s.tamanhoBytes != null ? formatBytes(s.tamanhoBytes) : null,
+      paginas:   null,  // ADR-004: ePub reflowable — sem paginação fixa; nunca exibir tile
+      capitulos: s.totalCapitulos,
+      imagens:   s.totalImagens,
+    };
+  });
 
   // ── Poll control ──────────────────────────────────────────────────────────
   private readonly _stop$ = new Subject<void>();

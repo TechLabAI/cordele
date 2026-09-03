@@ -16,7 +16,10 @@ export type {
   PublicationStats,
   SignedDownloadUrl,
   ProjetoHeaderInfo,
+  EpubSummaryVM,
 } from './lib/models/pub.models';
+// Utility exported for use in tests and feature components
+export { formatBytes } from './lib/models/pub.models';
 
 // Port token — for testing overrides in pub-feature-export / pub-feature-history specs
 export { PUBLICACAO_PORT } from './lib/api/publicacao.port';

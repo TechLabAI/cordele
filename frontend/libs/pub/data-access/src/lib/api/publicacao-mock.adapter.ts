@@ -33,6 +33,10 @@ const MOCK_STATUS_PUBLICADO: PublicacaoStatus = {
   arquivoDisponivel: true,
   iniciadaEm:   '2026-06-19T16:28:00Z',
   concluidaEm:  '2026-06-19T16:30:00Z',
+  // ADR-004: KPI fields — non-null when status = 'publicado' (mock values for dev/test)
+  tamanhoBytes:   1_470_000,  // ~1.4 MB
+  totalCapitulos: 12,
+  totalImagens:   8,
 };
 
 const MOCK_STATUS_GERANDO: PublicacaoStatus = {
