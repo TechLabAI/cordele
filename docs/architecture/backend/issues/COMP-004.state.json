@@ -1,7 +1,7 @@
 {
   "issue": "COMP-004",
   "layer": "be",
-  "computedAt": "2026-09-02T23:25:50",
+  "computedAt": "2026-09-03T00:53:41",
   "checklist": {
     "total": 10,
     "done": 10,
@@ -68,11 +68,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 100,
+    "total": 97,
     "provisional": false,
     "range": [
-      100,
-      100
+      97,
+      97
     ],
     "breakdown": {
       "structure": {
@@ -98,7 +98,7 @@
       },
       "soft": {
         "max": 10,
-        "value": 10,
+        "value": 7,
         "basis": "agent-persisted",
         "needsAgentConfirm": false
       }

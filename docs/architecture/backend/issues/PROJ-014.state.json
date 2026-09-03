@@ -1,7 +1,7 @@
 {
   "issue": "PROJ-014",
   "layer": "be",
-  "computedAt": "2026-09-02T23:33:25",
+  "computedAt": "2026-09-03T00:54:19",
   "checklist": {
     "total": 10,
     "done": 10,
@@ -68,11 +68,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 98,
+    "total": 96,
     "provisional": false,
     "range": [
-      98,
-      98
+      96,
+      96
     ],
     "breakdown": {
       "structure": {
@@ -98,7 +98,7 @@
       },
       "soft": {
         "max": 10,
-        "value": 8,
+        "value": 6,
         "basis": "agent-persisted",
         "needsAgentConfirm": false
       }

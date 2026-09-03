@@ -1,7 +1,7 @@
 {
   "issue": "PROJ-INT-004",
   "layer": "be",
-  "computedAt": "2026-09-02T23:33:26",
+  "computedAt": "2026-09-03T00:54:21",
   "checklist": {
     "total": 7,
     "done": 6,
@@ -53,11 +53,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 94,
+    "total": 92,
     "provisional": false,
     "range": [
-      94,
-      94
+      92,
+      92
     ],
     "breakdown": {
       "structure": {
@@ -83,7 +83,7 @@
       },
       "soft": {
         "max": 10,
-        "value": 8,
+        "value": 6,
         "basis": "agent-persisted",
         "needsAgentConfirm": false
       }

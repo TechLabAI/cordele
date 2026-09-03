@@ -1,7 +1,7 @@
 {
   "issue": "PUB-001",
   "layer": "be",
-  "computedAt": "2026-09-02T23:54:53",
+  "computedAt": "2026-09-03T00:54:11",
   "checklist": {
     "total": 10,
     "done": 10,
@@ -68,11 +68,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 96,
+    "total": 93,
     "provisional": false,
     "range": [
-      96,
-      96
+      93,
+      93
     ],
     "breakdown": {
       "structure": {
@@ -98,7 +98,7 @@
       },
       "soft": {
         "max": 10,
-        "value": 6,
+        "value": 3,
         "basis": "agent-persisted",
         "needsAgentConfirm": false
       }
