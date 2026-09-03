@@ -1,6 +1,9 @@
-## [INT-FE-PUB-004] Ratificação §4.6 lista detalhada de avisos — BLOQUEADO (PUB-016 BE pendente)
+## [INT-FE-PUB-004] Lista detalhada de avisos — DESBLOQUEADA (PUB-016 BE entregue)
 
-**Status:** 🔲 ABERTA — BLOQUEADA (aguarda aprovação FE de PUB-016 BE)
+**Status:** 🔓 DESBLOQUEADA (2026-09-03) — PUB-016 BE entregue (10/10, score 93, gates verdes);
+§4.6 no api-contract.md linha 249; ratificação FE dispensada pelo proprietário do projeto
+(autorização explícita 2026-08-29). Rota viva em `GET /api/pub/projetos/:projetoId/publicacoes/
+:publicacaoId/validation-messages`. Pronta para implementação (steps 3-6).
 **GitHub:** [#TBD]
 
 **Outcome:**
@@ -17,8 +20,9 @@ e popula `ExportFacade.avisos: AvisoVM[]`. Até então, `avisos` permanece vazio
 - Esta issue vira **pré-requisito de promote** para o módulo PUB ter lista detalhada de avisos.
 
 **Approach (execution path):**
-1. [BLOQUEADO] Aguardar aprovação do time FE da proposta §4.6 de PUB-016 BE.
-2. Emenda de `api-contract.md` com §4.6 ratificado.
+1. ~~Aguardar aprovação do time FE da proposta §4.6 de PUB-016 BE.~~ **DISPENSADA** — autorização
+   explícita do proprietário do projeto (2026-08-29), registrada em PUB-016.
+2. ~~Emenda de `api-contract.md` com §4.6 ratificado.~~ **FEITO** — §4.6, linha 249.
 3. Implementar `PublicacaoApiService.getAvisos(projetoId, publicacaoId)`: GET §4.6.
 4. ExportFacade: chamar getAvisos após terminal válido/avisos; popular `avisos` signal.
 5. WarningsDetailsComponent (FE-PUB-016): renderizar lista detalhada quando avisos.length > 0.
@@ -38,14 +42,13 @@ pub ↔ pub-service (BE)
 - `docs/architecture/frontend/modules/pub/frontend/frontend-spec/SPEC-03-view-models.md` (§5)
 
 **Milestone:**
-Wave 4 / P4 Hub Integrations (BLOQUEADA — M4 gap)
+Wave 4 / P4 Hub Integrations
 
 **Labels:**
 type:integration
 layer:frontend
 scope:pub
 priority:P4
-blocked:PUB-016
 
 **Acceptance criteria:**
 - §4.6 ratificado em api-contract.md
@@ -57,5 +60,10 @@ blocked:PUB-016
 - FE-PUB-007, FE-PUB-009, FE-PUB-016
 
 **Risks / Notes:**
-- NÃO implementar em produção sem aprovação do time FE de PUB-016 (contrato §4.6 inexistente no api-contract atual).
+- ATENÇÃO ao path real: a spec acima falava em `.../avisos`, mas o endpoint entregue é
+  `.../validation-messages` com query param opcional `severity=error|warning|info`, retornando
+  `ValidationMessageItem[]` (`{ id, severity, code, message, location, ordem }`) ordenado por `ordem ASC`.
+  O contrato real vence a spec escrita.
+- 5 dos 10 itens do checklist de PUB-016 estão marcados sem evidência verificável (404 cross-tenant,
+  filtro por severity, `pnpm test`). Exercitar o endpoint real antes de codar contra ele.
 - Quando desbloqueada, criar uma sub-issue de implement e fechar esta como bloqueante resolvida.

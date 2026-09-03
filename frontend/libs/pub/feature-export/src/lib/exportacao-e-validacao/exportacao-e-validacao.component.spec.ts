@@ -26,6 +26,8 @@ function makeFacade(overrides: Partial<Record<keyof ExportFacade, unknown>> = {}
     status:      signal(null).asReadonly(),
     projetoId:   signal<string | null>(null).asReadonly(),
     summary:     signal<{ tamanho: string | null; paginas: null; capitulos: number | null; imagens: number | null } | null>(null).asReadonly(),
+    // INT-FE-PUB-004: avisos signal required by ExportacaoEValidacaoComponent template
+    avisos:      signal([]).asReadonly(),
     startExport:        vi.fn<(projetoId: string) => void>(),
     baixar:             vi.fn<(projetoId: string) => void>(),
     reset:              vi.fn<() => void>(),

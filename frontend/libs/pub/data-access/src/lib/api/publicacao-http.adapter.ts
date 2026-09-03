@@ -7,12 +7,15 @@
  * on every request via the ACCESS_EMPRESA_ID injection token.
  *
  * Endpoints follow api-contract §4.1–4.6:
- *   POST /api/pub/projetos/{id}/publicacoes                          — trigger (§4.1)
- *   GET  /api/pub/projetos/{id}/publicacoes/{id}/status              — poll (§4.2)
- *   GET  /api/pub/projetos/{id}/publicacoes                          — history list (§4.3)
- *   GET  /api/pub/projetos/{id}/publicacoes/{id}/download            — signed URL (§4.4)
- *   GET  /api/pub/projetos/{id}/publicacoes/stats                    — KPIs (§4.5)
- *   GET  /api/pub/projetos/{id}/publicacoes/{id}/validation-messages — detail list (§4.6, INT-FE-PUB-004)
+ *   POST /api/v1/pub/projetos/{id}/publicacoes                          — trigger (§4.1)
+ *   GET  /api/v1/pub/projetos/{id}/publicacoes/{id}/status              — poll (§4.2)
+ *   GET  /api/v1/pub/projetos/{id}/publicacoes                          — history list (§4.3)
+ *   GET  /api/v1/pub/projetos/{id}/publicacoes/{id}/download            — signed URL (§4.4)
+ *   GET  /api/v1/pub/projetos/{id}/publicacoes/stats                    — KPIs (§4.5)
+ *   GET  /api/v1/pub/projetos/{id}/publicacoes/{id}/validation-messages — detail list (§4.6, INT-FE-PUB-004)
+ *
+ * Base path: /api/v1/pub — NestJS URI versioning (setGlobalPrefix('api') + enableVersioning({defaultVersion:'1'}))
+ * verified against pub-service main.ts:39-40.
  *
  * isMock: false — this adapter calls the real pub-service.
  */
@@ -34,14 +37,19 @@ export class PublicacaoHttpAdapter extends AccessHttpClient implements Publicaca
   /** isMock: false — this adapter integrates with the real pub-service. */
   readonly isMock = false;
 
-  private readonly base = '/api/pub';
+  /**
+   * Versioned base path for pub-service (NestJS URI versioning — main.ts setGlobalPrefix('api')
+   * + enableVersioning({ type: VersioningType.URI, defaultVersion: '1' })).
+   * Verified: GET /api/v1/pub/... → 401 (auth required); GET /api/pub/... → 404 (route absent).
+   */
+  private readonly base = '/api/v1/pub';
 
   private projectBase(projetoId: string): string {
     return `${this.base}/projetos/${projetoId}/publicacoes`;
   }
 
   /**
-   * POST /api/pub/projetos/{projetoId}/publicacoes — trigger export.
+   * POST /api/v1/pub/projetos/{projetoId}/publicacoes — trigger export.
    * 202 Accepted (new build) or 200 OK (idempotent in-flight, D-R).
    * Both return PublicacaoStatus with status=gerando.
    */
@@ -50,7 +58,7 @@ export class PublicacaoHttpAdapter extends AccessHttpClient implements Publicaca
   }
 
   /**
-   * GET /api/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/status
+   * GET /api/v1/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/status
    * Single poll tick — X-Empresa-Id header added automatically by AccessHttpClient.
    */
   pollStatus(projetoId: string, publicacaoId: string): Observable<PublicacaoStatus> {
@@ -60,14 +68,14 @@ export class PublicacaoHttpAdapter extends AccessHttpClient implements Publicaca
   }
 
   /**
-   * GET /api/pub/projetos/{projetoId}/publicacoes — history list (newest-first from BE).
+   * GET /api/v1/pub/projetos/{projetoId}/publicacoes — history list (newest-first from BE).
    */
   list(projetoId: string): Observable<PublicacaoHistoryItem[]> {
     return this.get<PublicacaoHistoryItem[]>(this.projectBase(projetoId));
   }
 
   /**
-   * GET /api/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/download
+   * GET /api/v1/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/download
    * Mints a short-TTL signed URL. Browser opens it; SPA never proxies bytes (D-F).
    */
   getDownloadUrl(projetoId: string, publicacaoId: string): Observable<SignedDownloadUrl> {
@@ -77,7 +85,7 @@ export class PublicacaoHttpAdapter extends AccessHttpClient implements Publicaca
   }
 
   /**
-   * GET /api/pub/projetos/{projetoId}/publicacoes/stats
+   * GET /api/v1/pub/projetos/{projetoId}/publicacoes/stats
    * Live KPI projection (§4.5 / D-O).
    */
   getStats(projetoId: string): Observable<PublicationStats> {
@@ -85,7 +93,7 @@ export class PublicacaoHttpAdapter extends AccessHttpClient implements Publicaca
   }
 
   /**
-   * GET /api/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/validation-messages
+   * GET /api/v1/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/validation-messages
    * Epubcheck message rows ordered by `ordem ASC` (api-contract §4.6 — INT-FE-PUB-004).
    *
    * `severity` is an optional query parameter.  When omitted all severities are returned.
