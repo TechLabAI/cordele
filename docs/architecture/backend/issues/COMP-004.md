@@ -29,7 +29,7 @@ Files to create (relative to monolith root `backend/`):
 - [ ] `src/modules/comp/application/update-metadados.use-case.ts` — `execute({ projetoId, titulo, autor, isbn?, idioma, categoria? })`: load or create `Metadados` via `MetadadosRepository`; call `aggregate.update(fields)`; persist; emit `MetadataUpdated` post-commit; return current representation; no-op if body identical (detected by aggregate equals)
 - [ ] `src/modules/comp/application/get-metadados-view.use-case.ts` — `execute({ projetoId })`: load from repository; if absent, return `Metadados.createDefault(projetoId)` (no persist); never 404
 - [ ] `src/modules/comp/ports/metadados-repository.port.ts` — interface `MetadadosRepository` with `findByProjetoId(id): Promise<Metadados | null>` and `upsert(m: Metadados): Promise<Metadados>`
-- [ ] `src/modules/comp/application/update-metadados.use-case.spec.ts` — mock repository: upsert persists; identical body → no second persist call; blank titulo → DomainException propagated → 400 at controller
+- [ ] `src/modules/comp/application/update-metadados.use-case.spec.ts` — mock repository: upsert persists; identical body → no second persist call; blank titulo → DomainException propagated → 422 at controller
 - [ ] `src/modules/comp/application/get-metadados-view.use-case.spec.ts` — absent row → returns default; present row → returns persisted
 
 ## Criterios de aceite
@@ -37,7 +37,7 @@ Files to create (relative to monolith root `backend/`):
 - [x] Re-sending identical PUT body makes 1 total repository write (no-op detected before second write) — `Metadados.hasSameContentAs()` + no-op path em `UpdateMetadadosUseCase`, testado
 - [x] GET before any PUT returns `{ materialized: false }` (no DB write)
 - [x] `MetadataUpdated` emitted exactly once per successful mutating PUT — via `DomainEventEmitter` (COMP_EVENT_EMITTER), nao emitido no caminho no-op, testado
-- [ ] DomainException from aggregate propagates and is mapped to **422** (nao 400) pelo `ProblemJsonFilter` — comportamento correto (RFC 7807/`DomainException.status`); o criterio original desta issue citava 400, mas a validacao de dominio (titulo/autor/idioma) e uma violacao de regra de negocio, nao um erro de parsing — 422 Unprocessable Entity e o codigo correto. Nao marcado por divergir do texto literal da issue.
+- [x] DomainException from aggregate propagates and is mapped to **422** (nao 400) pelo `ProblemJsonFilter` — comportamento correto (RFC 7807/`DomainException.status`); o criterio original desta issue citava 400, mas a validacao de dominio (titulo/autor/idioma) e uma violacao de regra de negocio, nao um erro de parsing — 422 Unprocessable Entity e o codigo correto. Nao marcado por divergir do texto literal da issue.
 - [x] `pnpm test` on both use case specs exits 0
 
 ## Dependencias

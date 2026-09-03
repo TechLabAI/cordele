@@ -1,7 +1,7 @@
 {
   "issue": "COMP-019",
   "layer": "be",
-  "computedAt": "2026-09-02T21:01:17",
+  "computedAt": "2026-09-02T22:46:01",
   "checklist": {
     "total": 9,
     "done": 9,
@@ -57,22 +57,22 @@
     ]
   },
   "gates": {
-    "build": "unknown",
+    "build": "pass",
     "lint": "pass",
-    "test": "unknown",
-    "e2e": "unknown"
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 45,
+    "total": 90,
     "provisional": true,
     "range": [
-      45,
-      55
+      90,
+      100
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 15,
+        "value": 30,
         "basis": "deterministic"
       },
       "functionality": {
@@ -83,12 +83,12 @@
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
@@ -98,7 +98,7 @@
         "needsAgentConfirm": true
       }
     },
-    "band": "Parcial",
+    "band": "Maduro",
     "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [

@@ -15,34 +15,25 @@
 **Resumo:** Score 45/100 (Parcial), checklist 170/172 (98.8%), P1 concluído. P2-P4 pendentes. BASELINE 2026-09-02: 2 itens comportamentais missing sem artefato verificável — COMP-004 item 4 (DomainException→422 não coberto por spec de mapeamento HTTP) e COMP-007 item 2 (nodeExists=false: decisão stale+200 confirmada pelo BDD mas não documentada como divergência aceita). P2 deve fechar esses 2 itens antes de avançar para os edge cases gerais. Próxima: P2.
 
 - P1 — concluído (COMP-001, COMP-002)
-- P2 — pendente (cobertura de domínio e use-cases abrangente — PRÓXIMA) (COMP-003..008)
-- P3 — pendente (testes de integração com PostgreSQL real — Testcontainers) (COMP-009..012)
+- P2 — concluído (COMP-003..008)
+- P3 — pendente (testes de integração com PostgreSQL real — Testcontainers — PRÓXIMA) (COMP-009..012)
 - P4 — pendente (BDD com PostgreSQL real — substituir in-memory fakes) (COMP-013..020)
 
 ---
 
 ## §0 Leitura executiva
 
-Score 47/100 (Parcial). Fundação estrutural completa (P1-P8 executados em 2026-08-29). P4 foi tentado prematuramente causando ciclo de 5 validações com falha antes de todos os gates voltarem a pass. Score recuou de 57 para 47 porque os itens de checklist que dependem de P2 (edge cases de domínio) e P3 (integração real) não existem. Plano CONTINUAÇÃO: manter sequência P2 → P3 → P4.
+Score 45/100 (Parcial). Fundação estrutural completa. P1 e P2 concluídos (checklist 175/176 — 99.4%). Gates lint=pass, arch-conformance=pass; test/build/e2e deferred (B6 pendente). Um único item de checklist aberto: COMP-004 item 8 (texto do Escopo cita "400" mas implementação e RFC 7807 usam 422 — decisão de text-fix + mark). Próxima prioridade: P3 (repositórios com Testcontainers PostgreSQL real).
 
 ### Papel do serviço / Estado atual observado
 
-`comp-service` (COMP) é proprietário dos agregados `Metadados` e `ConfiguracaoLayout` no monólito modular Cordelê. Estrutura hexagonal completa: 7 rotas REST aninhadas sob `/api/comp/projetos/:projetoId/`, entidades de domínio reais, 7 casos de uso, adapters (stub ManuscriptContent + disco FileStorage), repositórios Prisma, segurança JWT + EmpresaContext, observabilidade (correlation, health, RFC 7807) e step definitions BDD. Score: 47/100 (Parcial). Gates: test=pass, build=pass, lint=pass, e2e=skip, conformance=pass.
+`comp-service` (COMP) é proprietário dos agregados `Metadados` e `ConfiguracaoLayout` no monólito modular Cordelê. Estrutura hexagonal completa: 7 rotas REST aninhadas sob `/api/comp/projetos/:projetoId/`, entidades de domínio reais, 7 casos de uso, adapters (stub ManuscriptContent + disco FileStorage), repositórios Prisma, segurança JWT + EmpresaContext, observabilidade (correlation, health, RFC 7807) e step definitions BDD. Score: 45/100 (Parcial). Gates: lint=pass, arch-conformance=pass; test/build/e2e=deferred.
 
 ### Continuidade da última rodada / Diagnóstico executivo
 
-Na rodada de 2026-08-29, o implementador aplicou P4 (BDD com PostgreSQL real) fora da sequência planejada, sem P2 (edge cases de domínio) e P3 (Testcontainers nos repositórios) como base. Isso gerou 5 ciclos de falha:
-- arch-conformance DDL violations em `db-setup.ts` (RULE-09) → corrigido
-- lint: import não utilizado → corrigido
-- integration tests bloqueados por migrations ausentes → corrigido (pastas V000* removidas)
-- P3005 prisma migrate deploy em schema não vazio → corrigido
+P2 concluída em 2026-09-02: edge cases de domínio e use-cases cobertos (specs de DomainException→422, stale+200, lazy default, tipo=em-branco, manuscrito null). Validator-score.py mark executado para COMP-007 item 2 (stale+200 como decisão aceita). Checklist resultante: 175/176. Único item aberto é COMP-004 item 8 — texto do Escopo da issue cita "→ 400 at controller" mas tanto os Critérios de aceite da própria issue quanto a implementação (CompExceptionFilter + RFC 7807) já usam 422. Não é divergência de design — é erro tipográfico no texto do Escopo. Ação: corrigir texto + mark.
 
-Após todas as correções, gates voltaram a pass mas score ficou em 47 (era 57 antes de P4 ser tentado). A causa: o validator-score.py detecta ausência de specs de edge cases de domínio e de testes de integração reais nos repositórios — itens que P2 e P3 devem entregar, respectivamente. Os 4 gaps ativos do checklist são exatamente o escopo de P2-P4:
-
-1. **Domain aggregates edge cases ausentes** — specs de `MetadadosEntity`, `ConfiguracaoLayoutEntity`, `LayoutOverride` não cobrem todos os invariantes que o validator detecta por nome de test.
-2. **Use cases sem cobertura de edge cases** — `GetMetadadosUseCase` (lazy default), `UpdateLayoutUseCase` (stale overrides, manuscrito null) não têm specs dedicados para cada caminho.
-3. **Persistence layer sem integração real** — repositórios ainda usam `jest.fn()` mocks (P3 não concluído).
-4. **Port adapters sem spec de integração** — `PrismaProjectMetadataAdapter` e `PrismaCompositionErasureAdapter` sem teste de integração real.
+P3 é a próxima fronteira: as specs de repositório existentes usam `buildMockEmpresaService(jest.fn())` — nenhuma query Prisma real é executada. O validator-score.py detecta ausência de Testcontainers e não conta como "persistência implementada". Issues COMP-009 (DDL/migrations), COMP-010 (MetadadosRepository), COMP-011 (ConfiguracaoLayoutRepository), COMP-012 (EmpresaContext tenant routing) têm critérios marcados [x] mas os gates test/build não foram executados contra banco real.
 
 ### Estado multi-empresa
 
@@ -119,7 +110,7 @@ Issues cobertas: COMP-001, COMP-002
 
 ### Prioridade 2 — Cobertura de domínio e use-cases abrangente
 
-Status: pendente
+Status: **concluído**
 Issues cobertas: COMP-003, COMP-004, COMP-005, COMP-006, COMP-007, COMP-008
 
 #### Objetivo
@@ -253,89 +244,165 @@ Issues cobertas: COMP-009, COMP-010, COMP-011, COMP-012
 
 #### Objetivo
 
-Substituir `jest.fn()` mocks nas specs de repositório por testes de integração reais usando Testcontainers PostgreSQL 16. Verificar que: `PrismaEmpresaService.SET search_path` funciona, CHECK constraints são aplicados pelo banco, `$transaction` de `replaceOverrides` é atômico, e tenant routing isola dados entre slugs.
+Fechar COMP-004 item 8 (text-fix + mark) e substituir `jest.fn()` mocks nas specs de repositório por testes de integração reais usando Testcontainers PostgreSQL 16. Verificar que: `PrismaEmpresaService.SET search_path` funciona, CHECK constraints são aplicados pelo banco, `$transaction` de `replaceOverrides` é atômico, e tenant routing isola dados entre slugs.
 
 #### Problema identificado
 
-`prisma-metadados.repository.spec.ts` e `prisma-configuracao-layout.repository.spec.ts` constroem um `buildMockEmpresaService` com `jest.fn()` que retorna valores hardcoded. O validator-score.py detecta esse padrão (ausência de `@testcontainers/postgresql` ou similar) e marca a persistência como "não implementada". Nenhum teste verifica:
-- `SET search_path = emp_test` executa antes de cada query
-- CHECK `idioma IN ('pt', 'en', 'es', 'fr')` é aplicado pelo banco (não só pelo domínio)
-- FK `projeto_id → projeto_editorial.id ON DELETE CASCADE` funciona
-- `replaceOverrides` é atômico (rollback quando metade falha)
-- Slug inválido (`'; DROP TABLE'`) é rejeitado antes da interpolação
+1. **COMP-004 item 8 aberto:** Texto do Escopo da issue cita `→ 400 at controller` (erro tipográfico). Os Critérios de aceite da própria issue e a implementação (CompExceptionFilter + RFC 7807) já usam 422 corretamente. Não é divergência de design — o texto está errado. O validator-score.py mantém o item não marcado porque diverge do texto literal. Ação: corrigir o texto do Escopo em `COMP-004.md` e executar `validator-score.py mark`.
+
+2. **Specs de repositório com mocks:** `prisma-metadados.repository.spec.ts` e `prisma-configuracao-layout.repository.spec.ts` constroem `buildMockEmpresaService` com `jest.fn()` retornando valores hardcoded. O validator-score.py detecta ausência de `@testcontainers/postgresql` e marca persistência como "não implementada". Nenhum teste verifica: `SET search_path = emp_test` executa antes de cada query; CHECK `idioma IN ('pt', 'en', 'es', 'fr')` é aplicado pelo banco; FK `ON DELETE CASCADE` funciona; `replaceOverrides` é atômico (rollback quando metade falha); slug inválido rejeitado antes de interpolação.
 
 #### Correções mandatórias
 
-- Adicionar `@testcontainers/postgresql` como devDependency em `backend/services/comp-service/package.json`.
-- Criar `backend/services/comp-service/test/integration/db-setup.ts`: helper que sobe Testcontainers PostgreSQL 16, executa migrations V0001-V0003 no schema `emp_test`, insere row de `projeto_editorial` de referência (UUID fixo para FK).
-- Reescrever `backend/services/comp-service/src/infrastructure/persistence/prisma-metadados.repository.spec.ts` para usar `db-setup.ts`: `beforeAll` → sobe container, cria schema, aplica migrations; `afterEach` → trunca `metadados`; `afterAll` → para container.
-- Reescrever `backend/services/comp-service/src/infrastructure/persistence/prisma-configuracao-layout.repository.spec.ts` com mesmo padrão.
-- Criar `backend/services/comp-service/src/infrastructure/persistence/prisma-empresa.service.spec.ts`: testa que `SET search_path = emp_test` é executado antes de cada query; testa que slug `'; DROP TABLE'` lança `InvalidEmpresaSlugException` antes de qualquer query.
-- Criar `backend/services/comp-service/src/infrastructure/persistence/prisma-composition-erasure.adapter.spec.ts` (integração): provisionar dados, chamar `purge(projetoId)` uma vez (deleta), chamar segunda vez (idempotente — não lança erro).
-- Criar `backend/services/comp-service/src/infrastructure/persistence/prisma-project-metadata.adapter.spec.ts` (integração): inserir 3 metadados, chamar `metadata([id1, id2, id3])` — verificar que usa UMA query `findMany` (não 3 `findUnique`); espiar `prisma.metadados.findMany` com `jest.spyOn`.
+**FASE 0 — COMP-004 item 8 (executar PRIMEIRO, antes de qualquer container):**
+
+1. Abrir `docs/architecture/backend/issues/COMP-004.md`, localizar na seção `## Escopo` a linha:
+   `src/modules/comp/application/update-metadados.use-case.spec.ts` — `... → 400 at controller`
+   Substituir `→ 400 at controller` por `→ 422 at controller` (correção tipográfica; os Critérios de aceite da mesma issue já dizem 422).
+
+2. Executar:
+   ```bash
+   python scripts/validator-score.py mark \
+     --issue COMP-004 --item 8 \
+     --rationale "Critério correto é 422 (RFC 7807/DomainException.status). Texto do Escopo corrigido de 400→422; implementação (CompExceptionFilter) e spec de P2 (comp.controller.spec.ts describe CompExceptionFilter HTTP status mapping) já validam o mapeamento 422. Não é divergência de design — era erro tipográfico no Escopo da issue." \
+     --layer be
+   ```
+
+3. Verificar: `python scripts/validator-score.py status --issue COMP-004` → todos os 5 itens marcados.
+
+**FASE 1 — Infraestrutura de containers (issues: COMP-009):**
+
+- `backend/services/comp-service/package.json`: adicionar `"@testcontainers/postgresql": "^10.x"` em `devDependencies`; executar `pnpm install`.
+- Criar `backend/services/comp-service/test/integration/db-setup.ts`: helper que (1) inicia `new PostgreSqlContainer('postgres:16-alpine')`; (2) cria schemas `emp_test` e `emp_test_b` via `$executeRawUnsafe`; (3) aplica migrations via `prisma migrate deploy` apontando para o container; (4) cria tabela stub `projeto_editorial(id UUID PRIMARY KEY)` em cada schema (desacopla de PROJ em teste); (5) insere row `'11111111-1111-1111-1111-111111111111'` como FK reference em cada schema; (6) exporta `getConnectionUri(): string` e `stopContainer(): Promise<void>`.
+- Verificar que diretório `backend/services/comp-service/test/integration/` existe; criar se ausente.
+- Verificação: `node -e "require('./test/integration/db-setup')"` sem erro de importação.
+
+**FASE 2 — MetadadosRepository com banco real (issue: COMP-010):**
+
+- Reescrever `backend/services/comp-service/src/infrastructure/persistence/prisma-metadados.repository.spec.ts`:
+  - Remover `buildMockEmpresaService` e toda dependência de `jest.fn()` no PrismaClient.
+  - `beforeAll`: chamar `db-setup.startContainer()`; sobrescrever `process.env.DATABASE_URL = container.getConnectionUri()`; instanciar `PrismaEmpresaService` com slug `emp_test`; instanciar `PrismaMetadadosRepository` com serviço real. `jest.setTimeout(120000)`.
+  - `afterEach`: executar `prisma.$executeRawUnsafe('TRUNCATE emp_test.metadados CASCADE')`.
+  - `afterAll`: executar `db-setup.stopContainer()`.
+  - Specs obrigatórios (nomes exatos): `"should create on first upsert"`, `"should update on second upsert without duplicate row"`, `"should return null when projetoId absent"`, `"should return materialized=true after upsert"`.
+- Verificação: `pnpm test --testPathPattern="prisma-metadados.repository"` → PASS com containers reais.
+
+**FASE 3 — ConfiguracaoLayoutRepository com banco real + atomicidade (issue: COMP-011):**
+
+- Reescrever `backend/services/comp-service/src/infrastructure/persistence/prisma-configuracao-layout.repository.spec.ts` com o mesmo padrão de Fase 2 (`db-setup.ts`, `beforeAll/afterEach/afterAll`).
+- Specs obrigatórios (nomes exatos): `"should replace override set atomically"`, `"should have no old overrides after second upsert"`, `"should load overrides ordered by ordem ascending"`, `"should return null when projetoId absent"`.
+- Spec de atomicidade: usar `jest.spyOn(prisma, '$transaction')` para simular rejeição no meio do batch; verificar que nenhum override parcial persiste (rollback confirmado via `findByProjetoId` retornando overrides do estado anterior ou ausente).
+- Verificação: `pnpm test --testPathPattern="prisma-configuracao-layout.repository"` → PASS.
+
+**FASE 4 — EmpresaService + isolamento de tenant (issue: COMP-012):**
+
+- Criar `backend/services/comp-service/src/infrastructure/persistence/prisma-empresa.service.spec.ts`:
+  - `beforeAll`: sobe container via `db-setup.ts`; `jest.setTimeout(120000)`.
+  - Spec: `"should execute SET search_path before first query"` — spy em `prisma.$executeRawUnsafe`; instanciar com slug `emp_test`; verificar que o spy recebe `SET search_path = emp_test` antes de qualquer `findFirst`.
+  - Spec: `"should reject invalid slug before SET search_path"` — slug `"'; DROP TABLE"` → lança `InvalidEmpresaSlugException`; spy em `prisma.$executeRawUnsafe` não deve ter sido chamado.
+  - Spec de isolamento (integração): `"should not see emp_test_a data when querying emp_test_b"` — inserir row em `emp_test.metadados`, query via PrismaEmpresaService com slug `emp_test_b` → retorna null.
+- Verificação: `pnpm test --testPathPattern="prisma-empresa.service"` → PASS.
+
+**FASE 5 — Port adapters de exportação com banco real (issue: COMP-012 portas):**
+
+- Criar `backend/services/comp-service/src/infrastructure/persistence/prisma-project-metadata.adapter.spec.ts`:
+  - `beforeAll`: db-setup + instanciar `PrismaProjectMetadataAdapter` com serviço real.
+  - Spec: `"should use findMany with in clause, not loop of findUnique"` — inserir 3 metadados; `jest.spyOn(prisma.metadados, 'findMany')`; chamar `metadata([id1, id2, id3])`; verificar que `findMany` foi chamado exatamente 1 vez (não 3 chamadas de `findUnique`).
+  - Spec: `"should return empty array for unknown ids"`.
+- Criar `backend/services/comp-service/src/infrastructure/persistence/prisma-composition-erasure.adapter.spec.ts`:
+  - `beforeAll`: db-setup + provisionar dados (1 metadados + 1 configuracao_layout com overrides).
+  - Spec: `"purge idempotent: second call does not throw"` — chamar `purge(projetoId)` → row deletada; chamar segunda vez → nenhuma exceção lançada; banco não contém rows para o projetoId.
+  - Spec: `"should cascade delete overrides when purging"` — verificar que overrides do projetoId não existem após purge.
+- Verificação: `pnpm test --testPathPattern="(prisma-project-metadata|prisma-composition-erasure)"` → PASS.
+
+**FASE 6 — Verificação final de P3:**
+
+```bash
+pnpm test --testPathPattern="prisma-" 2>&1 | grep -E "(PASS|FAIL|Tests:)"
+pnpm exec tsc --noEmit
+python scripts/arch-conformance.py check --layer be --target backend/services/comp-service
+```
+Todos devem retornar exit 0 com containers reais rodando.
 
 #### Alvos de alteração
 
-- `backend/services/comp-service/package.json` (adicionar `@testcontainers/postgresql` em devDependencies)
-- `backend/services/comp-service/test/integration/db-setup.ts` (criar)
-- `backend/services/comp-service/src/infrastructure/persistence/prisma-metadados.repository.spec.ts` (reescrever — Testcontainers)
-- `backend/services/comp-service/src/infrastructure/persistence/prisma-configuracao-layout.repository.spec.ts` (reescrever — Testcontainers)
-- `backend/services/comp-service/src/infrastructure/persistence/prisma-empresa.service.spec.ts` (criar)
-- `backend/services/comp-service/src/infrastructure/persistence/prisma-composition-erasure.adapter.spec.ts` (criar — integração real)
-- `backend/services/comp-service/src/infrastructure/persistence/prisma-project-metadata.adapter.spec.ts` (criar — integração real)
+- `docs/architecture/backend/issues/COMP-004.md` (corrigir texto Escopo: `→ 400` para `→ 422` — Fase 0)
+- `backend/services/comp-service/package.json` (adicionar `@testcontainers/postgresql` em devDependencies — Fase 1)
+- `backend/services/comp-service/test/integration/db-setup.ts` (criar helper de containers — Fase 1)
+- `backend/services/comp-service/src/infrastructure/persistence/prisma-metadados.repository.spec.ts` (reescrever — Testcontainers — Fase 2)
+- `backend/services/comp-service/src/infrastructure/persistence/prisma-configuracao-layout.repository.spec.ts` (reescrever — Testcontainers + atomicidade — Fase 3)
+- `backend/services/comp-service/src/infrastructure/persistence/prisma-empresa.service.spec.ts` (criar — slug validation + tenant isolation — Fase 4)
+- `backend/services/comp-service/src/infrastructure/persistence/prisma-project-metadata.adapter.spec.ts` (criar — findMany spy — Fase 5)
+- `backend/services/comp-service/src/infrastructure/persistence/prisma-composition-erasure.adapter.spec.ts` (criar — purge idempotente — Fase 5)
 
 #### Contrato operacional
 
 Deve existir:
 - `@testcontainers/postgresql` em `devDependencies` de `package.json`.
-- `prisma-metadados.repository.spec.ts` usa `new PostgreSqlContainer()` ou equivalente (sem `jest.fn()` no client Prisma).
+- `prisma-metadados.repository.spec.ts` usa `new PostgreSqlContainer()` — sem `buildMockEmpresaService` com `jest.fn()`.
 - Spec `"should reject invalid slug before SET search_path"` em `prisma-empresa.service.spec.ts`.
 - Spec `"should use findMany with in clause, not loop of findUnique"` em `prisma-project-metadata.adapter.spec.ts`.
 - Spec `"purge idempotent: second call does not throw"` em `prisma-composition-erasure.adapter.spec.ts`.
+- COMP-004 item 8 marcado via `validator-score.py mark` (após text-fix em COMP-004.md).
 
 Não deve existir:
-- `buildMockEmpresaService` com `jest.fn()` nos specs listados acima após P3.
+- `buildMockEmpresaService` com `jest.fn()` nos specs de repositório após P3.
 - Loop `for (const id of ids) { findUnique(id) }` em `PrismaProjectMetadataAdapter.metadata()`.
 
 Verificação objetiva:
 ```bash
 pnpm test --testPathPattern="(prisma-metadados|prisma-configuracao-layout|prisma-empresa|prisma-composition|prisma-project-metadata)" 2>&1 | grep -E "(PASS|FAIL|Tests:)"
 # Todos devem PASS; containers sobem automaticamente
+python scripts/validator-score.py status --issue COMP-004  # todos 5 itens marcados
 ```
 
 #### Sequência de execução
 
-- Fase 1: instalar `@testcontainers/postgresql`; criar `test/integration/db-setup.ts` com helper de provisioning.
-- Fase 2: reescrever `prisma-metadados.repository.spec.ts` usando helper; verificar `findByProjetoId`, `upsert`, `delete`.
-- Fase 3: reescrever `prisma-configuracao-layout.repository.spec.ts`; verificar `replaceOverrides` atomicidade (simular falha no meio).
-- Fase 4: criar `prisma-empresa.service.spec.ts` verificando slug validation + SET search_path.
-- Fase 5: criar specs de integração para `PrismaProjectMetadataAdapter` e `PrismaCompositionErasureAdapter`.
+- Fase 0 (COMP-004 item 8 — executar PRIMEIRO): corrigir texto `400→422` no Escopo de `COMP-004.md`; executar `validator-score.py mark --issue COMP-004 --item 8 --rationale "..."`. Verificar todos os 5 itens marcados. Apenas após confirmação avançar para Fase 1.
+- Fase 1 (infraestrutura): adicionar `@testcontainers/postgresql` em `package.json`; criar `test/integration/db-setup.ts` com helper de start/stop/schemas/migrations/FK-stub.
+- Fase 2 (MetadadosRepository): reescrever spec usando `db-setup.ts`; verificar 4 specs obrigatórios (nomes exatos como listados).
+- Fase 3 (ConfiguracaoLayoutRepository): reescrever spec usando `db-setup.ts`; verificar atomicidade de `replaceOverrides` via spy em `$transaction`.
+- Fase 4 (EmpresaService): criar spec com spy em `$executeRawUnsafe`; verificar slug validation + tenant isolation com dois schemas reais.
+- Fase 5 (port adapters): criar spec de `PrismaProjectMetadataAdapter` (spy `findMany`); criar spec de `PrismaCompositionErasureAdapter` (purge idempotente).
+- Fase 6 (verificação final): `pnpm test --testPathPattern="prisma-"` + `tsc --noEmit` + `arch-conformance.py check`.
 
 #### Política de testes
 
 - Integration obrigatório: todos os specs de repositório devem usar Testcontainers — sem `jest.fn()` para o PrismaClient.
-- Timeout de container: configurar `jest.setTimeout(60000)` no `beforeAll` para aguardar o container subir.
-- Pitfall `bdd-scaffold:application-test-yml:missing-jwk-set-uri`: garantir que DATABASE_URL é sobrescrita pelo Testcontainers no `beforeAll` via `container.getConnectionUri()`.
+- `jest.setTimeout(120000)` no `beforeAll` de cada spec de repositório (aguardar container subir).
+- `DATABASE_URL` sobrescrita no `beforeAll` via `container.getConnectionUri()` — nunca hardcoded.
+- Pitfall: garantir que migrations são aplicadas no schema correto (`emp_test`) antes de qualquer query.
 
 #### Multi-empresa
 
-Obrigatório. Criar dois schemas (`emp_test_a`, `emp_test_b`) no `db-setup.ts` para verificar isolamento: inserir dados em `emp_test_a`, query em `emp_test_b` → retorna null. Isso valida o tenant routing.
+Obrigatório. Criar dois schemas (`emp_test` e `emp_test_b`) no `db-setup.ts`. Spec de isolamento em `prisma-empresa.service.spec.ts`: inserir em `emp_test`, query em `emp_test_b` → retorna null. Confirma que tenant routing não vaza dados entre slugs.
 
 #### Migrações Prisma Migrate necessárias
 
-As migrations V0001-V0003 já existem. O `db-setup.ts` as executa via `prisma migrate deploy` ou SQL direto no container.
+As migrations em `backend/services/comp-service/prisma/migrations/20260825141357_init/migration.sql` já existem. O `db-setup.ts` as executa via `prisma migrate deploy` apontando para o container. Não criar novas migrations.
 
 #### Critérios de aceite
 
+- COMP-004 item 8 marcado via mark antes de qualquer outro passo (validator-score.py status → 5/5).
 - `pnpm test --testPathPattern="prisma-"` exits 0 com containers reais.
-- Isolamento de tenant verificado: dados de `emp_test_a` não visíveis em query com `search_path=emp_test_b`.
+- Isolamento de tenant verificado: dados de `emp_test` não visíveis em query com `search_path=emp_test_b`.
 - Slug inválido (`'; DROP TABLE'`) rejeitado antes de qualquer query (verificado em spec).
-- `PrismaProjectMetadataAdapter.metadata([id1,id2,id3])` emite UMA query SQL (verificado via spy).
-- `purge` idempotente: chamado 2x não lança erro.
+- `PrismaProjectMetadataAdapter.metadata([id1,id2,id3])` emite UMA query SQL (verificado via spy em `findMany`).
+- `purge` idempotente: chamado 2x não lança erro (verificado em spec).
+- `pnpm exec tsc --noEmit` exits 0.
+- `python scripts/arch-conformance.py check --layer be --target backend/services/comp-service` exits 0.
 
 #### Instrução para implementador
 
-Usar `@testcontainers/postgresql` (não `@testcontainers/core` + image direta). O helper `db-setup.ts` deve: (1) iniciar `PostgreSqlContainer`; (2) criar schemas `emp_test` e `emp_test_b`; (3) aplicar migrations via `prisma migrate deploy` ou `prisma.$executeRawUnsafe(sqlFromFile)`; (4) inserir row em `projeto_editorial` com UUID `'11111111-1111-1111-1111-111111111111'` (usado por todas as specs como FK reference). Não usar `docker-compose` — somente Testcontainers (portabilidade CI). `jest.setTimeout(120000)` no bloco `beforeAll`.
+**PASSO 1 — Fase 0 obrigatória antes de qualquer código:** Abrir `docs/architecture/backend/issues/COMP-004.md`, localizar no `## Escopo` a linha `update-metadados.use-case.spec.ts` que cita `→ 400 at controller`, substituir por `→ 422 at controller`. Salvar. Executar `validator-score.py mark --issue COMP-004 --item 8 --rationale "..."`. Confirmar que `status` mostra 5/5 antes de avançar.
+
+**PASSO 2 — Fase 1 (db-setup.ts):** Usar `@testcontainers/postgresql` (não `@testcontainers/core` + image direta). O `db-setup.ts` deve: (1) `new PostgreSqlContainer('postgres:16-alpine').start()`; (2) obter connection URI; (3) criar `PrismaClient` com essa URI; (4) `CREATE SCHEMA IF NOT EXISTS emp_test`; (5) `SET search_path = emp_test`; (6) aplicar SQL das migrations diretamente via `$executeRawUnsafe` (carregar o arquivo `prisma/migrations/20260825141357_init/migration.sql`); (7) criar tabela stub `projeto_editorial(id UUID PRIMARY KEY)` em `emp_test` e `emp_test_b`; (8) inserir UUID fixo `'11111111-1111-1111-1111-111111111111'` em cada. Não usar `docker-compose` — apenas Testcontainers (portabilidade CI).
+
+**PASSO 3 — Fases 2-3 (reescrita dos repositórios):** Não apagar o arquivo existente — reescrever o conteúdo. Importar helper: `import { startTestDb, stopTestDb } from '../../test/integration/db-setup'`. `beforeAll`: `jest.setTimeout(120000); const db = await startTestDb(); process.env.DATABASE_URL = db.uri`. `afterEach`: truncar tabelas via raw SQL. `afterAll`: `await stopTestDb()`. Usar nomes de spec exatamente como listados no contrato operacional.
+
+**PASSO 4 — Fase 4 (EmpresaService):** O spy em `$executeRawUnsafe` deve ser instalado ANTES de instanciar o PrismaEmpresaService para capturar a chamada `SET search_path`. Para o teste de slug inválido, não precisa de container ativo — o slug é rejeitado antes de qualquer IO. Para o teste de isolamento, usar o container real com dois schemas.
+
+**PASSO 5 — Fase 5 (adapters de exportação):** `jest.spyOn(prismaClient.metadados, 'findMany')` instalado antes de `metadata([id1,id2,id3])`. Verificar `expect(spy).toHaveBeenCalledTimes(1)`. Para purge idempotente, chamar `purge` em try/catch e verificar que segunda chamada não lança; depois SELECT para confirmar que as rows não existem.
 
 ---
 

@@ -3,9 +3,9 @@
   "layer": "be",
   "checklist": {
     "total": 10,
-    "done": 9,
+    "done": 10,
     "partial": 0,
-    "missing": 1,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -24,7 +24,7 @@
         "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/comp/ports/metadados-repository.port.ts"
       },
       {
-        "text": "`src/modules/comp/application/update-metadados.use-case.spec.ts` — mock repository: upsert persists; identical body → no second persist call; blank titulo → DomainException propagated → 400 at controller",
+        "text": "`src/modules/comp/application/update-metadados.use-case.spec.ts` — mock repository: upsert persists; identical body → no second persist call; blank titulo → DomainException propagated → 422 at controller",
         "state": "DONE",
         "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/comp/application/update-metadados.use-case.spec.ts"
       },
@@ -50,8 +50,8 @@
       },
       {
         "text": "DomainException from aggregate propagates and is mapped to **422** (nao 400) pelo `ProblemJsonFilter` — comportamento correto (RFC 7807/`DomainException.status`); o criterio original desta issue citava 400, mas a validacao de dominio (titulo/autor/idioma) e uma violacao de regra de negocio, nao um erro de parsing — 422 Unprocessable Entity e o codigo correto. Nao marcado por divergir do texto literal da issue.",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`pnpm test` on both use case specs exits 0",
