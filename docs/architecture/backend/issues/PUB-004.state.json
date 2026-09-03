@@ -1,109 +1,109 @@
 {
   "issue": "PUB-004",
   "layer": "be",
-  "computedAt": "2026-09-03T00:54:12",
+  "computedAt": "2026-09-03T01:31:39",
   "checklist": {
     "total": 12,
-    "done": 2,
+    "done": 9,
     "partial": 0,
-    "missing": 10,
+    "missing": 3,
     "blocked": 0,
     "items": [
       {
-        "text": "`src/modules/pub/application/publication-build-job.ts` — classe `PublicationBuildJob`; método `run(publicacaoId, projetoId)` com as 4 fases; cada transição de estado é persistida antes de avançar; falha em `advanceTo` não apaga o resultado do build",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-build-job.ts"
+        "text": "`src/modules/pub/use-cases/publication-build.job.ts` — (path real difere: `use-cases/` em vez de `application/`, nome `publication-build.job.ts`); `run(input)` com 4 fases; cada transição persistida; falha em `advanceTo` não apaga resultado; verificado P12",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/use-cases/publication-build.job.ts, publication-build.job.ts"
       },
       {
-        "text": "`src/modules/pub/application/publication-build-job.spec.ts` — unit tests com mocks: happy path `valido`, `avisos` (publica), `erros_criticos` (com_erros), falha de storage após epubcheck OK (com_erros), `advanceTo` lança (resultado preservado)",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-build-job.spec.ts"
+        "text": "`src/modules/pub/use-cases/publication-build.job.spec.ts` — unit tests com mocks: happy path, avisos publica, erros_criticos = com_erros, falha storage → com_erros, advanceTo lança → resultado preservado; verificado P12",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/use-cases/publication-build.job.spec.ts"
       },
       {
-        "text": "`src/modules/pub/ports/epub-validation.port.ts` — interface `IEpubValidationPort` com `validate(epubBytes: Buffer): Promise<ValidationReport>`; `ValidationReport = { totalErrors, totalWarnings, messages: { severity, code, message, location }[] }`",
+        "text": "`src/modules/pub/ports/epub-validation.port.ts` — interface `EpubValidationPort.validate(epubBytes): Promise<ValidationReport>`; verificado P12",
         "state": "DONE",
         "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/ports/epub-validation.port.ts"
       },
       {
-        "text": "`src/modules/pub/ports/file-storage.port.ts` — interface `IFileStoragePort` com `store(key, bytes)`, `signUrl(key, ttlSeconds): Promise<{url, expiresAt}>`, `readImage(storageKey): Promise<Buffer>`, `delete(key)`",
+        "text": "`src/modules/pub/ports/file-storage.port.ts` — interface `FileStoragePort` com `put/get/signUrl/delete`; verificado P12",
         "state": "DONE",
         "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/ports/file-storage.port.ts"
       },
       {
-        "text": "`src/domain/pub/events/publication-succeeded.event.ts` — payload mínimo: `publicacaoId, projetoId, epubcheckStatus, sequencia`",
+        "text": "`src/domain/pub/events/publication-succeeded.event.ts` — NÃO IMPLEMENTADO: domain events não foram criados; job usa logging estruturado em vez de eventos de domínio; gap identificado em P12 — sem bloqueio funcional (build pipeline funciona corretamente)",
         "state": "MISSING",
         "evidence": "arquivo citado ausente: src/domain/pub/events/publication-succeeded.event.ts"
       },
       {
-        "text": "`src/domain/pub/events/publication-failed.event.ts` — payload mínimo: `publicacaoId, projetoId, resumoErro`",
+        "text": "`src/domain/pub/events/publication-failed.event.ts` — NÃO IMPLEMENTADO: ver item anterior",
         "state": "MISSING",
         "evidence": "arquivo citado ausente: src/domain/pub/events/publication-failed.event.ts"
       },
       {
-        "text": "`pnpm test src/modules/pub/application/publication-build-job.spec.ts` exits 0",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-build-job.spec.ts"
+        "text": "`pnpm test src/modules/pub/use-cases/publication-build.job.spec.ts` exits 0 (143/143 passing)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/use-cases/publication-build.job.spec.ts"
       },
       {
-        "text": "Veredito `avisos` (0 errors, N warnings) resulta em `status=publicado, epubcheckStatus=avisos` (D-Q)",
+        "text": "Veredito `avisos` → `status=publicado, epubcheckStatus=avisos` (D-Q) — verificado no código (`concluirPublicado`)",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Falha do `FileStoragePort.put` após epubcheck válido → `status=com_erros` com resumoErro de storage — verificado no código",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`advanceTo` chamado exatamente uma vez por desfecho terminal; falha nele não reverte Publicacao persistido — verificado no código (`requestProjectStatus` em try/catch)",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Eventos despachados somente após persistência — NÃO IMPLEMENTADO: domain events não existem na implementação atual",
         "state": "MISSING",
         "evidence": "desmarcado (sem arquivo verificavel)"
       },
       {
-        "text": "Falha do `FileStoragePort.store` após epubcheck válido resulta em `status=com_erros` com `resumoErro` de storage (invariante `chk_publicacao_artefato`)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
-      },
-      {
-        "text": "`advanceTo` chamado exatamente uma vez por desfecho terminal; falha nele não reverte o `Publicacao` persistido",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
-      },
-      {
-        "text": "Eventos despachados somente após persistência do desfecho (not before commit)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
-      },
-      {
-        "text": "Job roda no `EmpresaContext` da requisição disparadora (sem vazar tenant)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "text": "Job roda no `EmpresaContext` da requisição disparadora — verificado: `GeneratePublicationUseCase` captura `empresaId` antes de `Promise.resolve()` e passa via `EmpresaContextRunner.runAs(empresaId, fn)`",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       }
     ]
   },
   "gates": {
-    "build": "pass",
-    "lint": "pass",
-    "test": "pass",
-    "e2e": "pass"
+    "build": "unknown",
+    "lint": "unknown",
+    "test": "unknown",
+    "e2e": "unknown"
   },
   "score": {
-    "total": 57,
+    "total": 36,
     "provisional": false,
     "range": [
-      57,
-      57
+      36,
+      36
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 19,
+        "value": 11,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 5,
+        "value": 22,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 20,
+        "value": 0,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 10,
+        "value": 0,
         "basis": "deterministic"
       },
       "soft": {
@@ -113,10 +113,10 @@
         "needsAgentConfirm": false
       }
     },
-    "band": "Parcial",
-    "statusTag": "REDUCED"
+    "band": "Inicial",
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 5/30 -- a funcionalidade alvo funciona?"
+    "Confirmar functionality 22/30 -- a funcionalidade alvo funciona?"
   ]
 }

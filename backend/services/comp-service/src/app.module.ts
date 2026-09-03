@@ -1,6 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { DatabaseModule } from './infrastructure/persistence/database.module';
@@ -10,6 +10,7 @@ import { ProblemJsonFilter } from './infrastructure/comp/filters/problem-json.fi
 import { AuthModule } from './infrastructure/auth/auth.module';
 import { JwtAuthGuard } from './infrastructure/comp/auth/jwt-auth.guard';
 import { ScopeGuard } from './infrastructure/comp/auth/scope.guard';
+import { EmpresaContextInterceptor } from './infrastructure/comp/auth/empresa-context.interceptor';
 import { EmpresaContextMiddleware } from './infrastructure/auth/empresa-context.middleware';
 import { CorrelationMiddleware } from './infrastructure/comp/middleware/correlation.middleware';
 import { RequestLoggerMiddleware } from './infrastructure/comp/middleware/request-logger.middleware';
@@ -84,6 +85,14 @@ import { CompModule } from './modules/comp/comp.module';
     // ScopeGuard runs AFTER JwtAuthGuard (order matches APP_GUARD declaration
     // order) and enforces @RequiredScopes() metadata — SPEC-06 §2.
     { provide: APP_GUARD, useClass: ScopeGuard },
+
+    // --- Empresa context interceptor (global) ---
+    // Populates PrismaEmpresaService.store (tenant-routing ALS) with the slug
+    // from request.user.empresaId — set by JwtAuthGuard (post JWT verification).
+    // Uses runWithSlug() (not enterWith()) to wrap the handler's Observable so
+    // all async operations in the handler/use-case/repository chain see the slug.
+    // RULE-07 compliant: slug comes from the verified principal, not raw token.
+    { provide: APP_INTERCEPTOR, useClass: EmpresaContextInterceptor },
 
     // --- P7/COMP-018: RFC 7807 exception filter (global) ---
     // Registered here (not in CompModule) so CompModule does not import

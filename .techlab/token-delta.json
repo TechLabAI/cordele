@@ -1,6 +1,6 @@
 {
-  "pending_input": 1129822,
-  "pending_output": 10180,
+  "pending_input": 921763,
+  "pending_output": 1896,
   "watermarks": {
     "695a150f-7620-46cf-b347-80c6aaa696eb": {
       "input": 2145696,
@@ -243,10 +243,15 @@
       "seq": 410
     },
     "a667f19c-10fa-4c04-9132-d030c8c26152": {
-      "input": 20682354,
-      "output": 107629,
-      "seq": 445
+      "input": 23980945,
+      "output": 121717,
+      "seq": 451
+    },
+    "836c6135-0b40-47f9-9693-c4f166260c38": {
+      "input": 672336,
+      "output": 3646,
+      "seq": 450
     }
   },
-  "seq": 445
+  "seq": 451
 }

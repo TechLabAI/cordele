@@ -7,12 +7,14 @@
 - P3 -- DONE
 - P4 -- DONE
 - P5 -- DONE
-- P6 -- PARTIAL (PUB-014 DONE, PUB-015 DONE, PUB-016 DONE; INT-PUB-001 DONE, INT-PUB-003 DONE; INT-PUB-002 desbloqueada -> P10)
+- P6 -- DONE (PUB-014 DONE, PUB-015 DONE, PUB-016 DONE; INT-PUB-001 DONE, INT-PUB-003 DONE; INT-PUB-002 concluida em P10)
 - P7 -- DONE (PUB-017: Correlation interceptor + structured logging. PUB-018: Health endpoint com epubcheck liveness check. 2026-08-26 17:59)
 - P8 -- DONE (PUB-019: BDD step definitions manuais + execução dos 3 feature files; 22/22 scenarios PASS @ 2026-08-26 19:08)
-- P9 -- pendente (PUB-020: Runbook de reconciliação de build órfão)
+- P9 -- DONE (PUB-020: Runbook + findStaleInFlight + script reconciliação; todos [x] confirmados @ 2026-09-02)
 - P10 -- DONE (INT-PUB-002: adapters HTTP CompCompositionMetadataAdapter + CompCompositionLayoutAdapter criados; wiring em PubInfraBindingsModule; test=PASS lint=PASS build=PASS arch-conformance=OK 5/5 @ 2026-09-02)
 - P11 -- DONE (REGRESS-INT-PUB-002: asserções runAs corrigidas com 3º arg bearerToken; prisma-client/** adicionado aos ignores ESLint; test=PASS 143/143 lint=PASS build=PASS arch-conformance=OK 5/5 @ 2026-09-02)
+- P12 -- pendente (Reconciliar checklist: confirmar e marcar done PUB-002..PUB-008, PUB-013..PUB-015, PUB-017..PUB-018, INT-PUB-001..006 — código existe, checklist desatualizado)
+- P13 -- pendente (PUB-021: implementar campos EpubSummaryVM — tamanho_bytes, total_capitulos, total_imagens; ADR-004 decidido, código pendente)
 
 ---
 
@@ -35,14 +37,26 @@ ports exportados (history + erasure para PROJ) → BDD cobrindo D-N/D-R/D-P/D-Q/
 
 ### Diagnóstico inicial (gaps mapeados em doc 06 / M3)
 
-- **G1 — Lista detalhada de avisos:** api-contract atual expõe apenas contagens; FE só renderiza
-  contagens. Novo endpoint §4.6 proposto (PUB-016 — requer ratificação FE antes do promote).
-- **G2 — KPIs de tamanho/páginas/capítulos/imagens:** sem campo-fonte definido; tile FE omitido
-  indefinidamente até decisão de produto (fora do MVP).
-- **G3 — Build órfão:** crash em `gerando`/`validando` bloqueia futuros exports pelo índice parcial;
-  reconciliação automática é pós-POC; PUB-020 documenta runbook operacional.
-- **G4 — Step definitions manuais:** DataTable `has the following publicacoes:`, step de JRE/JAR
-  ausente e cenário `emAndamento=1` não geráveis automaticamente; PUB-019.
+- **G1 — Lista detalhada de avisos:** RESOLVIDO — PUB-016 implementado (9/10 itens done).
+- **G2 — KPIs de tamanho/páginas/capítulos/imagens:** RESOLVIDO parcialmente — ADR-004 decidido
+  (PUB-021: tamanho_bytes, total_capitulos, total_imagens; paginas omitido permanentemente).
+  Implementação de código pendente em P13.
+- **G3 — Build órfão:** RESOLVIDO — PUB-020 runbook + findStaleInFlight + script one-shot entregues.
+- **G4 — Step definitions manuais:** RESOLVIDO — PUB-019 22/22 scenarios PASS.
+
+### Estado BASELINE 2026-09-03
+
+Score: **68/100** Consistente (avg). Gates: test=PASS(161/161) build=PASS lint=PASS arch-conformance=PASS(5/5).
+Checklist: **78/177 done (44.1%)** — discrepância com estado real: código de P2..P8 existe em produção
+mas as issues PUB-002..008, PUB-013..015, PUB-017..018, INT-PUB-001..006 não foram marcadas via
+`validator-score.py mark` nas sessões anteriores. P12 reconcilia esse debt. Gap funcional real: PUB-021
+(campos EpubSummaryVM — tamanho_bytes/total_capitulos/total_imagens ausentes do schema Prisma e DTOs).
+
+### Multi-empresa
+
+EmpresaContext configurado via AsyncLocalStorage em `empresa-context.service.ts`. Schemas alvo:
+`cordele_global` (auth/RBAC) + `emp_aetos` (dados de publicação). Propagação assíncrona implementada
+em `PublicationBuildJob` via `runAs(empresaId, fn, bearerToken)` (P5/INT-PUB-006 + P10/P11).
 
 ---
 
@@ -50,22 +64,16 @@ ports exportados (history + erasure para PROJ) → BDD cobrindo D-N/D-R/D-P/D-Q/
 
 ### Objetivo macro
 
-Entregar um `PubModule` NestJS compilável, testável e com cobertura BDD completa das decisões
-D-N/D-R/D-P/D-Q/D-F/D-O/D-G — em 9 prioridades que o agente `be-implement` pode executar uma a uma.
+Fechar o módulo PUB: reconciliar o checklist das issues implementadas (P12) e entregar os campos
+EpubSummaryVM do ADR-004 (P13). Após P12+P13 o score deve atingir >= 90/100.
 
 ### Ordem das prioridades
 
-| P | Título | Motivo |
-|---|---|---|
-| P1 | Scaffold + domain | Módulo deve compilar; agregados puros desbloqueiam tudo |
-| P2 | Use cases core | Golden path: trigger → polling → stats → download |
-| P3 | Persistência + migration | Repositórios Prisma e schema-per-tenant desbloqueiam testes reais |
-| P4 | Adapters de infra | EpubBuilder + epubcheck + storage + stubs desbloqueiam o build end-to-end |
-| P5 | Security + propagação tenant | JWT guard + EmpresaContext no job assíncrono |
-| P6 | Ports exportadas + integrações | history/erasure exportados; adapters reais de IMP/COMP/PROJ |
-| P7 | Observabilidade | Correlação + logging + health/epubcheck |
-| P8 | BDD | Steps manuais + execução dos 3 feature files |
-| P9 | Hardening | Runbook de build órfão |
+| P | Título | Motivo | Issues |
+|---|---|---|---|
+| P1..P11 | DONE | Implementação core completa | PUB-001..020, INT-PUB-001..006 |
+| P12 | Reconciliar checklist | Código existe; issues não marcadas causam score 68; marcar done via validator-score.py mark | PUB-002..008, PUB-013..015, PUB-017..018, INT-PUB-001..006 |
+| P13 | Implementar PUB-021 EpubSummaryVM | ADR-004 decidido; Prisma schema, EpubBuilder, BuildJob e DTOs precisam dos 3 campos | PUB-021 |
 
 ---
 
@@ -240,7 +248,7 @@ explícito para `PublicationBuildJob.run`.
 ---
 
 ### Prioridade 6 -- Ports exportadas + integrações
-Status: PARTIAL (PUB-014 DONE, PUB-015 DONE, PUB-016 DONE; INT-PUB-001 DONE [adapter HTTP IMP], INT-PUB-003 DONE [adapter HTTP PROJ]; INT-PUB-002 desbloqueada -> P10 [COMP agora completo])
+Status: DONE (PUB-014, PUB-015, PUB-016 DONE; INT-PUB-001, INT-PUB-003 DONE; INT-PUB-002 concluida em P10; INT-PUB-004, INT-PUB-005 DONE)
 
 #### Objetivo / Resultado esperado
 `PublicationHistoryPort` e `PublicationErasurePort` injetáveis em PROJ; adapters reais de IMP/COMP/PROJ.
@@ -533,7 +541,7 @@ Ao final de cada fase, verificar `pnpm lint` antes de prosseguir.
 ---
 
 ### Prioridade 9 -- Hardening
-Status: pendente
+Status: DONE (2026-09-02 — runbook + findStaleInFlight + script pub-reconcile-orphans.ts entregues; todos [x] confirmados em PUB-020)
 
 #### Issues vinculadas
 - PUB-020 (runbook build órfão + script de reconciliação)
@@ -1276,6 +1284,373 @@ Nao alterar assinaturas de `CompositionMetadataPort.get()` nem `CompositionLayou
 o bearer token e obtido via `EmpresaContextService.getBearerToken()` internamente.
 A extensao de `runAs` na Fase 1 deve manter retrocompatibilidade: o parametro `bearerToken`
 e opcional; chamadas existentes sem o terceiro argumento continuam funcionando.
+
+---
+
+### Prioridade 12 -- Reconciliar checklist das issues implementadas
+Status: pendente
+
+#### Issues cobertas
+PUB-002, PUB-003, PUB-004, PUB-005, PUB-006, PUB-007, PUB-008, PUB-013, PUB-014, PUB-015,
+PUB-017, PUB-018, INT-PUB-001, INT-PUB-002, INT-PUB-003, INT-PUB-004, INT-PUB-005, INT-PUB-006
+
+#### Objetivo / Problema / Resultado esperado
+
+O BASELINE de 2026-09-03 marcou score 68/100 com 78/177 itens done. O código das issues P2..P8
+foi implementado em sessões anteriores mas `validator-score.py mark` nunca foi executado para
+essas issues, deixando os arquivos de issue com `[ ]` mesmo com código presente. Esta prioridade
+verifica o código existente contra cada checklist, atualiza os caminhos divergentes nos arquivos
+de issue e executa o mark para cada issue verificada. Ao final o score deve refletir o estado
+real do código (expectativa: >= 85/100, possivelmente 90+).
+
+#### Problemas identificados
+
+1. Issue files reportam "INTACT / 0/N done" para issues com código funcional nos caminhos:
+   - PUB-005: issue especifica `src/modules/pub/application/` mas código está em `src/modules/pub/use-cases/`
+   - PUB-008: issue especifica `src/infrastructure/pub/persistence/publicacao.repository.ts`
+     mas código está em `src/infrastructure/persistence/prisma-publicacao.repository.ts`
+   - PUB-013: issue especifica `src/modules/pub/auth/` mas guard está em `src/infrastructure/auth/`
+   - PUB-018: issue especifica `src/modules/pub/health/` mas indicador está em `src/infrastructure/pub/health/` (coincide)
+2. `validator-score.py mark` nunca executado para essas issues.
+3. Score 68 vs score real estimado >= 85 — discrepância de ~17 pontos por falta de mark.
+
+#### Correcoes mandatorias
+
+Para cada issue listada acima, em sequência:
+1. Verificar que o arquivo esperado existe (no path real do código, não o path da issue).
+2. Se o código existe e implementa o critério de aceite: atualizar o item de checklist no arquivo
+   de issue de `[ ]` para `[x]`, ajustando o path se divergiu do spec original.
+3. Executar `python scripts/validator-score.py mark --issue <MODULO>-NNN --layer be --done` após
+   confirmar que todos os itens da issue estão verificados.
+4. Ao final de todas as issues: executar o gate completo para confirmar que nenhuma regressão foi
+   introduzida pelos arquivos de issue editados.
+
+**Ordem de execução das issues (menor dependência primeiro):**
+PUB-002 → PUB-003 → PUB-004 → PUB-006 → PUB-007 → PUB-008 → PUB-005 →
+PUB-013 → PUB-017 → PUB-018 → PUB-014 → PUB-015 →
+INT-PUB-001 → INT-PUB-003 → INT-PUB-004 → INT-PUB-005 → INT-PUB-006 → INT-PUB-002
+
+#### Alvos de alteracao (caminhos completos relativos ao repositorio)
+
+Arquivos de issue a atualizar (checklist items [ ] → [x] e paths divergentes corrigidos):
+- `docs/architecture/backend/issues/PUB-002.md`
+- `docs/architecture/backend/issues/PUB-003.md`
+- `docs/architecture/backend/issues/PUB-004.md`
+- `docs/architecture/backend/issues/PUB-005.md`
+- `docs/architecture/backend/issues/PUB-006.md`
+- `docs/architecture/backend/issues/PUB-007.md`
+- `docs/architecture/backend/issues/PUB-008.md`
+- `docs/architecture/backend/issues/PUB-013.md`
+- `docs/architecture/backend/issues/PUB-014.md`
+- `docs/architecture/backend/issues/PUB-015.md`
+- `docs/architecture/backend/issues/PUB-017.md`
+- `docs/architecture/backend/issues/PUB-018.md`
+- `docs/architecture/backend/issues/INT-PUB-001.md` (se existir)
+- `docs/architecture/backend/issues/INT-PUB-002.md` (se existir)
+- `docs/architecture/backend/issues/INT-PUB-003.md` (se existir)
+- `docs/architecture/backend/issues/INT-PUB-004.md` (se existir)
+- `docs/architecture/backend/issues/INT-PUB-005.md` (se existir)
+- `docs/architecture/backend/issues/INT-PUB-006.md` (se existir)
+
+Nenhum arquivo de código deve ser criado ou modificado nesta prioridade.
+
+#### Contrato operacional
+
+Deve existir ao final:
+- Todos os arquivos de issue listados com `Done/Total: N/N` (todos os itens verificados marcados [x])
+- `validator-score.py mark` executado com sucesso para cada issue verificada
+- Score PUB >= 85/100 após reconciliação (a ser confirmado pelo validator)
+- Gates test=PASS build=PASS lint=PASS arch-conformance=PASS — inalterados (nenhum código editado)
+
+Nao deve existir:
+- Nenhum `[ ]` em issue que tem código funcional verificado
+- Edição de código de produção ou de testes nesta prioridade
+
+Verificacao objetiva:
+- `python scripts/validator-score.py summary --module PUB --layer be` mostra score >= 85
+- `pnpm test` exits 0 com 161+ passing (nenhuma regressão)
+- `pnpm lint` exits 0
+- `python scripts/arch-conformance.py check --layer be --target backend/services/pub-service` exits 0
+
+Condicao de bloqueio:
+- Se um item de checklist de issue não tiver código correspondente funcional, NÃO marcar como done
+  — documentar o gap real no arquivo de issue e reportar ao planner antes de prosseguir.
+
+#### Sequencia de execucao
+
+**Fase 1 — Verificar e marcar PUB-002..PUB-008 (domain + use-cases + persistence)**
+
+Para cada issue PUB-002, PUB-003, PUB-004, PUB-006, PUB-007, PUB-008, PUB-005:
+- Localizar o arquivo de código real (pode divergir do path na issue)
+- Verificar que o código implementa o critério de aceite do item
+- Editar o arquivo de issue: corrigir path se divergiu, marcar `[x]`
+- Executar `python scripts/validator-score.py mark --issue PUB-NNN --layer be --done`
+
+**Fase 2 — Verificar e marcar PUB-013, PUB-017, PUB-018 (auth, observability, health)**
+
+Mesma lógica da Fase 1 para PUB-013, PUB-017, PUB-018.
+
+**Fase 3 — Verificar e marcar PUB-014, PUB-015 (ports exportadas)**
+
+Verificar `publication-history.service.ts` e `publication-erasure.service.ts` contra critérios de PUB-014 e PUB-015.
+
+**Fase 4 — Verificar e marcar INT-PUB-001..006**
+
+Verificar os adapters HTTP e wiring contra critérios das issues de integração.
+
+**Fase 5 — Gate final**
+
+```bash
+cd backend/services/pub-service
+pnpm test
+pnpm lint
+pnpm exec tsc --noEmit
+python scripts/arch-conformance.py check --layer be --target backend/services/pub-service
+python scripts/validator-score.py summary --module PUB --layer be
+```
+
+#### Politica de testes
+
+Nenhum teste novo a escrever nesta prioridade. Verificar apenas que os testes existentes continuam passando.
+
+#### Multi-empresa
+
+Nenhuma alteração de código. O `EmpresaContext` propagado via ALS já está implementado e funcional.
+
+#### Migracoes Prisma Migrate necessarias
+
+Nenhuma nesta prioridade.
+
+#### Criterios de aceite
+
+- `python scripts/validator-score.py summary --module PUB --layer be` mostra score >= 85/100
+- `pnpm test` exits 0 (161+ passing, nenhuma regressão)
+- `pnpm lint` exits 0
+- `python scripts/arch-conformance.py check --layer be --target backend/services/pub-service` exits 0
+- Todos os arquivos de issue verificados têm `Done/Total: N/N` com todos itens `[x]`
+
+#### Riscos
+
+- Divergência de path entre issue spec e código real pode indicar que o código existe mas numa
+  localização que não atende ao padrão hexagonal (RULE-01..09). Nesse caso: não marcar done sem
+  revisar se a localização é aceitável arquiteturalmente.
+- Alguns itens de checklist podem cobrir critérios que o código satisfaz apenas parcialmente
+  (ex.: spec pede retry em colisão de unique constraint; código pode ter implementado sem o retry).
+  Verificar cada critério de aceite antes de marcar [x].
+
+#### Instrucao para implementador
+
+Executar as fases em ordem. Não alterar código de produção — apenas os arquivos `.md` de issue.
+Para cada item de checklist: verificar primeiro que o arquivo de código existe com `cat` ou `ls`;
+se o arquivo existe, verificar que implementa o critério (ler o arquivo); só então marcar `[x]`.
+Se um critério não está implementado, deixar `[ ]` e registrar na issue com comentário.
+Executar o gate da Fase 5 antes de emitir DONE.
+
+---
+
+### Prioridade 13 -- Implementar campos EpubSummaryVM (PUB-021 / ADR-004)
+Status: pendente
+
+#### Issues cobertas
+- PUB-021 (campos tamanho_bytes, total_capitulos, total_imagens — ADR-004)
+
+#### Objetivo / Problema / Resultado esperado
+
+ADR-004 foi decidido em 2026-09-01 e o contrato (api-contract §6.1, data-model.md §2.1) já foi
+emendado. O código ainda não implementa os 3 campos: o modelo Prisma não tem as colunas, o
+`EpubBuilder` não conta capítulos/imagens, o `DiskFileStorageAdapter` não retorna o byte size,
+o `PublicationBuildJob` não persiste esses valores e os DTOs não os expõem.
+
+Ao concluir: `GET /api/pub/projetos/{id}/status` retorna `tamanhoBytes`, `totalCapitulos`,
+`totalImagens` para publicações com `status=publicado`; campos nulos para builds em andamento ou
+com erros. FE (INT-FE-PUB-005) desbloqueado para consumir os tiles do `EpubSummaryGridComponent`.
+
+#### Problemas identificados
+
+1. `Publicacao` no schema Prisma não tem colunas `tamanho_bytes` (Int?), `total_capitulos` (Int?),
+   `total_imagens` (Int?).
+2. `EpubBuilder.build()` não conta capítulos nem imagens durante o walk de `ManuscriptContentPort`.
+3. `FileStoragePort.store()` não retorna o byte size do arquivo escrito.
+4. `PublicationBuildJob` não persiste os 3 campos após o build bem-sucedido.
+5. `PublicacaoStatusDto` e `PublicacaoHistoryItemDto` não têm os campos novos.
+
+#### Correcoes mandatorias
+
+1. Adicionar 3 colunas ao `schema.prisma`: `tamanho_bytes Int? @map("tamanho_bytes")`,
+   `total_capitulos Int? @map("total_capitulos")`, `total_imagens Int? @map("total_imagens")`.
+2. Gerar migration Prisma: `pnpm prisma migrate dev --name add-epub-summary-kpi-fields`.
+3. Extender `EpubBuilder.build()` para retornar `{ epubBytes: Buffer; totalCapitulos: number; totalImagens: number }`.
+4. Extender `FileStoragePort.store(ref, buffer)` → `{ bytesWritten: number }` no retorno; atualizar
+   `DiskFileStorageAdapter` e os stubs.
+5. Atualizar `PublicationBuildJob` para capturar e persistir os 3 valores via `publicacaoRepository.update(...)`.
+6. Atualizar `PublicacaoEntity` com os 3 campos opcionais.
+7. Atualizar `PublicacaoStatusDto` com `tamanhoBytes?: number`, `totalCapitulos?: number`, `totalImagens?: number`.
+8. Atualizar `publicacao.mapper.ts` para mapear as 3 colunas novas.
+
+#### Alvos de alteracao (caminhos completos relativos ao repositorio)
+
+Arquivos a modificar:
+- `backend/services/pub-service/prisma/schema.prisma` — adicionar 3 colunas ao model `Publicacao`
+- `backend/services/pub-service/src/domain/pub/publicacao.entity.ts` — adicionar 3 campos opcionais
+- `backend/services/pub-service/src/domain/pub/epub-builder.ts` — retornar contagens de capítulos e imagens
+- `backend/services/pub-service/src/domain/pub/epub-builder.spec.ts` — atualizar specs para asserção dos campos novos
+- `backend/services/pub-service/src/modules/pub/ports/file-storage.port.ts` — extender retorno de `store()` com `bytesWritten`
+- `backend/services/pub-service/src/infrastructure/pub/storage/disk-file-storage.adapter.ts` — implementar retorno de `bytesWritten`
+- `backend/services/pub-service/src/infrastructure/pub/storage/disk-file-storage.adapter.spec.ts` — asserção de bytesWritten
+- `backend/services/pub-service/src/modules/pub/use-cases/publication-build.job.ts` — capturar e persistir os 3 campos
+- `backend/services/pub-service/src/modules/pub/use-cases/publication-build.job.spec.ts` — asserção dos 3 campos persistidos
+- `backend/services/pub-service/src/infrastructure/persistence/publicacao.mapper.ts` — mapear 3 colunas novas
+- `backend/services/pub-service/src/modules/pub/dto/publicacao-status.dto.ts` — adicionar 3 campos opcionais ao DTO
+- `backend/services/pub-service/src/infrastructure/pub/stubs/manuscript-content.stub.ts` — se afetado pela mudança de EpubBuilder
+
+Novos arquivos a criar:
+- `backend/services/pub-service/prisma/migrations/<timestamp>_add_epub_summary_kpi_fields/migration.sql`
+  (gerado automaticamente por `pnpm prisma migrate dev`)
+
+#### Contrato operacional
+
+Deve existir:
+- Colunas `tamanho_bytes`, `total_capitulos`, `total_imagens` em `publicacao` (verificável via `\d publicacao` no psql ou via schema.prisma)
+- `EpubBuilder.build()` retorna objeto com `epubBytes`, `totalCapitulos`, `totalImagens`
+- `FileStoragePort.store()` retorna `{ bytesWritten: number }` (ou campo equivalente)
+- `PublicacaoStatusDto.tamanhoBytes`, `.totalCapitulos`, `.totalImagens` presentes quando `status=publicado`; `null` caso contrário
+- `PublicationBuildJob` persiste os 3 valores no `update()` final
+
+Nao deve existir:
+- Import de `@prisma/client` em qualquer arquivo de `domain/` (RULE-01)
+- Campo `totalPaginas` em qualquer DTO ou coluna no schema (decidido em ADR-004: omitido permanentemente)
+- Campo em `PublicacaoHistoryItemDto` (ADR-004 §D-S: apenas `PublicacaoStatus` recebe os campos)
+
+Verificacao objetiva:
+- `pnpm prisma migrate dev` exits 0
+- `pnpm test` exits 0
+- `pnpm lint` exits 0
+- `pnpm exec tsc --noEmit` exits 0
+- `python scripts/arch-conformance.py check --layer be --target backend/services/pub-service` exits 0
+- `GET /api/pub/projetos/{id}/status` com publicação `status=publicado` inclui `tamanhoBytes` (number), `totalCapitulos` (number), `totalImagens` (number) no body
+
+Condicao de bloqueio:
+- P12 deve estar DONE antes de iniciar P13 (score reconciliado garante que qualquer regressão de P13 seja detectável imediatamente)
+
+#### Sequencia de execucao
+
+**Fase 1 — Schema Prisma + migration**
+
+Editar `schema.prisma`: adicionar ao model `Publicacao`:
+```prisma
+tamanhoBytes     Int?   @map("tamanho_bytes")
+totalCapitulos   Int?   @map("total_capitulos")
+totalImagens     Int?   @map("total_imagens")
+```
+Executar: `cd backend/services/pub-service && pnpm prisma migrate dev --name add-epub-summary-kpi-fields`
+
+**Fase 2 — Domain entity + EpubBuilder**
+
+Arquivo `publicacao.entity.ts`: adicionar `tamanhoBytes?: number`, `totalCapitulos?: number`,
+`totalImagens?: number` (nulos por default; não-nulos apenas quando `status=publicado`).
+
+Arquivo `epub-builder.ts`: durante o walk de `ManuscriptContentPort.getContent()`, contar:
+- `totalCapitulos`: número de capítulos processados (items com `tipo === 'capitulo'` ou equivalente)
+- `totalImagens`: número de imagens referenciadas (items com `tipo === 'imagem'`)
+
+Retornar `{ epubBytes: Buffer; totalCapitulos: number; totalImagens: number }` em vez de apenas `Buffer`.
+
+**Fase 3 — FileStoragePort + DiskAdapter**
+
+Interface `file-storage.port.ts`: alterar assinatura `store(ref: string, data: Buffer): Promise<void>`
+para `store(ref: string, data: Buffer): Promise<{ bytesWritten: number }>`.
+
+Implementar em `disk-file-storage.adapter.ts`: após `fs.writeFile(...)`, retornar
+`{ bytesWritten: data.byteLength }`.
+
+Atualizar stub de FileStorage se usado em testes.
+
+**Fase 4 — PublicationBuildJob**
+
+Capturar os valores retornados pelo `EpubBuilder.build()` e pelo `FileStoragePort.store()`.
+No `update()` final que grava o desfecho `publicado`, incluir:
+```ts
+tamanhoBytes: storeResult.bytesWritten,
+totalCapitulos: buildResult.totalCapitulos,
+totalImagens: buildResult.totalImagens,
+```
+
+**Fase 5 — Mapper + DTO**
+
+`publicacao.mapper.ts`: mapear `tamanho_bytes → tamanhoBytes`, `total_capitulos → totalCapitulos`,
+`total_imagens → totalImagens` nos dois sentidos (Prisma ↔ Entity).
+
+`publicacao-status.dto.ts`: adicionar campos:
+```ts
+tamanhoBytes?: number;
+totalCapitulos?: number;
+totalImagens?: number;
+```
+
+**Fase 6 — Specs e gate final**
+
+Atualizar `epub-builder.spec.ts` e `publication-build.job.spec.ts` para assertar os 3 campos.
+Executar gate completo:
+```bash
+cd backend/services/pub-service
+pnpm test
+pnpm lint
+pnpm exec tsc --noEmit
+python scripts/arch-conformance.py check --layer be --target backend/services/pub-service
+```
+
+#### Politica de testes
+
+- Unit tests obrigatórios para `EpubBuilder` (asserção de `totalCapitulos` e `totalImagens`)
+- Unit test obrigatório para `PublicationBuildJob` (asserção de que `update()` recebe os 3 campos)
+- Unit test para `DiskFileStorageAdapter` (asserção de `bytesWritten`)
+- Integration test NÃO necessário (sem DB real no CI)
+
+#### Multi-empresa
+
+Os 3 campos são dados de build — calculados no job assíncrono que já propaga `EmpresaContext`
+via `runAs(empresaId, fn, bearerToken)`. Nenhuma alteração de propagação de tenant necessária.
+
+#### Migracoes Prisma Migrate necessarias
+
+Sim — 1 migration: `add-epub-summary-kpi-fields`.
+Arquivo gerado em: `backend/services/pub-service/prisma/migrations/<timestamp>_add_epub_summary_kpi_fields/migration.sql`
+
+Conteúdo esperado da migration:
+```sql
+ALTER TABLE "publicacao" ADD COLUMN "tamanho_bytes" INTEGER;
+ALTER TABLE "publicacao" ADD COLUMN "total_capitulos" INTEGER;
+ALTER TABLE "publicacao" ADD COLUMN "total_imagens" INTEGER;
+```
+
+#### Criterios de aceite
+
+- `pnpm prisma migrate dev --name add-epub-summary-kpi-fields` exits 0
+- `pnpm test` exits 0 (todos os testes existentes + novos para os 3 campos)
+- `pnpm lint` exits 0
+- `pnpm exec tsc --noEmit` exits 0
+- `python scripts/arch-conformance.py check --layer be --target backend/services/pub-service` exits 0
+- `PublicacaoStatusDto` tem `tamanhoBytes`, `totalCapitulos`, `totalImagens` (verificável via tsc ou grep no DTO)
+- `PublicacaoHistoryItemDto` NÃO tem os 3 campos (ADR-004 §D-S)
+- `domain/pub/publicacao.entity.ts` NÃO importa `@prisma/client` (RULE-01)
+
+#### Riscos
+
+- `FileStoragePort.store()` é chamada em múltiplos lugares (build job, testes, stubs). Alterar
+  o retorno de `void` para `{ bytesWritten }` requer atualização de todos os callers e mocks.
+  Verificar via `grep -rn "\.store(" src/` antes de alterar a assinatura.
+- `EpubBuilder.build()` retorna apenas `Buffer` hoje; a mudança para retornar objeto composto
+  requer atualizar todos os callers (PublicationBuildJob e specs). Verificar via grep antes de alterar.
+- A contagem de capítulos/imagens depende do formato retornado por `ManuscriptContentPort.getContent()`.
+  Verificar o tipo de retorno atual antes de implementar a contagem.
+
+#### Instrucao para implementador
+
+Executar as fases em ordem. Fase 1 (migration) deve preceder Fase 2+ (código que usa os novos campos).
+Na Fase 3, verificar TODOS os callers de `store()` via grep antes de alterar a assinatura.
+Na Fase 2, verificar TODOS os callers de `EpubBuilder.build()` via grep antes de alterar o retorno.
+Não adicionar `totalPaginas` — foi decidido omitir permanentemente (ADR-004).
+Não adicionar os 3 campos a `PublicacaoHistoryItemDto` — apenas `PublicacaoStatusDto` (ADR-004 §D-S).
 
 ---
 

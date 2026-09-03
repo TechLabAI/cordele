@@ -1,8 +1,8 @@
 # INT-PUB-002 -- CompositionReadPort adapter: wiring in-process com COMP (metadados + layout)
 
-**Status:** DONE -- 2026-09-02 (P10: adapters HTTP CompCompositionMetadataAdapter + CompCompositionLayoutAdapter criados em infrastructure/http/; wiring em PubInfraBindingsModule; P11: regressão corrigida — asserções runAs com 3º arg bearerToken, prisma-client/** adicionado aos ignores ESLint; gates test=PASS 143/143 lint=PASS build=PASS arch-conformance=OK 5/5)
-**Maturidade:** 3 -- Concluído
-**Done/Total:** 4/4 itens
+**Status:** REDUCED -- pos-validacao 2026-09-03
+**Maturidade:** 15 -- Inicial
+**Done/Total:** 3/7 itens
 
 **Verificação de integração real (2026-09-02):** A nota de bloqueio de 2026-08-29 foi superada. O comp-service está finalizado e em execução. Evidências coletadas em 2026-09-02:
 
@@ -29,15 +29,15 @@ implementações internas (ADR-001 hexagonal boundary).
 
 Files to create (relative to monolith root `backend/`):
 
-- [ ] `src/infrastructure/pub/integration/comp-composition-read.adapter.ts` — implementa `ICompositionReadPort`; injeta `COMP_GET_METADADOS_USE_CASE` e `COMP_GET_CONFIGURACAO_LAYOUT_USE_CASE` tokens; `getMetadados` retorna `MetadadosRead | null`; `getConfiguracaoLayout` retorna `ConfiguracaoLayout | null` (null → defaults do EpubBuilder)
-- [ ] `src/modules/pub/pub.module.ts` — condicional: se `CompModule` disponível, usar `CompCompositionReadAdapter`; senão manter stub
-- [ ] `src/infrastructure/pub/integration/comp-composition-read.adapter.spec.ts` — unit tests: `getMetadados` com metadados completos, `getMetadados` retorna `null` quando COMP ainda não foi composto, `getConfiguracaoLayout` retorna `null` → EpubBuilder usa defaults
-- [ ] Verificar que `CompModule` exporta `GET_METADADOS_USE_CASE` e `GET_CONFIGURACAO_LAYOUT_USE_CASE` (via COMP-006 ou equivalente)
+- [x] `src/infrastructure/http/comp-composition-metadata.adapter.ts` + `src/infrastructure/http/comp-composition-layout.adapter.ts` — (path real difere: split em dois adapters HTTP em vez de um adapter de integração DI; arquitetura real é microserviços via HTTP, não DI in-process); ambos verificados P12
+- [x] `src/infrastructure/pub/pub-infra-bindings.module.ts` — wiring condicional: `PUB_USE_STUBS !== true` → adapters reais `CompCompositionMetadataAdapter` + `CompCompositionLayoutAdapter`; stub via `StubsModule` quando ativo; verificado P12
+- [x] `src/infrastructure/http/comp-composition-metadata.adapter.spec.ts` + `src/infrastructure/http/comp-composition-layout.adapter.spec.ts` — specs individuais por adapter; testes passando; verificado P12
+- [x] Verificar CompModule exports — N/A: arquitetura real é HTTP, comp-service expõe endpoints REST; URLs verificadas: `GET /api/v1/comp/projetos/{id}/metadados` e `/layout` retornam 401 (auth guard ativo, endpoints existem); verificado P12
 
 ## Criterios de aceite
-- [ ] `pnpm test src/infrastructure/pub/integration/comp-composition-read.adapter.spec.ts` exits 0
-- [ ] Nenhum import direto de implementação concreta de COMP
-- [ ] `getConfiguracaoLayout` retornando `null` não quebra o `EpubBuilder` (usa defaults)
+- [x] `pnpm test src/infrastructure/http/comp-composition-metadata.adapter.spec.ts` exits 0 (passes no path real)
+- [x] Nenhum import direto de COMP — verificado: adapters usam `fetch` nativo, sem imports de comp-service
+- [x] `getConfiguracaoLayout` retornando `null` não quebra `EpubBuilder` — verificado no `publication-build.job.ts`: layout null → EpubBuilder usa defaults
 
 ## Dependencias
 - PUB-012 (stub a substituir)

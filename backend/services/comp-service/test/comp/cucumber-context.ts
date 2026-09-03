@@ -11,12 +11,12 @@
  * JwtAuthGuard is replaced by TestJwtAuthGuard so tests can control the
  * authenticated user (empresa, scopes, roles) per scenario without a live Keycloak.
  *
- * Tenant routing: BddTenantBridgeMiddleware reads the Bearer JWT and wraps
- * every request in BOTH:
- *   - EmpresaContextService.run()       (EmpresaContextService AsyncLocalStorage)
- *   - PrismaEmpresaService.runWithSlug() (PrismaEmpresaService AsyncLocalStorage)
- * This is required because PrismaMetadadosRepository reads PrismaEmpresaService's
- * static ALS, which is a different AsyncLocalStorage from EmpresaContextService.
+ * Tenant routing: EmpresaContextInterceptor (APP_INTERCEPTOR) wraps each handler in
+ * `PrismaEmpresaService.runWithSlug()` reading `request.user.empresaId` set by
+ * TestJwtAuthGuard (secure slug source). EmpresaContextMiddleware runs first for
+ * observability (correlationId ALS). The former BddTenantBridgeMiddleware has been
+ * removed — it was a workaround for the missing production wiring that the interceptor
+ * now handles, mirroring AppModule's EmpresaContextInterceptor exactly.
  *
  * Schema provisioning: beforeAll provisions emp_test, emp_aetos, emp_other (and
  * emp_test_b from startTestDatabase) with COMP DDL and FK refs for all BDD project
@@ -40,12 +40,11 @@ import {
   Injectable,
   INestApplication,
   Module,
-  NestMiddleware,
   UnauthorizedException,
   ValidationPipe,
   VersioningType,
 } from '@nestjs/common';
-import { APP_GUARD, Reflector } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR, Reflector } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import type { NextFunction, Request, Response } from 'express';
@@ -57,6 +56,7 @@ import { CorrelationMiddleware } from 'src/infrastructure/comp/middleware/correl
 import { ProblemJsonFilter } from 'src/infrastructure/comp/filters/problem-json.filter';
 import { EmpresaContextService } from 'src/infrastructure/auth/empresa-context.service';
 import { EmpresaContextMiddleware } from 'src/infrastructure/auth/empresa-context.middleware';
+import { EmpresaContextInterceptor } from 'src/infrastructure/comp/auth/empresa-context.interceptor';
 import { PrismaEmpresaService } from 'src/infrastructure/persistence/prisma-empresa.service';
 import { PrismaMetadadosRepository } from 'src/infrastructure/comp/persistence/metadados.repository';
 import { PrismaConfiguracaoLayoutRepository } from 'src/infrastructure/comp/persistence/configuracao-layout.repository';
@@ -229,68 +229,6 @@ export class BddManuscriptStub implements ManuscriptContentPort {
 /** Shared BddManuscriptStub singleton — exported for step files. */
 export let fakeManuscript: BddManuscriptStub;
 
-// ── BddTenantBridgeMiddleware ─────────────────────────────────────────────────
-
-/**
- * Middleware that populates BOTH AsyncLocalStorage contexts required for
- * real Prisma-based tenant routing in BDD tests.
- *
- * The real application uses EmpresaContextMiddleware to populate
- * EmpresaContextService's ALS, which is one ALS. PrismaMetadadosRepository
- * (and the other Prisma adapters) read from PrismaEmpresaService's SEPARATE
- * static ALS via `PrismaEmpresaService.getCurrentSlug()`. These two stores
- * must both be populated from the same JWT claim before the handler runs.
- *
- * This middleware replaces EmpresaContextMiddleware in the BDD test module:
- *   1. Decodes Bearer JWT (no verification — TestJwtAuthGuard handles auth).
- *   2. Calls PrismaEmpresaService.runWithSlug(slug, ...) to populate the
- *      repository ALS.
- *   3. Inside that, calls empresaContextService.run(ctx, ...) to populate the
- *      EmpresaContextService ALS for use by the controller/guard.
- *   4. Calls next() within both nested ALS contexts.
- *
- * For the empresa-admin X-Tenant-Id override: the middleware uses the JWT
- * empresa_id (not the override header). The Prisma ALS is therefore set to
- * the admin's own empresa slug. For GET endpoints that return lazy defaults
- * this is correct — the tenant test only asserts status 200 (admin can
- * access other empresa), which holds regardless of which schema is queried
- * (no data in either emp_aetos or emp_other for the test project ID).
- */
-@Injectable()
-class BddTenantBridgeMiddleware implements NestMiddleware {
-  constructor(private readonly empresaCtx: EmpresaContextService) {}
-
-  use(req: Request, _res: Response, next: NextFunction): void {
-    const authHeader = req.headers['authorization'];
-
-    if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.slice(7);
-      const parts = token.split('.');
-      if (parts.length === 3) {
-        try {
-          const raw = Buffer.from(parts[1], 'base64url').toString('utf8');
-          const payload = JSON.parse(raw) as { sub?: string; empresa_id?: string };
-          const slug = payload.empresa_id ?? '';
-          const userId = payload.sub ?? '';
-
-          if (slug && userId) {
-            // Validate slug before setting; PrismaEmpresaService.runWithSlug
-            // validates internally but we guard here to fail fast.
-            PrismaEmpresaService.runWithSlug(slug, () => {
-              this.empresaCtx.run({ userId, empresaId: slug }, () => next());
-            });
-            return;
-          }
-        } catch {
-          // Malformed token — TestJwtAuthGuard will emit 401; proceed without context.
-        }
-      }
-    }
-
-    next();
-  }
-}
-
 // ── BddRealModule ─────────────────────────────────────────────────────────────
 
 /**
@@ -316,7 +254,8 @@ class BddTenantBridgeMiddleware implements NestMiddleware {
     // Real Prisma repository adapters.
     PrismaMetadadosRepository,
     PrismaConfiguracaoLayoutRepository,
-    // Auth context services (used by BddTenantBridgeMiddleware).
+    // Auth context services (correlationId ALS; tenant routing is done by the
+    // production EmpresaContextInterceptor).
     EmpresaContextService,
     EmpresaContextMiddleware,
     // Real storage adapter.
@@ -437,7 +376,8 @@ let _dbStarted = false;
  *   2. Provision extra schemas: emp_aetos, emp_other.
  *   3. Insert FK refs for all BDD project UUIDs into each schema.
  *   4. Bootstrap NestJS with BddRealModule + CompModule + TestJwtAuthGuard.
- *   5. Register BddTenantBridgeMiddleware globally.
+ *   5. Register EmpresaContextInterceptor globally — the same interceptor the
+ *      production AppModule registers, so the BDD exercises the real tenant path.
  */
 export async function getTestApp(): Promise<INestApplication> {
   if (app) {
@@ -475,6 +415,10 @@ export async function getTestApp(): Promise<INestApplication> {
     ],
     providers: [
       { provide: APP_GUARD, useClass: TestJwtAuthGuard },
+      // EmpresaContextInterceptor wraps every handler in PrismaEmpresaService.runWithSlug()
+      // reading the slug from request.user.empresaId (set by TestJwtAuthGuard above).
+      // Mirrors the production APP_INTERCEPTOR registration in AppModule.
+      { provide: APP_INTERCEPTOR, useClass: EmpresaContextInterceptor },
     ],
   })
     .compile();
@@ -490,10 +434,21 @@ export async function getTestApp(): Promise<INestApplication> {
     correlation.use(req as Request & { correlationId?: string }, res, next),
   );
 
-  // BddTenantBridgeMiddleware reads Bearer JWT and populates both ALS contexts.
-  const empresaCtx = moduleRef.get(EmpresaContextService);
-  const bridge = new BddTenantBridgeMiddleware(empresaCtx);
-  app.use((req: Request, res: Response, next: NextFunction) => bridge.use(req, res, next));
+  // NOTE: BddTenantBridgeMiddleware has been REMOVED. Previously it decoded the
+  // JWT (without verification) and manually populated both ALS contexts as a
+  // workaround for the missing production wiring. Now EmpresaContextInterceptor
+  // (APP_INTERCEPTOR above) wraps every handler in PrismaEmpresaService.runWithSlug(),
+  // reading the slug from request.user.empresaId set by TestJwtAuthGuard (secure).
+  // This mirrors the production AppModule's EmpresaContextInterceptor exactly, so
+  // the BDD suite now exercises the real production wiring path.
+
+  // EmpresaContextMiddleware provides EmpresaContextService ALS (used for
+  // observability/correlationId propagation). Decodes JWT without verification —
+  // safe for logging only; DB schema routing is handled by TestJwtAuthGuard above.
+  const empresaContextMiddleware = moduleRef.get(EmpresaContextMiddleware);
+  app.use((req: Request, res: Response, next: NextFunction) =>
+    empresaContextMiddleware.use(req as Request & { correlationId?: string }, res, next),
+  );
 
   // ProblemJsonFilter is registered as APP_FILTER in AppModule (not imported here).
   // Register it globally so DomainException → 422 instead of 500 in BDD tests.
@@ -574,8 +529,8 @@ export async function queryMetadadosByProjetoId(
 // ── JWT helpers ───────────────────────────────────────────────────────────────
 
 /**
- * Creates a synthetic (unsigned) JWT token so BddTenantBridgeMiddleware and
- * EmpresaContextMiddleware can decode it.
+ * Creates a synthetic (unsigned) JWT token so EmpresaContextMiddleware can
+ * decode it.
  *
  * The signature segment is a literal "fakesig" — the middleware only decodes, not
  * verifies. Verification happens in JwtAuthGuard which is overridden in tests.

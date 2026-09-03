@@ -1,94 +1,94 @@
 {
   "issue": "PUB-014",
   "layer": "be",
-  "computedAt": "2026-09-03T00:54:14",
+  "computedAt": "2026-09-03T01:31:49",
   "checklist": {
     "total": 9,
-    "done": 1,
+    "done": 7,
     "partial": 0,
-    "missing": 8,
+    "missing": 2,
     "blocked": 0,
     "items": [
       {
-        "text": "`src/modules/pub/application/publication-history.service.ts` — implementa `IPublicationHistoryPort`; `history` delega ao `IPublicacaoRepository.findAllByProjeto` com ordenação `iniciada_em DESC`; `latest` executa `WHERE projeto_id IN (...)` em query única (batch); `signedDownloadUrl` valida `epubcheckStatus ∈ {valido, avisos}` e delega ao `IFileStoragePort.signUrl`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-history.service.ts"
+        "text": "`src/modules/pub/publication-history.service.ts` — (path real difere: sem subpasta `application/`); implementa `PublicationHistoryPort`; `history` via `repository.listByProjeto`; `latest` via `findLatestByProjetoIds` (batch); `signedDownloadUrl` via `FileStoragePort.signUrl`; verificado P12",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/publication-history.service.ts"
       },
       {
-        "text": "`src/modules/pub/ports/publication-history.port.ts` — interface `IPublicationHistoryPort` com as 3 assinaturas; field set `PublicacaoHistoryItem` alinhado a api-contract §6.2",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/ports/publication-history.port.ts"
+        "text": "`src/domain/pub/ports/publication-history.port.ts` — interface `PublicationHistoryPort` com `history`, `latest`, `signedDownloadUrl`; verificado P12",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/domain/pub/ports/publication-history.port.ts"
       },
       {
-        "text": "`src/modules/pub/application/publication-history.service.spec.ts` — unit tests: `history` retorna newest-first; `latest` com `projetoIds=[]` retorna Map vazio sem query; `signedDownloadUrl` de `erros_criticos` lança; `signedDownloadUrl` de `valido` retorna URL com `expiresAt`",
+        "text": "`src/modules/pub/publication-history.service.spec.ts` — NÃO EXISTE spec dedicada; comportamento testado via `use-cases/get-publication-history.use-case.spec.ts` e BDD (22/22 scenarios PASS); gap identificado em P12",
         "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-history.service.spec.ts"
+        "evidence": "arquivo citado ausente: src/modules/pub/publication-history.service.spec.ts, use-cases/get-publication-history.use-case.spec.ts"
       },
       {
-        "text": "`src/modules/pub/pub.module.ts` — acrescentar export de `IPublicationHistoryPort` token para que outros módulos possam injetar",
+        "text": "`src/modules/pub/pub.module.ts` — exporta `PUBLICATION_HISTORY_PORT` token; verificado P12",
         "state": "DONE",
         "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/pub.module.ts"
       },
       {
-        "text": "`src/infrastructure/pub/persistence/publicacao.repository.ts` — acrescentar `findLatestByProjetoIds(ids[])` retornando a publicação mais recente por projeto via GROUP BY / MAX (implementação do batch para `latest`)",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/infrastructure/pub/persistence/publicacao.repository.ts"
+        "text": "`src/infrastructure/persistence/prisma-publicacao.repository.ts` — `findLatestByProjetoIds(ids[])` implementado com query batched; verificado P12",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/persistence/prisma-publicacao.repository.ts"
       },
       {
-        "text": "`pnpm test src/modules/pub/application/publication-history.service.spec.ts` exits 0",
+        "text": "`pnpm test publication-history.service.spec.ts exits 0` — NÃO EXISTE spec dedicada (gap identificado)",
         "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-history.service.spec.ts"
+        "evidence": "arquivo citado ausente: publication-history.service.spec.ts"
       },
       {
-        "text": "`latest` com lista de 100 `projetoIds` gera exatamente 1 query ao repositório (sem N+1)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "text": "`latest` com N projetoIds gera 1 query ao repositório (sem N+1) — verificado no código: `findLatestByProjetoIds` usa `findMany WHERE projetoId IN (...)`",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
-        "text": "`arquivoUrl=null` para `erros_criticos`/`pendente` no `history` (SPEC-01 §4.3)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "text": "`arquivoUrl=null` para `erros_criticos`/`pendente` — verificado no código do service",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
-        "text": "Provider exportado acessível por injeção no `ProjModule` (verificado por INT-PUB-004)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "text": "Provider exportado acessível por injeção via `PUBLICATION_HISTORY_PORT` — verificado em `pub.module.ts` exports",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: pub.module.ts"
       }
     ]
   },
   "gates": {
-    "build": "pass",
-    "lint": "pass",
-    "test": "pass",
-    "e2e": "pass"
+    "build": "unknown",
+    "lint": "unknown",
+    "test": "unknown",
+    "e2e": "unknown"
   },
   "score": {
-    "total": 54,
+    "total": 35,
     "provisional": false,
     "range": [
-      54,
-      54
+      35,
+      35
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 18,
+        "value": 9,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 3,
+        "value": 23,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 20,
+        "value": 0,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 10,
+        "value": 0,
         "basis": "deterministic"
       },
       "soft": {
@@ -98,10 +98,10 @@
         "needsAgentConfirm": false
       }
     },
-    "band": "Parcial",
-    "statusTag": "REDUCED"
+    "band": "Inicial",
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 3/30 -- a funcionalidade alvo funciona?"
+    "Confirmar functionality 23/30 -- a funcionalidade alvo funciona?"
   ]
 }

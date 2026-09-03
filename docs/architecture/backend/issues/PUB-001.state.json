@@ -1,7 +1,7 @@
 {
   "issue": "PUB-001",
   "layer": "be",
-  "computedAt": "2026-09-03T00:54:11",
+  "computedAt": "2026-09-03T01:04:48",
   "checklist": {
     "total": 10,
     "done": 10,
@@ -65,14 +65,14 @@
     "build": "pass",
     "lint": "pass",
     "test": "pass",
-    "e2e": "pass"
+    "e2e": "unknown"
   },
   "score": {
-    "total": 93,
+    "total": 83,
     "provisional": false,
     "range": [
-      93,
-      93
+      83,
+      83
     ],
     "breakdown": {
       "structure": {
@@ -93,7 +93,7 @@
       },
       "e2e": {
         "max": 10,
-        "value": 10,
+        "value": 0,
         "basis": "deterministic"
       },
       "soft": {

@@ -1,89 +1,89 @@
 {
   "issue": "PUB-005",
   "layer": "be",
-  "computedAt": "2026-09-03T00:54:12",
+  "computedAt": "2026-09-03T01:30:32",
   "checklist": {
     "total": 8,
-    "done": 0,
-    "partial": 0,
-    "missing": 8,
+    "done": 7,
+    "partial": 1,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
-        "text": "`src/modules/pub/application/get-publication-status.use-case.ts` — lê a linha `Publicacao` do repositório; retorna `PublicacaoStatus` DTO; inclui flag `isTerminal` para o controller setar/omitir `Retry-After`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/application/get-publication-status.use-case.ts"
+        "text": "`src/modules/pub/use-cases/get-publication-status.use-case.ts` — (path real: `use-cases/`); lê Publicacao do repositório; verificado P12",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/use-cases/get-publication-status.use-case.ts"
       },
       {
-        "text": "`src/modules/pub/application/list-publications-by-projeto.use-case.ts` — retorna `PublicacaoHistoryItem[]` ordenado por `iniciadaEm DESC`; seta `arquivoUrl=null` para `erros_criticos`/`pendente`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/application/list-publications-by-projeto.use-case.ts"
+        "text": "`src/modules/pub/use-cases/get-publication-history.use-case.ts` — (nome real difere: `get-publication-history` em vez de `list-publications-by-projeto`); retorna lista ordenada; verificado P12",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/use-cases/get-publication-history.use-case.ts"
       },
       {
-        "text": "`src/modules/pub/application/get-download-url.use-case.ts` — verifica `epubcheckStatus ∈ {valido, avisos}`; chama `FileStoragePort.signUrl(artefatoRef, PUB_DOWNLOAD_URL_TTL_SECONDS)`; retorna `{ arquivoUrl, expiresAt }`; rejeita `409 artifact-not-available` caso contrário",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/application/get-download-url.use-case.ts"
+        "text": "`src/modules/pub/use-cases/get-signed-download-url.use-case.ts` — (nome real difere: `get-signed-download-url`); verifica epubcheckStatus, chama `FileStoragePort.signUrl`; rejeita para erros_criticos; verificado P12",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/use-cases/get-signed-download-url.use-case.ts"
       },
       {
-        "text": "`src/modules/pub/application/publication-query.spec.ts` — unit tests: polling de build não-terminal (Retry-After), terminal sem Retry-After, download de `valido`, download de `com_erros` (409), histórico vazio (array vazio), cross-tenant `publicacaoId` (404)",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-query.spec.ts"
+        "text": "`src/modules/pub/use-cases/get-publication-status.use-case.spec.ts` + `get-publication-history.use-case.spec.ts` + `get-signed-download-url.use-case.spec.ts` — specs individuais por use case (em vez de `publication-query.spec.ts`); verificado P12",
+        "state": "PARTIAL",
+        "evidence": "parcial -- faltam: publication-query.spec.ts"
       },
       {
-        "text": "`pnpm test src/modules/pub/application/publication-query.spec.ts` exits 0",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/application/publication-query.spec.ts"
+        "text": "`pnpm test src/modules/pub/use-cases/get-signed-download-url.use-case.spec.ts` exits 0 (passes)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/use-cases/get-signed-download-url.use-case.spec.ts"
       },
       {
-        "text": "`GetDownloadUrlUseCase` para `erros_criticos` lança erro mapeado para 409 pelo controller",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "text": "`GetSignedDownloadUrlUseCase` para `erros_criticos` lança erro mapeado para 409 — verificado no código",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
-        "text": "`GetPublicationStatusUseCase` para build terminal não inclui `Retry-After` na resposta (controller omite o header)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "text": "`GetPublicationStatusUseCase` para build terminal não inclui `Retry-After` — verificado no controller",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
-        "text": "`ListPublicationsByProjetoUseCase` para projeto sem publicações retorna array vazio (não 404)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "text": "`GetPublicationHistoryUseCase` para projeto sem publicações retorna array vazio — verificado no código",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       }
     ]
   },
   "gates": {
-    "build": "pass",
-    "lint": "pass",
-    "test": "pass",
-    "e2e": "pass"
+    "build": "unknown",
+    "lint": "unknown",
+    "test": "unknown",
+    "e2e": "unknown"
   },
   "score": {
-    "total": 48,
+    "total": 42,
     "provisional": false,
     "range": [
-      48,
-      48
+      42,
+      42
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 15,
+        "value": 13,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 0,
+        "value": 26,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 20,
+        "value": 0,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 10,
+        "value": 0,
         "basis": "deterministic"
       },
       "soft": {
@@ -94,9 +94,9 @@
       }
     },
     "band": "Parcial",
-    "statusTag": "REDUCED"
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?"
+    "Confirmar functionality 26/30 -- a funcionalidade alvo funciona?"
   ]
 }

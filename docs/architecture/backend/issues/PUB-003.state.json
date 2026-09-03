@@ -1,109 +1,109 @@
 {
   "issue": "PUB-003",
   "layer": "be",
-  "computedAt": "2026-09-03T00:54:11",
+  "computedAt": "2026-09-03T01:30:30",
   "checklist": {
     "total": 12,
-    "done": 2,
-    "partial": 0,
-    "missing": 10,
+    "done": 9,
+    "partial": 3,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
-        "text": "`src/modules/pub/application/generate-publication.use-case.ts` — lógica de pré-flight + criação da entidade + enfileiramento do `PublicationBuildJob`; retorna `{ publicacaoId, status, isNew: boolean }` para o controller mapear para 202/200",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/application/generate-publication.use-case.ts"
-      },
-      {
-        "text": "`src/modules/pub/application/generate-publication.use-case.spec.ts` — unit tests com mocks das portas: happy path `202`, em-voo `200`, sem manuscrito `409`, sem metadados `422`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/application/generate-publication.use-case.spec.ts"
-      },
-      {
-        "text": "`src/modules/pub/ports/publicacao-repository.port.ts` — interface `IPublicacaoRepository` com métodos `findInFlight(projetoId)`, `save(pub)`, `nextSequencia(projetoId)`",
+        "text": "`src/modules/pub/use-cases/generate-publication.use-case.ts` — (path real difere: `use-cases/` em vez de `application/`); pré-flight + criação + enfileiramento `PublicationBuildJob`; retorna `{ publicacao, isNew: boolean }`; verificado P12",
         "state": "DONE",
-        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/ports/publicacao-repository.port.ts"
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/use-cases/generate-publication.use-case.ts"
       },
       {
-        "text": "`src/modules/pub/ports/manuscript-content.port.ts` — interface `IManuscriptContentPort` com `getContentTree(projetoId)`",
+        "text": "`src/modules/pub/use-cases/generate-publication.use-case.spec.ts` — unit tests: happy path `202`, em-voo `200`, sem manuscrito `409`, sem metadados `422`; verificado P12",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/use-cases/generate-publication.use-case.spec.ts"
+      },
+      {
+        "text": "`src/domain/pub/ports/publicacao-repository.port.ts` — interface `PublicacaoRepositoryPort` com `findInFlight`, `save`, `nextSequencia`, `findById`, `listByProjeto`, etc.; re-exportado de `modules/pub/ports/publicacao-repository.port.ts`; verificado P12",
+        "state": "PARTIAL",
+        "evidence": "parcial -- faltam: modules/pub/ports/publicacao-repository.port.ts"
+      },
+      {
+        "text": "`src/modules/pub/ports/manuscript-content.port.ts` — interface `ManuscriptContentPort` com `getContentTree(projetoId, bearerToken)`; verificado P12",
         "state": "DONE",
         "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/ports/manuscript-content.port.ts"
       },
       {
-        "text": "`src/modules/pub/ports/composition-read.port.ts` — interface `ICompositionReadPort` com `getMetadados(projetoId)`, `getConfiguracaoLayout(projetoId)`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/ports/composition-read.port.ts"
+        "text": "`src/modules/pub/ports/composition-metadata.port.ts` + `src/modules/pub/ports/composition-layout.port.ts` — split em dois ports (metadata + layout) em vez de `composition-read.port.ts`; verificado P12",
+        "state": "PARTIAL",
+        "evidence": "parcial -- faltam: composition-read.port.ts"
       },
       {
-        "text": "`src/modules/pub/ports/project-status.port.ts` — interface `IProjectStatusPort` com `advanceTo({ projetoId, targetStatus })`",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/ports/project-status.port.ts"
+        "text": "`src/modules/pub/ports/advance-projeto-status.port.ts` — `AdvanceProjetoStatusPort.advanceTo(input, bearerToken)` (path real difere de `project-status.port.ts`); verificado P12",
+        "state": "PARTIAL",
+        "evidence": "parcial -- faltam: project-status.port.ts"
       },
       {
-        "text": "`pnpm test src/modules/pub/application/generate-publication.use-case.spec.ts` exits 0",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/application/generate-publication.use-case.spec.ts"
+        "text": "`pnpm test src/modules/pub/use-cases/generate-publication.use-case.spec.ts` exits 0 (passes)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/use-cases/generate-publication.use-case.spec.ts"
       },
       {
-        "text": "Disparo com build em voo retorna o `publicacaoId` existente e não chama `save()` uma segunda vez",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "text": "Disparo com build em voo retorna o `publicacao` existente e não chama `save()` uma segunda vez — verificado no código (`findInFlight` retorna early)",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
-        "text": "Disparo sem manuscrito (`getContentTree` retorna `null`) rejeita antes de criar qualquer `Publicacao`",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "text": "Disparo sem manuscrito rejeita com `409 manuscript-missing` antes de criar Publicacao — verificado no código",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
-        "text": "Disparo sem `titulo`/`autor`/`idioma` rejeita com `422 metadata-incomplete`",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "text": "Disparo sem `titulo`/`autor`/`idioma` rejeita com `422 metadata-incomplete` — verificado no código",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
-        "text": "`sequencia` = `max(sequencia) + 1` por projeto; primeiro export gera `sequencia = 1`",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "text": "`sequencia` = `nextSequencia()` = `max(sequencia)+1` por projeto — verificado no código e repositório",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
-        "text": "Nenhuma lógica de montagem de ePub presente neste use case (responsabilidade do `PublicationBuildJob`)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "text": "Nenhuma lógica de montagem de ePub presente neste use case — verificado: apenas dispara `buildJob.run`",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       }
     ]
   },
   "gates": {
-    "build": "pass",
-    "lint": "pass",
-    "test": "pass",
-    "e2e": "pass"
+    "build": "unknown",
+    "lint": "unknown",
+    "test": "unknown",
+    "e2e": "unknown"
   },
   "score": {
-    "total": 57,
+    "total": 36,
     "provisional": false,
     "range": [
-      57,
-      57
+      36,
+      36
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 19,
+        "value": 11,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 5,
+        "value": 22,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 20,
+        "value": 0,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 10,
+        "value": 0,
         "basis": "deterministic"
       },
       "soft": {
@@ -113,10 +113,10 @@
         "needsAgentConfirm": false
       }
     },
-    "band": "Parcial",
-    "statusTag": "REDUCED"
+    "band": "Inicial",
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 5/30 -- a funcionalidade alvo funciona?"
+    "Confirmar functionality 22/30 -- a funcionalidade alvo funciona?"
   ]
 }
