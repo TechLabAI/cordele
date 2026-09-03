@@ -25,6 +25,7 @@ function makeFacade(overrides: Partial<Record<keyof ExportFacade, unknown>> = {}
     error:       signal<string | null>(null).asReadonly(),
     status:      signal(null).asReadonly(),
     projetoId:   signal<string | null>(null).asReadonly(),
+    summary:     signal<{ tamanho: string | null; paginas: null; capitulos: number | null; imagens: number | null } | null>(null).asReadonly(),
     startExport:        vi.fn<(projetoId: string) => void>(),
     baixar:             vi.fn<(projetoId: string) => void>(),
     reset:              vi.fn<() => void>(),

@@ -72,6 +72,16 @@ import {
         <!-- paginas tile ABSENT by design — ADR-004: ePub reflowable has no fixed pagination -->
       </div>
     }
+
+    <!-- Empty state — shown when NEITHER stats NOR KPI tiles have data to display.
+         Never omit silently (plan P3 rule: "renderizar estado vazio explícito"). -->
+    @if (isEmpty) {
+      <div class="rounded-xl p-4 mb-4 text-center text-sm"
+           style="background:var(--bg-surface);border:1px dashed var(--border-subtle);color:var(--text-tertiary);"
+           aria-label="Estatísticas indisponíveis">
+        Estatísticas de ePub indisponíveis
+      </div>
+    }
   `,
 })
 export class EpubSummaryGridComponent {
@@ -107,5 +117,13 @@ export class EpubSummaryGridComponent {
   /** True when at least one ePub KPI tile is available (Section B). */
   get hasKpis(): boolean {
     return this.tamanho !== null || this.capitulos !== null || this.imagens !== null;
+  }
+
+  /**
+   * True when NEITHER section A (stats) NOR section B (KPI tiles) has data.
+   * Drives the explicit empty state — never renders a blank area (plan P3 rule).
+   */
+  get isEmpty(): boolean {
+    return !this.hasStats && !this.hasKpis;
   }
 }
