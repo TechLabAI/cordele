@@ -1,12 +1,12 @@
 {
   "issue": "PUB-017",
   "layer": "be",
-  "computedAt": "2026-09-02T23:34:03",
+  "computedAt": "2026-09-02T23:54:56",
   "checklist": {
     "total": 8,
-    "done": 4,
+    "done": 5,
     "partial": 0,
-    "missing": 4,
+    "missing": 3,
     "blocked": 0,
     "items": [
       {
@@ -46,8 +46,8 @@
       },
       {
         "text": "`pnpm build` exits 0",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       }
     ]
   },
@@ -58,11 +58,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 81,
+    "total": 85,
     "provisional": false,
     "range": [
-      81,
-      81
+      85,
+      85
     ],
     "breakdown": {
       "structure": {
@@ -72,7 +72,7 @@
       },
       "functionality": {
         "max": 30,
-        "value": 15,
+        "value": 19,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -97,6 +97,6 @@
     "statusTag": "REDUCED"
   },
   "agentTodo": [
-    "Confirmar functionality 15/30 -- a funcionalidade alvo funciona?"
+    "Confirmar functionality 19/30 -- a funcionalidade alvo funciona?"
   ]
 }

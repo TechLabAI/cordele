@@ -1,12 +1,12 @@
 {
   "issue": "PUB-011",
   "layer": "be",
-  "computedAt": "2026-09-02T23:34:02",
+  "computedAt": "2026-09-02T23:54:55",
   "checklist": {
     "total": 8,
-    "done": 4,
+    "done": 8,
     "partial": 0,
-    "missing": 4,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -26,8 +26,8 @@
       },
       {
         "text": "Adicionar `PUB_STORAGE_ROOT`, `PUB_DOWNLOAD_URL_TTL_SECONDS`, `PUB_SIGN_SECRET` ao `.env.example` do monólito",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`pnpm test src/infrastructure/pub/storage/disk-file-storage.adapter.spec.ts` exits 0",
@@ -36,18 +36,18 @@
       },
       {
         "text": "`delete` para key inexistente retorna sem erro (idempotente — necessário para `PublicationErasurePort.purge`)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "Artefato escrito sob caminho `emp_<slug>/publicacoes/<publicacaoId>.epub` (chave tenant-scoped — SPEC-06)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`pnpm build` exits 0",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       }
     ]
   },
@@ -58,11 +58,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 81,
+    "total": 96,
     "provisional": false,
     "range": [
-      81,
-      81
+      96,
+      96
     ],
     "breakdown": {
       "structure": {
@@ -72,7 +72,7 @@
       },
       "functionality": {
         "max": 30,
-        "value": 15,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -94,9 +94,9 @@
       }
     },
     "band": "Maduro",
-    "statusTag": "REDUCED"
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 15/30 -- a funcionalidade alvo funciona?"
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?"
   ]
 }

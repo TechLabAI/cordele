@@ -1,12 +1,12 @@
 {
   "issue": "PUB-001",
   "layer": "be",
-  "computedAt": "2026-09-02T23:34:01",
+  "computedAt": "2026-09-02T23:54:53",
   "checklist": {
     "total": 10,
-    "done": 6,
+    "done": 10,
     "partial": 0,
-    "missing": 4,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -36,18 +36,18 @@
       },
       {
         "text": "`pnpm build` exits 0 with `PubModule` present",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "All 5 route handlers exist in `PubController` with correct HTTP verbs and paths (verified by controller unit test listing route metadata)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`@nestjs/swagger` decorators present on each route for OpenAPI generation",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "All DI tokens declared in `pub.tokens.ts`: use cases + outbound ports",
@@ -56,8 +56,8 @@
       },
       {
         "text": "`pnpm test` on the controller spec exits 0",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       }
     ]
   },
@@ -68,11 +68,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 84,
+    "total": 96,
     "provisional": false,
     "range": [
-      84,
-      84
+      96,
+      96
     ],
     "breakdown": {
       "structure": {
@@ -82,7 +82,7 @@
       },
       "functionality": {
         "max": 30,
-        "value": 18,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -104,9 +104,9 @@
       }
     },
     "band": "Maduro",
-    "statusTag": "REDUCED"
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 18/30 -- a funcionalidade alvo funciona?"
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?"
   ]
 }

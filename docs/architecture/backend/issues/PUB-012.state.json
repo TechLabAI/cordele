@@ -1,12 +1,12 @@
 {
   "issue": "PUB-012",
   "layer": "be",
-  "computedAt": "2026-09-02T23:34:02",
+  "computedAt": "2026-09-02T23:54:55",
   "checklist": {
     "total": 8,
-    "done": 5,
+    "done": 8,
     "partial": 0,
-    "missing": 3,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -36,18 +36,18 @@
       },
       {
         "text": "Com `PUB_MANUSCRIPT_STUB_NULL=true`, `getContentTree` retorna `null` (aciona caminho de pré-flight 409)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "Com `PUB_METADADOS_STUB_NULL=true`, `getMetadados` retorna `null` (aciona caminho 422)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`pnpm build` exits 0",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       }
     ]
   },
@@ -58,11 +58,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 85,
+    "total": 96,
     "provisional": false,
     "range": [
-      85,
-      85
+      96,
+      96
     ],
     "breakdown": {
       "structure": {
@@ -72,7 +72,7 @@
       },
       "functionality": {
         "max": 30,
-        "value": 19,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -94,9 +94,9 @@
       }
     },
     "band": "Maduro",
-    "statusTag": "REDUCED"
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 19/30 -- a funcionalidade alvo funciona?"
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?"
   ]
 }

@@ -1,12 +1,12 @@
 {
   "issue": "PUB-010",
   "layer": "be",
-  "computedAt": "2026-09-02T23:34:02",
+  "computedAt": "2026-09-02T23:54:55",
   "checklist": {
     "total": 9,
-    "done": 5,
+    "done": 9,
     "partial": 0,
-    "missing": 4,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -31,8 +31,8 @@
       },
       {
         "text": "Documentar em `setup-local.md` o requisito de JRE + `EPUBCHECK_JAR_PATH`",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "`pnpm test src/infrastructure/pub/validation/epubcheck-validation.adapter.spec.ts` exits 0",
@@ -41,18 +41,18 @@
       },
       {
         "text": "`EPUBCHECK_JAR_PATH` ausente → ValidationReport com `totalErrors=1`, `messages[0].code='CONFIG-001'`; nunca lança exceção não tratada",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "Arquivo temporário removido mesmo em caso de erro do processo",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "Mapeamento `FATAL`/`ERROR` → `severity=error`; `WARNING` → `severity=warning` (sem leakage de vocabulário epubcheck para o domínio)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       }
     ]
   },
@@ -63,11 +63,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 83,
+    "total": 96,
     "provisional": false,
     "range": [
-      83,
-      83
+      96,
+      96
     ],
     "breakdown": {
       "structure": {
@@ -77,7 +77,7 @@
       },
       "functionality": {
         "max": 30,
-        "value": 17,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -99,9 +99,9 @@
       }
     },
     "band": "Maduro",
-    "statusTag": "REDUCED"
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 17/30 -- a funcionalidade alvo funciona?"
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?"
   ]
 }
