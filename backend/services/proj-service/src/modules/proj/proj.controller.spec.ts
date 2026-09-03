@@ -5,7 +5,7 @@ process.env.JWT_ISSUER_URI ??= 'http://test-issuer/realms/test';
 process.env.JWT_AUDIENCE ??= 'proj-service-test';
 
 import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -13,6 +13,7 @@ const passport = require('passport');
 
 import { ProjController } from './proj.controller';
 import { JwtAuthGuard } from '../../infrastructure/auth/jwt-auth.guard';
+import { EmpresaContextInterceptor } from '../../infrastructure/auth/empresa-context.interceptor';
 import { EmpresaContextStore } from '../../infrastructure/context/empresa.context';
 import { REQUIRED_SCOPES_KEY } from './decorators/require-scope.decorator';
 import {
@@ -579,12 +580,14 @@ describe('ProjController', () => {
   // P9 (PROJ-014): EmpresaContextStore ALS population
   //
   // Verifies that after JwtAuthGuard authenticates a request, the empresaId
-  // from the JWT claim is passed to EmpresaContextStore.enterWith() — which
-  // is the canonical way to prove that the context comes from the JWT (never
-  // from body or path params). Testing via spy is more reliable than reading
-  // getEditoraId() inside the handler, because AsyncLocalStorage.enterWith()
-  // propagation across async boundaries in supertest depends on Node internals
-  // that are not the focus of this contract test.
+  // from the JWT claim is passed to EmpresaContextStore.run() by
+  // EmpresaContextInterceptor — which is the canonical way to prove that the
+  // context comes from the JWT (never from body or path params).
+  //
+  // The responsibility was moved from JwtAuthGuard.canActivate() (which used
+  // enterWith() after an await — non-propagating across async resources) to
+  // EmpresaContextInterceptor (which uses store.run() around next.handle()).
+  // See als-guard-propagation.spec.ts for the empirical proof.
   // ---------------------------------------------------------------------------
 
   describe('EmpresaContextStore ALS population (PROJ-014)', () => {
@@ -614,6 +617,7 @@ describe('ProjController', () => {
         controllers: [ProjController],
         providers: [
           { provide: APP_GUARD, useClass: JwtAuthGuard },
+          { provide: APP_INTERCEPTOR, useClass: EmpresaContextInterceptor },
           ...ALL_MOCK_PROVIDERS,
         ],
       }).compile();
@@ -636,23 +640,26 @@ describe('ProjController', () => {
     });
 
     it('EmpresaContextStore.getEditoraId() returns the empresaId from the JWT claim', async () => {
-      // Spy on enterWith: the PROJ-014 criterion is that JwtAuthGuard reads
-      // empresaId from the JWT claim and passes it to EmpresaContextStore —
-      // never from body or path params.  The spy captures the argument without
-      // relying on AsyncLocalStorage propagation across async boundaries.
-      const enterWithSpy = jest.spyOn(EmpresaContextStore, 'enterWith');
+      // Spy on store.run: the PROJ-014 criterion is that EmpresaContextInterceptor
+      // reads empresaId from request.user (set by JwtAuthGuard from the JWT claim)
+      // and passes it to EmpresaContextStore.run() — never from body or path params.
+      // The spy captures the argument without relying on ALS propagation across
+      // async boundaries, which is not the focus of this contract test.
+      const runSpy = jest.spyOn(EmpresaContextStore, 'run');
 
       await request(alsApp.getHttpServer())
         .get('/api/v1/proj/projetos')
         .set('Authorization', 'Bearer valid-token')
         .expect(200);
 
-      // JwtAuthGuard.canActivate() must have called enterWith with { editoraId: 'aetos' }
-      // (the value from the JWT claim), not from body/path/query (PROJ-014 criterion 3).
-      expect(enterWithSpy).toHaveBeenCalledWith(
+      // EmpresaContextInterceptor must have called run() with { editoraId: 'aetos' }
+      // (the value from the JWT claim via request.user.empresaId), not from
+      // body or path params (PROJ-014 criterion 3).
+      expect(runSpy).toHaveBeenCalledWith(
         expect.objectContaining({ editoraId: 'aetos' }),
+        expect.any(Function),
       );
-      enterWithSpy.mockRestore();
+      runSpy.mockRestore();
     });
   });
 

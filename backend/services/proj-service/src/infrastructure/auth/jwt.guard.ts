@@ -9,8 +9,6 @@ import {
 import { Reflector } from '@nestjs/core';
 import { AuthGuard } from '@nestjs/passport';
 
-import { EmpresaContextStore } from '../context/empresa.context';
-
 /** Request-scoped principal produced by `JwtStrategy.validate`. */
 export interface AuthenticatedUser {
   readonly userId: string;
@@ -60,9 +58,15 @@ export const CurrentUser = createParamDecorator(
  * Validates the JWT from `Authorization: Bearer <token>`.
  *   - Missing or expired token  → 401 `urn:cordele:proj:unauthorized`
  *   - Valid token, wrong scope  → 403 `urn:cordele:proj:forbidden`
- *   - Valid token, correct scope → populates `EmpresaContextStore` (ALS) with
- *     `{ editoraId, slug }` extracted exclusively from the JWT `empresa_id`
- *     claim and then allows the request through (PROJ-014 / RULE-07).
+ *   - Valid token, correct scope → populates `request.user` with the verified
+ *     principal and allows the request through (RULE-07).
+ *
+ * `EmpresaContextStore` (ALS) is populated by `EmpresaContextInterceptor` —
+ * which runs AFTER this guard — NOT here. Attempting `EmpresaContextStore.enterWith()`
+ * inside this async guard (after `await super.canActivate()`) does not propagate to
+ * the handler because the `await` creates an async-child resource; `enterWith()` there
+ * is invisible to the original request resource that NestJS uses to dispatch the
+ * handler. See `als-guard-propagation.spec.ts` (scenario 5 vs 6) for empirical proof.
  *
  * Registered globally via `{ provide: APP_GUARD, useClass: JwtAuthGuard }` in
  * `app.module.ts`. `@Public()` opts a route out of authentication (health,
@@ -98,16 +102,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }>();
     request.user = this.resolveTenant(request.user, request.headers['x-tenant-id']);
     this.enforceScopes(context, request.user);
-
-    // PROJ-014 / P9: populate the empresa AsyncLocalStorage so downstream
-    // repositories and domain services can call EmpresaContextStore.getEditoraId()
-    // without receiving empresaId as an explicit argument. The empresaId comes
-    // exclusively from the resolved JWT claim — never from body or path params.
-    EmpresaContextStore.enterWith({
-      editoraId: request.user.empresaId,
-      // slug maps to the schema suffix: 'aetos' → emp_aetos (TenantPrismaFactory).
-      slug: request.user.empresaId,
-    });
 
     return true;
   }

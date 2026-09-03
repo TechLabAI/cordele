@@ -20,14 +20,21 @@ const _storage = new AsyncLocalStorage<EmpresaContextData>();
  * AsyncLocalStorage singleton that carries the active empresa context for the
  * duration of a request (and all async continuations within it).
  *
- * ### Wiring (guard-based, P9 / PROJ-014)
- * `JwtAuthGuard.canActivate()` calls `EmpresaContextStore.enterWith()` after
- * resolving the tenant from the JWT claim. This sets the store on the current
- * async resource so handlers and repositories see it without explicit arguments.
+ * ### Wiring (interceptor-based — EmpresaContextInterceptor)
+ * `EmpresaContextInterceptor` (registered as `APP_INTERCEPTOR` in `AppModule`)
+ * calls `EmpresaContextStore.run({ editoraId, slug }, fn)` where `fn` subscribes
+ * to `next.handle()`. This ensures every handler, use-case, and adapter running
+ * within that Observable chain sees the correct empresa context.
+ *
+ * The guard (`JwtAuthGuard`) does NOT call `enterWith()` because doing so after
+ * `await super.canActivate()` would write the store onto an async-child resource
+ * that is invisible to the handler's continuation. Empirical proof and
+ * explanation in `src/infrastructure/context/als-guard-propagation.spec.ts`
+ * (scenario 5 — broken, vs scenario 6 — working).
  *
  * ### API
- * - `EmpresaContextStore.run(data, fn)` — wrap a callback (middleware / tests)
- * - `EmpresaContextStore.enterWith(data)` — set in current async context (guards)
+ * - `EmpresaContextStore.run(data, fn)` — wrap a callback (interceptor / tests)
+ * - `EmpresaContextStore.enterWith(data)` — set in current async context (sync guards only; not used in production)
  * - `EmpresaContextStore.getEditoraId()` — read editoraId; throws outside context
  * - `EmpresaContextStore.getSlug()` — read slug; throws outside context
  *
@@ -70,8 +77,8 @@ export const EmpresaContextStore = {
     if (!store) {
       throw new Error(
         'EmpresaContextStore.getEditoraId() invoked outside an AsyncLocalStorage context. ' +
-          'Ensure JwtAuthGuard (or EmpresaContextMiddleware for legacy routes) ' +
-          'calls EmpresaContextStore.enterWith() before the handler runs.',
+          'Ensure EmpresaContextInterceptor is registered as APP_INTERCEPTOR in AppModule ' +
+          'and that the route is authenticated (JwtAuthGuard must set request.user first).',
       );
     }
     return store.editoraId;

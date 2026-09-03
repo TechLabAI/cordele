@@ -32,14 +32,19 @@ export class ProjetoEditorialLookupAdapter implements ProjetoEditorialLookupPort
    * Returns true iff projetoId exists in the active empresa's schema.
    *
    * `empresaId` is resolved from the AsyncLocalStorage store populated by
-   * `JwtAuthGuard.canActivate()` (via `EmpresaContextStore.enterWith()`).
+   * `EmpresaContextInterceptor` (registered as `APP_INTERCEPTOR`), which wraps
+   * `next.handle()` in `EmpresaContextStore.run({ editoraId, slug }, fn)` after
+   * `JwtAuthGuard` has verified the JWT and set `request.user.empresaId`.
    * This guarantees that a project belonging to empresa-A is invisible
    * when the request carries an empresa-B JWT — the Prisma tenant factory
-   * executes `SET LOCAL search_path TO emp_<empresaId>`, so empresa-A's
-   * rows are physically absent from the query scope.
+   * opens a `PrismaClient` for `emp_<empresaId>`, so empresa-A's rows are
+   * physically absent from the query scope.
    *
    * Never throws: any repository-level exception propagates to the caller;
    * cross-tenant access (wrong schema) returns false by design.
+   *
+   * @see src/infrastructure/auth/empresa-context.interceptor.ts
+   * @see src/infrastructure/context/als-guard-propagation.spec.ts
    */
   async exists(projetoId: string): Promise<boolean> {
     const empresaId = EmpresaContextStore.getEditoraId();

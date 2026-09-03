@@ -10,11 +10,18 @@ import { PrismaEmpresaService } from '../../persistence/prisma-empresa.service';
  *
  * ### Why an interceptor (not the guard or middleware)?
  *
- * NestJS dispatches guards and handlers via RxJS Observables — guards emit on one
- * Observable, handlers on another wired via `mergeMap`. `AsyncLocalStorage.enterWith()`
- * called inside a guard may NOT propagate to the handler because the Observable
- * subscription for the handler can run in a different async resource than the guard's
- * emission context (the `mergeMap` boundary creates a new child Observable).
+ * `JwtAuthGuard.canActivate()` is an `async` method that calls
+ * `await super.canActivate(context)` before resolving the tenant. The `await`
+ * suspends execution and resumes on a Promise continuation — a NEW async resource
+ * (child of the original request resource). Calling `AsyncLocalStorage.enterWith()`
+ * at that point writes the store onto the child resource's context, but NestJS
+ * dispatches the handler continuation from the ORIGINAL request resource — a
+ * parallel branch that was never updated. A synchronous guard would propagate
+ * correctly; the `await` is what breaks it.
+ *
+ * Empirical proof: `proj-service/src/infrastructure/context/als-guard-propagation.spec.ts`,
+ * scenario 5 (async guard + enterWith → HTTP 500) vs scenario 6 (interceptor +
+ * store.run → HTTP 200).
  *
  * `AsyncLocalStorage.run(slug, fn)`, by contrast, creates a NEW async scope and
  * executes `fn` — and everything `fn` awaits — within that scope. Calling
