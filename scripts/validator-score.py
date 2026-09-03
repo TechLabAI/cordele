@@ -129,7 +129,26 @@ def status_tag(checklist: dict, structure: int) -> str:
     return "INTACT"
 
 
-def compute_score(checklist: dict, gates: dict) -> dict:
+def _load_soft_sidecar(issue_file: Path) -> dict | None:
+    """Load the persisted agent soft verdict sidecar, if present.
+
+    Written by ``validator-score.py soft`` (see ``cmd_soft``).  The sidecar
+    survives re-runs of ``score`` because ``score`` never overwrites it.
+    Returns ``None`` when the sidecar is absent or unreadable (best-effort).
+    """
+    sidecar = issue_file.with_name(f"{issue_file.stem}.soft.json")
+    if not sidecar.is_file():
+        return None
+    try:
+        return json.loads(sidecar.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"warn: sidecar soft ilegivel ({sidecar.name}): {exc} -- ignorado",
+              file=sys.stderr)
+        return None
+
+
+def compute_score(checklist: dict, gates: dict,
+                  soft_sidecar: dict | None = None) -> dict:
     total = checklist["total"]
     done = checklist["done"]
 
@@ -151,20 +170,37 @@ def compute_score(checklist: dict, gates: dict) -> dict:
 
     e2e = WEIGHTS["e2e"] if gates.get("e2e") == "pass" else 0
 
-    total_prov = structure + functionality + tests_lint + e2e
+    # Soft: use persisted agent verdict when available (survives re-runs).
+    soft_value: int | None = None
+    soft_basis = "agent"
+    soft_needs_confirm = True
+    if soft_sidecar and isinstance(soft_sidecar.get("softValue"), int):
+        soft_value = soft_sidecar["softValue"]
+        soft_basis = "agent-persisted"
+        soft_needs_confirm = False
+
+    deterministic_total = structure + functionality + tests_lint + e2e
+    total_score = deterministic_total + (soft_value if soft_value is not None else 0)
+    provisional = soft_value is None
+    score_range = (
+        [deterministic_total, deterministic_total + WEIGHTS["soft"]]
+        if provisional
+        else [total_score, total_score]
+    )
     return {
-        "total": total_prov,
-        "provisional": True,
-        "range": [total_prov, total_prov + WEIGHTS["soft"]],
+        "total": total_score,
+        "provisional": provisional,
+        "range": score_range,
         "breakdown": {
             "structure": {"max": WEIGHTS["structure"], "value": structure, "basis": "deterministic"},
             "functionality": {"max": WEIGHTS["functionality"], "value": functionality,
                               "basis": "heuristic", "needsAgentConfirm": True},
             "tests_lint": {"max": WEIGHTS["tests_lint"], "value": tests_lint, "basis": "deterministic"},
             "e2e": {"max": WEIGHTS["e2e"], "value": e2e, "basis": "deterministic"},
-            "soft": {"max": WEIGHTS["soft"], "value": None, "basis": "agent", "needsAgentConfirm": True},
+            "soft": {"max": WEIGHTS["soft"], "value": soft_value, "basis": soft_basis,
+                     "needsAgentConfirm": soft_needs_confirm},
         },
-        "band": band_for(total_prov),
+        "band": band_for(total_score),
         "statusTag": status_tag(checklist, structure),
     }
 
@@ -338,17 +374,28 @@ def cmd_score(args) -> int:
     checklist = consolidate(items, root, issue_bases(args.issue, layer, root))
     unverified = warn_unverified(args.issue, layer, checklist)
     gates = normalize_gates(collect_gates(args), layer)
-    score = compute_score(checklist, gates)
+    soft_sidecar = _load_soft_sidecar(issue_file)
+    score = compute_score(checklist, gates, soft_sidecar)
 
     today = _dt.date.today().isoformat()
     now = _dt.datetime.now().isoformat(timespec="seconds")
     public_checklist = {k: v for k, v in checklist.items() if not k.startswith("_")}
 
     fv = score["breakdown"]["functionality"]["value"]
+    # Layer-aware soft prompt: a11y does NOT apply to backend (see ADR-004).
+    if layer == "be":
+        soft_desc = "observabilidade + enforcement multi-empresa (RULE-07)"
+    else:
+        soft_desc = "a11y + observabilidade + enforcement multi-tenancy"
     agent_todo = [
         f"Confirmar functionality {fv}/{WEIGHTS['functionality']} -- a funcionalidade alvo funciona?",
-        f"Avaliar soft 0-{WEIGHTS['soft']} -- a11y + observability + multi-tenancy enforcement",
     ]
+    if score["breakdown"]["soft"]["needsAgentConfirm"]:
+        agent_todo.append(
+            f"Avaliar soft 0-{WEIGHTS['soft']} -- {soft_desc}; "
+            f"persistir com: validator-score.py soft --issue {args.issue} "
+            f"--value <0-{WEIGHTS['soft']}> --rationale \"<evidencia>\""
+        )
 
     out = {
         "issue": args.issue,
@@ -375,6 +422,49 @@ def cmd_score(args) -> int:
         print(f"error: --strict-unverified {limit}: {unverified} itens nao verificados "
               f"em {args.issue}", file=sys.stderr)
         return 2
+    return 0
+
+
+def cmd_soft(args) -> int:
+    """Persist the agent's soft-dimension verdict for one issue.
+
+    The value is written to ``<issue>.soft.json`` alongside the issue file
+    (same directory) and is re-read by ``score`` on every subsequent run,
+    which then sets ``breakdown.soft.value`` and collapses ``provisional``
+    to ``False`` when the soft verdict is present.
+
+    ``--rationale`` is mandatory and must cite concrete evidence (log, test
+    path, code reference) so the verdict is auditable.  Exit 0 on success,
+    exit 1 on validation failure.
+    """
+    layer, root, issue_file, _ = _load_issue(args)
+
+    max_soft = WEIGHTS["soft"]
+    if not (0 <= args.value <= max_soft):
+        print(
+            f"error: --value {args.value} fora do intervalo 0..{max_soft}",
+            file=sys.stderr,
+        )
+        return 1
+
+    if not args.rationale or not args.rationale.strip():
+        print("error: --rationale e obrigatorio e nao pode ser vazio", file=sys.stderr)
+        return 1
+
+    now = _dt.datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    payload = {
+        "issue": args.issue,
+        "layer": layer,
+        "softValue": args.value,
+        "rationale": args.rationale.strip(),
+        "evaluatedAt": now,
+        "evaluatedBy": args.evaluated_by,
+    }
+
+    sidecar = issue_file.with_name(f"{issue_file.stem}.soft.json")
+    atomic_write(sidecar, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+    snippet = args.rationale.strip()[:60]
+    print(f"OK: soft {args.value}/{max_soft} persistido em {sidecar.name} -- {snippet!r}")
     return 0
 
 
@@ -435,6 +525,20 @@ def main() -> None:
     mk.add_argument("--undone", action="store_true",
                      help="uncheck instead of check (default: check)")
     mk.set_defaults(func=cmd_mark)
+
+    sf = sub.add_parser(
+        "soft",
+        help="persist the agent soft verdict (0-10) into <issue>.soft.json; "
+             "re-read by 'score' to resolve provisional:true",
+    )
+    _add_common(sf)
+    sf.add_argument("--value", required=True, type=int, metavar="N",
+                    help=f"soft score 0..{WEIGHTS['soft']}")
+    sf.add_argument("--rationale", required=True, metavar="TEXT",
+                    help="mandatory evidence citation (auditable; stored in sidecar)")
+    sf.add_argument("--evaluated-by", default="be-validator", metavar="ACTOR",
+                    help="actor writing the verdict (default: be-validator)")
+    sf.set_defaults(func=cmd_soft)
 
     args = parser.parse_args()
     sys.exit(args.func(args))

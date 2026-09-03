@@ -228,7 +228,13 @@ Escreve `docs/architecture/backend/issues/<MODULO>-NNN.state.json`: checklist co
 (`DONE`/`PARTIAL`/`MISSING`/`BLOCKED` + `evidence`) + score objetivo (structure/tests_lint/e2e)
 + `functionality` **provisoria** (`needsAgentConfirm`) + `soft` para voce. **Use o numero do
 `state.json`** ao preencher a secao 7 (Maturidade) do README; confirme a functionality e
-julgue os 10 soft (RULE-07 contexto de empresa enforcement, observabilidade).
+julgue os 10 soft (**layer be**: observabilidade + enforcement multi-empresa RULE-07;
+a11y nao se aplica a backend — ver ADR-004). Persista o veredito com:
+
+```bash
+python scripts/validator-score.py soft --issue <MODULO>-NNN --layer be \
+  --value <0-10> --rationale "<evidencia concreta: midlleware, teste, metricas>"
+```
 
 **Persistencia de itens comportamentais confirmados (D-624).** `score` **re-deriva o
 checklist do zero a cada chamada**, direto dos checkboxes markdown da issue + presenca de
@@ -388,9 +394,12 @@ Sempre usar: `DONE` | `PARTIAL` | `MISSING` | `BLOCKED`
 
 - 0-39 Inicial | 40-59 Parcial | 60-79 Consistente | 80-100 Maduro
 
-> **Calculo (D-317):** `validator-score.py` (perfil `be`) computa as parcelas objetivas;
-> `functionality` e provisoria (`needsAgentConfirm`) e os 10 `soft` ficam com voce. O numero
-> do `state.json` alimenta a secao 7 do README.
+> **Calculo (D-317/ADR-004):** `validator-score.py` (perfil `be`) computa as parcelas objetivas;
+> `functionality` e provisoria (`needsAgentConfirm`) e os 10 `soft` ficam com voce.
+> Para `layer be` os 10 soft sao divididos apenas entre **observabilidade** (5 pts) e
+> **enforcement multi-empresa RULE-07** (5 pts) — a11y nao se aplica a backend.
+> Persista o veredito com `validator-score.py soft` (ver ADR-004); o `score` re-le o sidecar
+> e descola `provisional: true`. O numero do `state.json` alimenta a secao 7 do README.
 
 ---
 

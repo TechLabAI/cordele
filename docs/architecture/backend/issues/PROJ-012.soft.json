@@ -1,0 +1,8 @@
+{
+  "issue": "PROJ-012",
+  "layer": "be",
+  "softValue": 8,
+  "rationale": "Observabilidade 3/5: correlation ID gerado/ecoado (1pt), logs estruturados (1pt), health checks (1pt). Gap: correlationId não propagado ao logging estruturado (deferred). Multi-empresa RULE-07 5/5: middleware EmpresaContext com AsyncLocalStorage (1pt), isolamento por schema via TenantPrismaFactory com PrismaClient per-tenant (1pt), validação de slug em JwtAuthGuard com fail-fast (2pt), testes de isolamento cross-schema em projeto-editorial.repository.integration.spec.ts (1pt).",
+  "evaluatedAt": "2026-09-03T02:32:34Z",
+  "evaluatedBy": "validator-agent"
+}

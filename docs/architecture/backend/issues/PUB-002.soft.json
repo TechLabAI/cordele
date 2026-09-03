@@ -1,0 +1,8 @@
+{
+  "issue": "PUB-002",
+  "layer": "be",
+  "softValue": 6,
+  "rationale": "Observabilidade (3/5): Correlation ID gerado/ecoado/propagado OK; logs estruturados JSON OK; health checks OK; FALTANDO: RFC 7807 filter, Prometheus metrics. Multi-empresa RULE-07 (3/5): middleware completo OK; schema-per-tenant OK; fail-fast OK; FALTANDO: validação de slug, testes cross-schema.",
+  "evaluatedAt": "2026-09-03T02:32:49Z",
+  "evaluatedBy": "validator-agent"
+}

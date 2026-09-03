@@ -1,7 +1,7 @@
 {
   "issue": "COMP-004",
   "layer": "be",
-  "computedAt": "2026-09-02T22:45:44",
+  "computedAt": "2026-09-02T23:25:50",
   "checklist": {
     "total": 10,
     "done": 10,
@@ -68,10 +68,10 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 90,
-    "provisional": true,
+    "total": 100,
+    "provisional": false,
     "range": [
-      90,
+      100,
       100
     ],
     "breakdown": {
@@ -98,16 +98,15 @@
       },
       "soft": {
         "max": 10,
-        "value": null,
-        "basis": "agent",
-        "needsAgentConfirm": true
+        "value": 10,
+        "basis": "agent-persisted",
+        "needsAgentConfirm": false
       }
     },
     "band": "Maduro",
     "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?",
-    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?"
   ]
 }

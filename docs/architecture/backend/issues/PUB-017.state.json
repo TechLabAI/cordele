@@ -1,11 +1,11 @@
 {
   "issue": "PUB-017",
   "layer": "be",
-  "computedAt": "2026-08-26T15:02:03",
+  "computedAt": "2026-09-02T23:34:03",
   "checklist": {
     "total": 8,
-    "done": 3,
-    "partial": 1,
+    "done": 4,
+    "partial": 0,
     "missing": 4,
     "blocked": 0,
     "items": [
@@ -26,8 +26,8 @@
       },
       {
         "text": "`src/modules/pub/observability/pub-observability.module.ts` — módulo NestJS que registra interceptor + logger",
-        "state": "PARTIAL",
-        "evidence": "arquivo presente porem stub: src/modules/pub/observability/pub-observability.module.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/observability/pub-observability.module.ts"
       },
       {
         "text": "`X-Correlation-Id` presente em todas as respostas do `PubController` (gerado se ausente no request)",
@@ -52,52 +52,51 @@
     ]
   },
   "gates": {
-    "build": "unknown",
+    "build": "pass",
     "lint": "pass",
-    "test": "unknown",
-    "e2e": "unknown"
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 26,
-    "provisional": true,
+    "total": 81,
+    "provisional": false,
     "range": [
-      26,
-      36
+      81,
+      81
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 15,
+        "value": 30,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 11,
+        "value": 15,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
         "max": 10,
-        "value": null,
-        "basis": "agent",
-        "needsAgentConfirm": true
+        "value": 6,
+        "basis": "agent-persisted",
+        "needsAgentConfirm": false
       }
     },
-    "band": "Inicial",
+    "band": "Maduro",
     "statusTag": "REDUCED"
   },
   "agentTodo": [
-    "Confirmar functionality 11/30 -- a funcionalidade alvo funciona?",
-    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+    "Confirmar functionality 15/30 -- a funcionalidade alvo funciona?"
   ]
 }

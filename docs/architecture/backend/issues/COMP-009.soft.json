@@ -1,0 +1,8 @@
+{
+  "issue": "COMP-009",
+  "layer": "be",
+  "softValue": 10,
+  "rationale": "Observabilidade 5/5: (1) correlationId propagado ao ALS via EmpresaRequestContext.correlationId + EmpresaContextMiddleware â€” qualquer provider pode ler EmpresaContextService.get()?.correlationId para incluir em logs sem passagem explÃ­cita de parÃ¢metro; comentÃ¡rio Future removido. (2) CompMetricsService agora tem endpoint de scrape Prometheus em GET /api/v1/comp/metrics (Public, mesmo nÃ­vel do health), formato text/plain 0.0.4, com 4+13=17 specs cobrindo formatador estÃ¡tico e HTTP. Multi-empresa 5/5: inalterado. Total eixo Observabilidade: 5/5; soft total: 10/10.",
+  "evaluatedAt": "2026-09-03T02:25:03Z",
+  "evaluatedBy": "be-autopilot-orchestrator"
+}

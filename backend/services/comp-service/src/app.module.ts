@@ -14,6 +14,7 @@ import { EmpresaContextMiddleware } from './infrastructure/auth/empresa-context.
 import { CorrelationMiddleware } from './infrastructure/comp/middleware/correlation.middleware';
 import { RequestLoggerMiddleware } from './infrastructure/comp/middleware/request-logger.middleware';
 import { HealthModule } from './infrastructure/health/health.module';
+import { MetricsModule } from './infrastructure/comp/metrics/metrics.module';
 import { CompModule } from './modules/comp/comp.module';
 
 /**
@@ -61,6 +62,7 @@ import { CompModule } from './modules/comp/comp.module';
     }),
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 120 }]),
     HealthModule,
+    MetricsModule,
     DatabaseModule,
     PersistenceModule,
     // CompInfraBindingsModule is @Global() and provides all COMP port-token

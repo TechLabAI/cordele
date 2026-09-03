@@ -1,7 +1,7 @@
 {
   "issue": "PUB-004",
   "layer": "be",
-  "computedAt": "2026-08-26T13:19:09",
+  "computedAt": "2026-09-02T23:34:01",
   "checklist": {
     "total": 12,
     "done": 2,
@@ -78,11 +78,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 54,
-    "provisional": true,
+    "total": 60,
+    "provisional": false,
     "range": [
-      54,
-      64
+      60,
+      60
     ],
     "breakdown": {
       "structure": {
@@ -108,16 +108,15 @@
       },
       "soft": {
         "max": 10,
-        "value": null,
-        "basis": "agent",
-        "needsAgentConfirm": true
+        "value": 6,
+        "basis": "agent-persisted",
+        "needsAgentConfirm": false
       }
     },
-    "band": "Parcial",
+    "band": "Consistente",
     "statusTag": "REDUCED"
   },
   "agentTodo": [
-    "Confirmar functionality 5/30 -- a funcionalidade alvo funciona?",
-    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+    "Confirmar functionality 5/30 -- a funcionalidade alvo funciona?"
   ]
 }

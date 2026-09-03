@@ -1,7 +1,7 @@
 {
   "issue": "PUB-009",
   "layer": "be",
-  "computedAt": "2026-08-26T14:14:00",
+  "computedAt": "2026-09-02T23:34:02",
   "checklist": {
     "total": 9,
     "done": 6,
@@ -57,22 +57,22 @@
     ]
   },
   "gates": {
-    "build": "deferred",
+    "build": "pass",
     "lint": "pass",
-    "test": "deferred",
-    "e2e": "deferred"
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 35,
-    "provisional": true,
+    "total": 86,
+    "provisional": false,
     "range": [
-      35,
-      45
+      86,
+      86
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 15,
+        "value": 30,
         "basis": "deterministic"
       },
       "functionality": {
@@ -83,26 +83,25 @@
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
         "max": 10,
-        "value": null,
-        "basis": "agent",
-        "needsAgentConfirm": true
+        "value": 6,
+        "basis": "agent-persisted",
+        "needsAgentConfirm": false
       }
     },
-    "band": "Inicial",
+    "band": "Maduro",
     "statusTag": "REDUCED"
   },
   "agentTodo": [
-    "Confirmar functionality 20/30 -- a funcionalidade alvo funciona?",
-    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+    "Confirmar functionality 20/30 -- a funcionalidade alvo funciona?"
   ]
 }

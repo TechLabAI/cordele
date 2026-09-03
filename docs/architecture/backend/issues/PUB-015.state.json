@@ -1,11 +1,11 @@
 {
   "issue": "PUB-015",
   "layer": "be",
-  "computedAt": "2026-08-26T14:49:24",
+  "computedAt": "2026-09-02T23:34:03",
   "checklist": {
     "total": 8,
-    "done": 0,
-    "partial": 1,
+    "done": 1,
+    "partial": 0,
     "missing": 7,
     "blocked": 0,
     "items": [
@@ -26,8 +26,8 @@
       },
       {
         "text": "`src/modules/pub/pub.module.ts` — export do token `PUBLICATION_ERASURE_PORT`",
-        "state": "PARTIAL",
-        "evidence": "arquivo presente porem stub: src/modules/pub/pub.module.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/pub.module.ts"
       },
       {
         "text": "`pnpm test src/modules/pub/application/publication-erasure.service.spec.ts` exits 0",
@@ -52,52 +52,51 @@
     ]
   },
   "gates": {
-    "build": "deferred",
+    "build": "pass",
     "lint": "pass",
-    "test": "deferred",
-    "e2e": "deferred"
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 3,
-    "provisional": true,
+    "total": 58,
+    "provisional": false,
     "range": [
-      3,
-      13
+      58,
+      58
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 3,
+        "value": 18,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 0,
+        "value": 4,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
         "max": 10,
-        "value": null,
-        "basis": "agent",
-        "needsAgentConfirm": true
+        "value": 6,
+        "basis": "agent-persisted",
+        "needsAgentConfirm": false
       }
     },
-    "band": "Inicial",
+    "band": "Parcial",
     "statusTag": "REDUCED"
   },
   "agentTodo": [
-    "Confirmar functionality 0/30 -- a funcionalidade alvo funciona?",
-    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+    "Confirmar functionality 4/30 -- a funcionalidade alvo funciona?"
   ]
 }
