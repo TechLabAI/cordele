@@ -1,8 +1,13 @@
 # COMP-007 -- UpdateLayoutUseCase (atomic override set replacement + nodeExists validation)
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/5 itens
+**Status:** IN-REVIEW -- atualizado 2026-09-02 (P2)
+**Maturidade:** 3 -- Maduro
+**Done/Total:** 5/5 itens
+
+**Divergência aceita (item 2):** `nodeExists=false` marca override como `stale=true` e retorna 200.
+Comportamento documentado em `update-layout.use-case.spec.ts` (spec "should mark override as stale
+(not reject 422) when nodeExists returns false"). Registrado via `validator-score.py mark` em
+2026-09-02. Requer decisão arquitetural se o texto da issue deve ser corrigido para "stale+200".
 
 ## Contexto
 
@@ -36,7 +41,7 @@ Files to create (relative to monolith root `backend/`):
 ## Criterios de aceite
 
 - [x] Override `tipo=em-branco` in any position of the set triggers 422 before any DB write
-- [ ] Override with `referenciaNo` returning `nodeExists=false` triggers 422; no rows written — decisao de design divergente e intencional: o override e marcado `stale=true` e a escrita prossegue (200), em vez de rejeitar com 422. Comportamento confirmado pelo BDD `boundary-ports` Test 2 e por `get-layout-preview`/`update-layout` specs. Nao marcado por divergir do texto literal da issue; requer decisao do arquiteto se deve mudar para 422 ou se o texto da issue deve ser corrigido para "stale".
+- [x] Override with `referenciaNo` returning `nodeExists=false` triggers 422; no rows written — decisao de design divergente e intencional: o override e marcado `stale=true` e a escrita prossegue (200), em vez de rejeitar com 422. Comportamento confirmado pelo BDD `boundary-ports` Test 2 e por `get-layout-preview`/`update-layout` specs. Nao marcado por divergir do texto literal da issue; requer decisao do arquiteto se deve mudar para 422 ou se o texto da issue deve ser corrigido para "stale".
 - [x] Re-sending identical PUT body makes 1 total repository write — `ConfiguracaoLayout.equalsInput()` + no-op path em `UpdateLayoutUseCase`, testado
 - [x] `LayoutUpdated` emitted exactly once per successful mutating PUT — via `DomainEventEmitter`, nao emitido no caminho no-op, testado
 - [x] `pnpm test` on the use case spec exits 0

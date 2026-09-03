@@ -1,33 +1,6 @@
 {
-  "test": "pass",
-  "build": "pass",
-  "e2e": "pass",
   "lint": "pass",
-  "details": {
-    "test": {
-      "exit_code": 0,
-      "test_suites": 26,
-      "test_suites_passed": 26,
-      "tests": 213,
-      "tests_passed": 213,
-      "tests_failed": 0
-    },
-    "build": {
-      "exit_code": 0,
-      "compiler": "tsc/nest"
-    },
-    "e2e": {
-      "exit_code": 0,
-      "test_suites": 2,
-      "test_suites_passed": 2,
-      "tests": 11,
-      "tests_passed": 11,
-      "tests_failed": 0
-    },
-    "lint": {
-      "exit_code": 0,
-      "errors": 0,
-      "warnings": 0
-    }
-  }
+  "test": "deferred",
+  "build": "deferred",
+  "e2e": "deferred"
 }

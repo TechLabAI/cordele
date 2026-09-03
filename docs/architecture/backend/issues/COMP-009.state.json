@@ -1,0 +1,113 @@
+{
+  "issue": "COMP-009",
+  "layer": "be",
+  "computedAt": "2026-09-02T21:01:00",
+  "checklist": {
+    "total": 10,
+    "done": 10,
+    "partial": 0,
+    "missing": 0,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`prisma/schema.prisma` — add COMP model blocks: `Metadados` (with `@@unique([projetoId])`, `@relation`), `ConfiguracaoLayout` (with `@@unique([projetoId])`, `@relation` to LayoutOverride), `LayoutOverride` (with `@@unique([configuracaoLayoutId, referencia_no])`); field types match `data-model.md` (UUID pk, TIMESTAMPTZ → `DateTime`, NUMERIC → `Decimal`)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: prisma/schema.prisma"
+      },
+      {
+        "text": "`prisma/migrations/20260825141357_init/migration.sql` — bloco `CREATE TABLE metadados` com todas as colunas, `UNIQUE`, CHECK constraints (`chk_metadados_titulo`, `_autor`, `_idioma`), FK `REFERENCES projeto_editorial (id) ON DELETE CASCADE` (originalmente previsto como arquivo separado V0001)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: prisma/migrations/20260825141357_init/migration.sql"
+      },
+      {
+        "text": "`prisma/migrations/20260825141357_init/migration.sql` — bloco `CREATE TABLE configuracao_layout` com todas as colunas, UNIQUE, CHECK constraints (corpo bounds, espacamento, margem, heading bounds, `chk_cfglayout_heading_order`), FK ON DELETE CASCADE para `projeto_editorial` (originalmente previsto como arquivo separado V0002)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: prisma/migrations/20260825141357_init/migration.sql"
+      },
+      {
+        "text": "`prisma/migrations/20260825141357_init/migration.sql` — bloco `CREATE TABLE layout_override` com todas as colunas, `chk_override_tipo`, `chk_override_alinhamento`, `chk_override_imagem_alinhado`, `chk_override_ordem`, FK `REFERENCES configuracao_layout (id) ON DELETE CASCADE`, `uq_override_no UNIQUE(configuracao_layout_id, referencia_no)` (originalmente previsto como arquivo separado V0003)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: prisma/migrations/20260825141357_init/migration.sql"
+      },
+      {
+        "text": "Integration test: `pnpm prisma migrate dev` aplica a migration `20260825141357_init` contra DB de teste via Testcontainers (verificado pelos specs de repositorio COMP-010/COMP-011); sem erros",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm prisma migrate dev` exits 0 com a migration `20260825141357_init` aplicada (unico arquivo unificado no lugar de V0001..V0003 separados)",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`metadados` has FK `ON DELETE CASCADE` to `projeto_editorial` (SPEC-04.C6)",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`configuracao_layout` has FK `ON DELETE CASCADE` to `projeto_editorial` (SPEC-04.C6)",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`layout_override` has FK `ON DELETE CASCADE` to `configuracao_layout`",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`chk_override_imagem_alinhado` CHECK constraint present in `prisma/migrations/20260825141357_init/migration.sql`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: prisma/migrations/20260825141357_init/migration.sql"
+      }
+    ]
+  },
+  "gates": {
+    "build": "unknown",
+    "lint": "pass",
+    "test": "unknown",
+    "e2e": "unknown"
+  },
+  "score": {
+    "total": 45,
+    "provisional": true,
+    "range": [
+      45,
+      55
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 15,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 30,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Parcial",
+    "statusTag": "NEAR-CLOSED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

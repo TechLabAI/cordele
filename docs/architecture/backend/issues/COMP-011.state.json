@@ -1,0 +1,98 @@
+{
+  "issue": "COMP-011",
+  "layer": "be",
+  "computedAt": "2026-09-02T21:01:01",
+  "checklist": {
+    "total": 7,
+    "done": 7,
+    "partial": 0,
+    "missing": 0,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/infrastructure/comp/persistence/configuracao-layout.repository.ts` — implements `ConfiguracaoLayoutRepository`; `upsert(layout)`: wraps in `prisma.$transaction`: upsert `configuracao_layout` row; `deleteMany` all `layout_override` for `configuracaoLayoutId`; `createMany` new override rows; returns mapped `ConfiguracaoLayout` aggregate; `findByProjetoId` loads layout + overrides (ordered by `ordem`)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/comp/persistence/configuracao-layout.repository.ts"
+      },
+      {
+        "text": "`src/infrastructure/comp/persistence/configuracao-layout.repository.spec.ts` — integration test: upsert creates; second upsert with different overrides → previous overrides gone, new set present; `findByProjetoId` null on absence; override order preserved by `ordem`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/comp/persistence/configuracao-layout.repository.spec.ts"
+      },
+      {
+        "text": "`src/modules/comp/comp.module.ts` — register real adapter under `CONFIGURACAO_LAYOUT_REPOSITORY` token",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/comp/comp.module.ts"
+      },
+      {
+        "text": "After two `upsert` calls with different override sets, only the second set's overrides exist",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Entire override replacement executes in a single DB transaction (no partial state possible)",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`findByProjetoId` loads overrides ordered by `ordem` ascending",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm test` on repository spec exits 0",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "unknown",
+    "lint": "pass",
+    "test": "unknown",
+    "e2e": "unknown"
+  },
+  "score": {
+    "total": 45,
+    "provisional": true,
+    "range": [
+      45,
+      55
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 15,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 30,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Parcial",
+    "statusTag": "NEAR-CLOSED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}

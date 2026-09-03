@@ -1,0 +1,103 @@
+{
+  "issue": "COMP-018",
+  "layer": "be",
+  "computedAt": "2026-09-02T21:01:09",
+  "checklist": {
+    "total": 8,
+    "done": 8,
+    "partial": 0,
+    "missing": 0,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/infrastructure/comp/middleware/correlation.middleware.ts` — NestJS `NestMiddleware`: reads `X-Correlation-Id` from request header or generates UUID v4; sets in `EmpresaContext` as `correlationId`; echoes on response header `X-Correlation-Id`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/comp/middleware/correlation.middleware.ts"
+      },
+      {
+        "text": "`src/infrastructure/comp/middleware/request-logger.middleware.ts` — logs JSON `{ correlationId, empresa, projetoId, route, method, statusCode, durationMs }` on response finish; uses the monolith's shared logger (Winston or Pino)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/comp/middleware/request-logger.middleware.ts"
+      },
+      {
+        "text": "`src/infrastructure/comp/filters/problem-json.filter.ts` — NestJS `ExceptionFilter`: maps `DomainException` → 400; `NotFoundException` → 404; `UnauthorizedException` → 401; `ForbiddenException` → 403; all with `application/problem+json` body `{ type, title, status, traceId }`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/comp/filters/problem-json.filter.ts"
+      },
+      {
+        "text": "`src/modules/comp/comp.module.ts` (amend) — apply both middlewares to all COMP routes; register `ProblemJsonFilter` globally for the comp context",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/comp/comp.module.ts"
+      },
+      {
+        "text": "Request without `X-Correlation-Id` header → response contains generated UUID in `X-Correlation-Id` header",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Request with `X-Correlation-Id: abc-123` → response echoes `X-Correlation-Id: abc-123`",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`DomainException` from use case → 400 `application/problem+json` with `traceId` matching request `X-Correlation-Id`",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`pnpm test` runs middleware unit tests and exits 0",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "unknown",
+    "lint": "pass",
+    "test": "unknown",
+    "e2e": "unknown"
+  },
+  "score": {
+    "total": 45,
+    "provisional": true,
+    "range": [
+      45,
+      55
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 15,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 30,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Parcial",
+    "statusTag": "NEAR-CLOSED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+  ]
+}
