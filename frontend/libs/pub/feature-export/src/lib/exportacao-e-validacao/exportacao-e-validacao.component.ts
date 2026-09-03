@@ -4,7 +4,7 @@
  *
  * Removals vs prototype (FE-PUB-012):
  *   ✗ setInterval timer                — replaced by ExportFacade bounded poll (ADR-PUB-001)
- *   ✗ AVISOS_MOCK hard-coded array     — avisos detail not called (INT-FE-PUB-004 BLOCKED)
+ *   ✗ AVISOS_MOCK hard-coded array     — avisos now loaded from §4.6 via ExportFacade.avisos (INT-FE-PUB-004)
  *   ✗ "Simular estado" selector        — FE-PUB-018 removal; state driven by facade only
  *   ✗ progresso% numeric bar           — indeterminate only (SPEC-03)
  *   ✗ kpis[] with hard-coded values    — KPI tiles omitted (INT-FE-PUB-005 BLOCKED)
@@ -113,11 +113,12 @@ const STEPS = [
             [imagens]="facade.summary()?.imagens ?? null"
           />
 
-          <!-- Avisos / Erros: delegados a WarningsDetailsComponent (FE-PUB-016) -->
+          <!-- Avisos / Erros: delegados a WarningsDetailsComponent (FE-PUB-016 / INT-FE-PUB-004) -->
           <pub-warnings-details
             [totalErros]="facade.totalErros()"
             [totalAvisos]="facade.totalAvisos()"
             [resumoErro]="facade.resumoErro()"
+            [avisos]="facade.avisos()"
           />
 
           <!-- CTAs -->
@@ -157,11 +158,12 @@ const STEPS = [
             </div>
           </div>
 
-          <!-- Avisos / Erros detalhados (contagens apenas — FE-PUB-016) -->
+          <!-- Avisos / Erros detalhados (FE-PUB-016 / INT-FE-PUB-004) -->
           <pub-warnings-details
             [totalErros]="facade.totalErros()"
             [totalAvisos]="facade.totalAvisos()"
             [resumoErro]="facade.resumoErro()"
+            [avisos]="facade.avisos()"
           />
 
           <div class="flex items-center justify-between mt-6">

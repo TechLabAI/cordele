@@ -17,9 +17,13 @@ export type {
   SignedDownloadUrl,
   ProjetoHeaderInfo,
   EpubSummaryVM,
+  // INT-FE-PUB-004 — validation detail list (§4.6 / PUB-016)
+  ValidationMessageSeverity,
+  ValidationMessageItem,
+  AvisoVM,
 } from './lib/models/pub.models';
-// Utility exported for use in tests and feature components
-export { formatBytes } from './lib/models/pub.models';
+// Utilities exported for use in tests and feature components
+export { formatBytes, toAvisoVM } from './lib/models/pub.models';
 
 // Port token — for testing overrides in pub-feature-export / pub-feature-history specs
 export { PUBLICACAO_PORT } from './lib/api/publicacao.port';

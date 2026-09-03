@@ -2,15 +2,13 @@
  * publicacao.port.ts — Port interface for the PUB Publicacao resource.
  * Migrated from libs/pub (flat lib) to libs/pub/data-access (P2 — FE-PUB-009).
  *
- * Covers api-contract §4.1–4.5:
- *   POST /api/pub/projetos/{projetoId}/publicacoes             → trigger (202 idempotent, D-R)
- *   GET  /api/pub/projetos/{projetoId}/publicacoes/{id}/status → pollStatus (bounded poll, D-N)
- *   GET  /api/pub/projetos/{projetoId}/publicacoes             → list (T08 history)
- *   GET  /api/pub/projetos/{projetoId}/publicacoes/{id}/download → getDownloadUrl (signed URL, D-F)
- *   GET  /api/pub/projetos/{projetoId}/publicacoes/stats       → getStats (KPI, D-O)
- *
- * NOT included (per backlog constraints):
- *   §4.6 — listAvisosDetalhados: BLOCKED (INT-FE-PUB-004 awaiting ratification of PUB-016 BE).
+ * Covers api-contract §4.1–4.6:
+ *   POST /api/pub/projetos/{projetoId}/publicacoes                          → trigger (202 idempotent, D-R)
+ *   GET  /api/pub/projetos/{projetoId}/publicacoes/{id}/status              → pollStatus (bounded poll, D-N)
+ *   GET  /api/pub/projetos/{projetoId}/publicacoes                          → list (T08 history)
+ *   GET  /api/pub/projetos/{projetoId}/publicacoes/{id}/download            → getDownloadUrl (signed URL, D-F)
+ *   GET  /api/pub/projetos/{projetoId}/publicacoes/stats                    → getStats (KPI, D-O)
+ *   GET  /api/pub/projetos/{projetoId}/publicacoes/{id}/validation-messages → getValidationMessages (§4.6, INT-FE-PUB-004)
  */
 import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -19,6 +17,8 @@ import {
   PublicacaoStatus,
   PublicationStats,
   SignedDownloadUrl,
+  ValidationMessageItem,
+  ValidationMessageSeverity,
 } from '../models/pub.models';
 
 export interface PublicacaoPort {
@@ -55,6 +55,20 @@ export interface PublicacaoPort {
    * Live KPI projection from Publicacao rows (D-O). Used by T07/T08 KPI cards (if source lands).
    */
   getStats(projetoId: string): Observable<PublicationStats>;
+
+  /**
+   * GET /api/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/validation-messages
+   * Detailed epubcheck messages ordered by `ordem ASC` (api-contract §4.6 — INT-FE-PUB-004).
+   *
+   * `severity` is optional: when omitted all severities are returned.
+   * 404 (urn:cordele:pub:publicacao-not-found) when publicacaoId does not belong
+   * to the projetoId or the active empresa (cross-tenant guard — never reveals existence).
+   */
+  getValidationMessages(
+    projetoId: string,
+    publicacaoId: string,
+    severity?: ValidationMessageSeverity,
+  ): Observable<ValidationMessageItem[]>;
 }
 
 export const PUBLICACAO_PORT = new InjectionToken<PublicacaoPort>('PubPublicacaoPort');

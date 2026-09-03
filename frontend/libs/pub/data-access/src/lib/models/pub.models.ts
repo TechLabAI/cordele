@@ -2,7 +2,10 @@
  * pub.models.ts — Domain types for the PUB (Publicação) module.
  * Migrated from libs/pub (flat lib) to libs/pub/data-access (P2 — FE-PUB-007).
  * Mirrors api-contract.md §6 (PublicacaoStatus §6.1, PublicacaoHistoryItem §6.2,
- * PublicationStats §6.3) and SPEC-03 view models.
+ * PublicationStats §6.3, ValidationMessageItem §6.5) and SPEC-03 view models.
+ *
+ * INT-FE-PUB-004 (2026-09-03): ValidationMessageItem + AvisoVM + toAvisoVM added
+ * after PUB-016 BE landed (endpoint §4.6 ratified; 10/10 items DONE, score 93).
  *
  * DO NOT redefine BE types — import from @cordele/pub-data-access in ports, adapters and facades.
  */
@@ -104,6 +107,53 @@ export interface SignedDownloadUrl {
   publicacaoId: string;
   arquivoUrl: string;
   expiresAt: string;  // ISO UTC
+}
+
+// ─── §6.5 — ValidationMessageItem (detail list — INT-FE-PUB-004 / PUB-016) ───
+
+/** Severity level for a single epubcheck validation message (api-contract §6.5). */
+export type ValidationMessageSeverity = 'error' | 'warning' | 'info';
+
+/**
+ * One epubcheck report line returned by
+ * GET /api/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/validation-messages (§4.6).
+ * Ordered by `ordem ASC` — 0-based insertion order from the epubcheck run.
+ *
+ * `location` is nullable: not every epubcheck message includes a file/line reference.
+ */
+export interface ValidationMessageItem {
+  id: string;                           // UUID v4
+  severity: ValidationMessageSeverity;  // 'error' | 'warning' | 'info'
+  code: string;                         // epubcheck message id (e.g. PKG-006, OPF-033)
+  message: string;                      // human-readable epubcheck message text
+  location: string | null;              // nullable — file/line reference may be absent
+  ordem: number;                        // 0-based; list is returned ordered by this ASC
+}
+
+/**
+ * FE view model for one validation message row (SPEC-03 §5).
+ * Produced by `toAvisoVM(item)` from a `ValidationMessageItem`.
+ *
+ * `local` mirrors `location` (nullable); rendered as em-dash when null (never "null").
+ */
+export interface AvisoVM {
+  code: string;
+  msg: string;
+  local: string | null;
+  severity: ValidationMessageSeverity;
+}
+
+/**
+ * Maps a BE `ValidationMessageItem` (api-contract §6.5) to the FE `AvisoVM` view model.
+ * Preserves `location: null` as `local: null` — the UI renders it as "—" (em-dash).
+ */
+export function toAvisoVM(item: ValidationMessageItem): AvisoVM {
+  return {
+    code:     item.code,
+    msg:      item.message,
+    local:    item.location,
+    severity: item.severity,
+  };
 }
 
 // ─── Cross-context types (INT-FE-PUB-002/003, P4) ────────────────────────────

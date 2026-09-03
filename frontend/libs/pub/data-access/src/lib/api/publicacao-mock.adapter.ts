@@ -14,6 +14,8 @@ import {
   PublicacaoStatus,
   PublicationStats,
   SignedDownloadUrl,
+  ValidationMessageItem,
+  ValidationMessageSeverity,
 } from '../models/pub.models';
 import { PublicacaoPort } from './publicacao.port';
 
@@ -69,6 +71,25 @@ const MOCK_HISTORY: PublicacaoHistoryItem[] = [
     erros:           'OPS-001: spine item não encontrado (capítulo 17); META-001: identifier ausente; CSS-001: propriedade border-collapse não suportada em ePub 3',
     arquivoUrl:      null,
     criadoEm:        '2026-06-14T09:15:00Z',
+  },
+];
+
+const MOCK_VALIDATION_MESSAGES: ValidationMessageItem[] = [
+  {
+    id:       'msg-001',
+    severity: 'warning',
+    code:     'OPF-033',
+    message:  'Duplicate spine item reference',
+    location: 'OEBPS/content.opf#L42',
+    ordem:    0,
+  },
+  {
+    id:       'msg-002',
+    severity: 'warning',
+    code:     'CSS-013',
+    message:  'CSS property not supported in ePub 3',
+    location: null,  // demonstrates nullable location
+    ordem:    1,
   },
 ];
 
@@ -139,5 +160,16 @@ export class PublicacaoMockAdapter implements PublicacaoPort {
 
   getStats(_projetoId: string): Observable<PublicationStats> {
     return of({ ...MOCK_STATS }).pipe(delay(MOCK_DELAY));
+  }
+
+  getValidationMessages(
+    _projetoId: string,
+    _publicacaoId: string,
+    severity?: ValidationMessageSeverity,
+  ): Observable<ValidationMessageItem[]> {
+    const result = severity
+      ? MOCK_VALIDATION_MESSAGES.filter(m => m.severity === severity)
+      : [...MOCK_VALIDATION_MESSAGES];
+    return of(result).pipe(delay(MOCK_DELAY));
   }
 }

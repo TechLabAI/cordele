@@ -7,7 +7,7 @@
  *   - Progress is always indeterminate — PublicacaoStatus carries no percentage (D-N, SPEC-03).
  *   - podeBaixar = computed(epubcheckStatus ∈ {valido, avisos} AND arquivoDisponivel) — R4.
    *   - KPI tiles (INT-FE-PUB-005 resolved): tamanhoBytes/totalCapitulos/totalImagens in api-contract §6.1;
- *   - Avisos detail (§4.6): NOT called — INT-FE-PUB-004 BLOCKED (PUB-016 not ratified).
+ *   - Avisos detail (§4.6): called after terminal — INT-FE-PUB-004 unblocked (PUB-016 landed, 2026-09-03).
  *   - setInterval: never used — all async via timer() + switchMap.
  *   - empresaChanged: ExportFacade injects PUB_EMPRESA_CHANGED token (Signal<number>) and
  *     cancels any in-flight poll when the signal increments (INT-FE-PUB-006).
@@ -26,7 +26,14 @@ import { Router } from '@angular/router';
 import { Observable, Subject, switchMap, take, timer } from 'rxjs';
 import { PUB_EMPRESA_CHANGED } from './empresa-changed.token';
 import { PublicacaoApiService } from './publicacao-api.service';
-import { EpubSummaryVM, ExportPhase, PublicacaoStatus, formatBytes } from './models/pub.models';
+import {
+  AvisoVM,
+  EpubSummaryVM,
+  ExportPhase,
+  PublicacaoStatus,
+  formatBytes,
+  toAvisoVM,
+} from './models/pub.models';
 
 const DEFAULT_RETRY_MS = 2_000;
 const MAX_POLLS       = 60;
@@ -55,12 +62,20 @@ export class ExportFacade {
   private readonly _status    = signal<PublicacaoStatus | null>(null);
   private readonly _error     = signal<string | null>(null);
   private readonly _projetoId = signal<string | null>(null);
+  /** Detailed epubcheck messages (§4.6 / INT-FE-PUB-004). Populated after terminal state. */
+  private readonly _avisos    = signal<AvisoVM[]>([]);
 
   // ── Public readonly signals ───────────────────────────────────────────────
   readonly phase     = this._phase.asReadonly();
   readonly status    = this._status.asReadonly();
   readonly error     = this._error.asReadonly();
   readonly projetoId = this._projetoId.asReadonly();
+  /**
+   * Detailed epubcheck validation messages from §4.6 (INT-FE-PUB-004).
+   * Populated after reaching a terminal build state (publicado or com_erros).
+   * Empty until then; resets on reset() or new startExport().
+   */
+  readonly avisos = this._avisos.asReadonly();
 
   /** True iff epubcheckStatus ∈ {valido, avisos} AND arquivoDisponivel (api-contract D-Q / SPEC-03 R4). */
   readonly podeBaixar = computed(() => {
@@ -114,6 +129,7 @@ export class ExportFacade {
     this._phase.set('gerando');
     this._error.set(null);
     this._status.set(null);
+    this._avisos.set([]);
     this._stop$.next(); // cancel any previous poll
 
     this.api.triggerExport(projetoId)
@@ -123,6 +139,7 @@ export class ExportFacade {
           this._status.set(status);
           if (isTerminal(status)) {
             this._phase.set(toPhase(status));
+            this._loadAvisos(projetoId, status.publicacaoId);
           } else {
             this._beginPoll(projetoId, status.publicacaoId, DEFAULT_RETRY_MS);
           }
@@ -194,6 +211,7 @@ export class ExportFacade {
     this._status.set(null);
     this._error.set(null);
     this._projetoId.set(null);
+    this._avisos.set([]);
   }
 
   // ── Private ───────────────────────────────────────────────────────────────
@@ -230,6 +248,7 @@ export class ExportFacade {
             this._status.set(status);
             if (isTerminal(status)) {
               this._phase.set(toPhase(status));
+              this._loadAvisos(projetoId, publicacaoId);
             } else {
               tick();
             }
@@ -242,6 +261,20 @@ export class ExportFacade {
     };
 
     tick();
+  }
+
+  /**
+   * Load detailed epubcheck messages from §4.6 after a terminal build state.
+   * Best-effort: errors are silently swallowed (counts from §6.1 remain available).
+   * Called for both publicado and com_erros — both states may have messages.
+   */
+  private _loadAvisos(projetoId: string, publicacaoId: string): void {
+    this.api.getValidationMessages(projetoId, publicacaoId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next:  items => this._avisos.set(items.map(toAvisoVM)),
+        error: _err  => { /* best-effort — counts from §6.1 still shown */ },
+      });
   }
 
   private _toMessage(err: unknown): string {

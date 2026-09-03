@@ -6,14 +6,13 @@
  * @cordele/shared/access-http-base, which automatically adds X-Empresa-Id header
  * on every request via the ACCESS_EMPRESA_ID injection token.
  *
- * Endpoints follow api-contract §4.1–4.5:
- *   POST /api/pub/projetos/{id}/publicacoes       — trigger (§4.1)
- *   GET  /api/pub/projetos/{id}/publicacoes/{id}/status  — poll (§4.2)
- *   GET  /api/pub/projetos/{id}/publicacoes       — history list (§4.3)
- *   GET  /api/pub/projetos/{id}/publicacoes/{id}/download — signed URL (§4.4)
- *   GET  /api/pub/projetos/{id}/publicacoes/stats — KPIs (§4.5)
- *
- * INT-FE-PUB-004 (§4.6 avisos detail): NOT implemented — blocked awaiting BE ratification.
+ * Endpoints follow api-contract §4.1–4.6:
+ *   POST /api/pub/projetos/{id}/publicacoes                          — trigger (§4.1)
+ *   GET  /api/pub/projetos/{id}/publicacoes/{id}/status              — poll (§4.2)
+ *   GET  /api/pub/projetos/{id}/publicacoes                          — history list (§4.3)
+ *   GET  /api/pub/projetos/{id}/publicacoes/{id}/download            — signed URL (§4.4)
+ *   GET  /api/pub/projetos/{id}/publicacoes/stats                    — KPIs (§4.5)
+ *   GET  /api/pub/projetos/{id}/publicacoes/{id}/validation-messages — detail list (§4.6, INT-FE-PUB-004)
  *
  * isMock: false — this adapter calls the real pub-service.
  */
@@ -25,6 +24,8 @@ import {
   PublicacaoStatus,
   PublicationStats,
   SignedDownloadUrl,
+  ValidationMessageItem,
+  ValidationMessageSeverity,
 } from '../models/pub.models';
 import { PublicacaoPort } from './publicacao.port';
 
@@ -81,5 +82,26 @@ export class PublicacaoHttpAdapter extends AccessHttpClient implements Publicaca
    */
   getStats(projetoId: string): Observable<PublicationStats> {
     return this.get<PublicationStats>(`${this.projectBase(projetoId)}/stats`);
+  }
+
+  /**
+   * GET /api/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/validation-messages
+   * Epubcheck message rows ordered by `ordem ASC` (api-contract §4.6 — INT-FE-PUB-004).
+   *
+   * `severity` is an optional query parameter.  When omitted all severities are returned.
+   * Returns 404 (urn:cordele:pub:publicacao-not-found) when the publicacao does not belong
+   * to the given projeto or the active empresa — cross-tenant guard via search_path.
+   *
+   * X-Empresa-Id added via empresaHeaders() from AccessHttpClient; params appended to URL
+   * manually because the base `get()` overload does not support HttpParams.
+   */
+  getValidationMessages(
+    projetoId: string,
+    publicacaoId: string,
+    severity?: ValidationMessageSeverity,
+  ): Observable<ValidationMessageItem[]> {
+    const base = `${this.projectBase(projetoId)}/${publicacaoId}/validation-messages`;
+    const url   = severity ? `${base}?severity=${severity}` : base;
+    return this.http.get<ValidationMessageItem[]>(url, { headers: this.empresaHeaders() });
   }
 }
