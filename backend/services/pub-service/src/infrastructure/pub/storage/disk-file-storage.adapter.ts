@@ -51,21 +51,30 @@ export class DiskFileStorageAdapter implements FileStoragePort {
     this.defaultTtlSeconds = this.config.get<number>('PUB_DOWNLOAD_URL_TTL_SECONDS') ?? 900;
   }
 
-  /** Stores content at `key` under the storage root. Creates parent directories as needed. */
-  async put(key: string, content: Buffer | Readable, _contentType: string): Promise<{ url: string }> {
+  /**
+   * Stores content at `key` under the storage root. Creates parent directories as needed.
+   *
+   * ADR-004: retorna `bytesWritten` (tamanho real do arquivo escrito) junto com a `url`,
+   * para que o `PublicationBuildJob` possa persistir `tamanho_bytes` no aggregate sem
+   * precisar inspecionar o arquivo depois do write.
+   */
+  async put(key: string, content: Buffer | Readable, _contentType: string): Promise<{ url: string; bytesWritten: number }> {
     const filePath = join(this.storageRoot, key);
     await mkdir(join(filePath, '..'), { recursive: true });
 
+    let bytesWritten: number;
     if (Buffer.isBuffer(content)) {
       await writeFile(filePath, content);
+      bytesWritten = content.byteLength;
     } else {
       // Readable stream: collect to Buffer then write (POC; in S3 adapter use multipart upload)
       const buf = await streamToBuffer(content);
       await writeFile(filePath, buf);
+      bytesWritten = buf.byteLength;
     }
 
-    this.logger.debug(`FileStorage: put key="${key}" path="${filePath}"`);
-    return { url: `/api/pub/internal/download?key=${encodeURIComponent(key)}` };
+    this.logger.debug(`FileStorage: put key="${key}" path="${filePath}" bytesWritten=${bytesWritten}`);
+    return { url: `/api/pub/internal/download?key=${encodeURIComponent(key)}`, bytesWritten };
   }
 
   /**

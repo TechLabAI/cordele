@@ -33,6 +33,10 @@ export class PublicacaoMapper {
       totalAvisos: model.totalAvisos,
       iniciadaEm: model.iniciadaEm,
       concluidaEm: model.concluidaEm ?? undefined,
+      // ADR-004: campos de KPI de ePub (nullable; presentes apenas em status=publicado)
+      tamanhoBytes: model.tamanhoBytes ?? undefined,
+      totalCapitulos: model.totalCapitulos ?? undefined,
+      totalImagens: model.totalImagens ?? undefined,
     });
   }
 
@@ -60,6 +64,10 @@ export class PublicacaoMapper {
       totalAvisos: entity.totalAvisos,
       iniciadaEm: entity.iniciadaEm,
       concluidaEm: entity.concluidaEm ?? null,
+      // ADR-004: KPIs de resumo (null até status=publicado)
+      tamanhoBytes: entity.tamanhoBytes ?? null,
+      totalCapitulos: entity.totalCapitulos ?? null,
+      totalImagens: entity.totalImagens ?? null,
     };
   }
 
@@ -78,6 +86,10 @@ export class PublicacaoMapper {
       totalErros: entity.totalErros,
       totalAvisos: entity.totalAvisos,
       concluidaEm: entity.concluidaEm ?? null,
+      // ADR-004: KPIs de resumo (persistidos na transição para publicado)
+      tamanhoBytes: entity.tamanhoBytes ?? null,
+      totalCapitulos: entity.totalCapitulos ?? null,
+      totalImagens: entity.totalImagens ?? null,
     };
   }
 }

@@ -1,0 +1,58 @@
+{
+  "issue": "PUB-013",
+  "layer": "be",
+  "checklist": {
+    "total": 9,
+    "done": 7,
+    "partial": 2,
+    "missing": 0,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/infrastructure/auth/jwt-auth.guard.ts` — (path real difere: `infrastructure/auth/` em vez de `modules/pub/auth/`); `JwtAuthGuard extends AuthGuard('jwt')`; `enforceScopes`; `resolveTenant`; verificado P12",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/auth/jwt-auth.guard.ts"
+      },
+      {
+        "text": "`src/infrastructure/auth/empresa-context.middleware.ts` — NestJS middleware populando EmpresaContext; verificado P12; spec em `empresa-context.middleware.spec.ts`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/auth/empresa-context.middleware.ts, empresa-context.middleware.spec.ts"
+      },
+      {
+        "text": "`src/modules/pub/decorators/require-scope.decorator.ts` — (nome real difere: `require-scope.decorator.ts` em vez de `pub-scope.decorator.ts`); decorator `@RequiredScopes(...scopes)`; verificado P12",
+        "state": "PARTIAL",
+        "evidence": "parcial -- faltam: pub-scope.decorator.ts"
+      },
+      {
+        "text": "`src/infrastructure/auth/jwt-auth.guard.spec.ts` — NÃO EXISTE spec dedicada para o guard; middleware testado via `empresa-context.middleware.spec.ts`; gap identificado em P12",
+        "state": "PARTIAL",
+        "evidence": "parcial -- faltam: src/infrastructure/auth/jwt-auth.guard.spec.ts"
+      },
+      {
+        "text": "`src/infrastructure/auth/empresa-context.service.ts` + `src/infrastructure/auth/empresa-context.service.ts` — EmpresaContextService com AsyncLocalStorage; verificado P12",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/auth/empresa-context.service.ts"
+      },
+      {
+        "text": "`pnpm test jwt-auth.guard.spec.ts exits 0` — NÃO EXISTE spec dedicada (ver item acima)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: jwt-auth.guard.spec.ts"
+      },
+      {
+        "text": "Request sem `Authorization` header retorna 401 — implementado via `AuthGuard('jwt')` que retorna 401 por padrão",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Request com scope insuficiente retorna 403 — verificado em `enforceScopes()` no guard",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`EmpresaContext` disponível no job assíncrono — verificado: `GeneratePublicationUseCase` captura `empresaId` e propaga via `EmpresaContextRunner.runAs`",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      }
+    ]
+  }
+}

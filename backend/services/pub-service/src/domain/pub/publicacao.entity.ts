@@ -13,6 +13,12 @@ export interface PublicacaoProps {
   readonly totalAvisos: number;
   readonly iniciadaEm: Date;
   readonly concluidaEm?: Date;
+  /** Tamanho do arquivo .epub em bytes (ADR-004). Nulo até status=publicado. */
+  readonly tamanhoBytes?: number;
+  /** Número de capítulos no ePub gerado (ADR-004). Nulo até status=publicado. */
+  readonly totalCapitulos?: number;
+  /** Número de imagens referenciadas no ePub gerado (ADR-004). Nulo até status=publicado. */
+  readonly totalImagens?: number;
 }
 
 /**
@@ -38,6 +44,12 @@ export class PublicacaoEntity {
   readonly totalAvisos: number;
   readonly iniciadaEm: Date;
   readonly concluidaEm?: Date;
+  /** Tamanho do arquivo .epub em bytes (ADR-004). Nulo até status=publicado. */
+  readonly tamanhoBytes?: number;
+  /** Número de capítulos no ePub gerado (ADR-004). Nulo até status=publicado. */
+  readonly totalCapitulos?: number;
+  /** Número de imagens referenciadas no ePub gerado (ADR-004). Nulo até status=publicado. */
+  readonly totalImagens?: number;
 
   constructor(props: PublicacaoProps) {
     PublicacaoEntity.assertInvariants(props);
@@ -52,6 +64,9 @@ export class PublicacaoEntity {
     this.totalAvisos = props.totalAvisos;
     this.iniciadaEm = props.iniciadaEm;
     this.concluidaEm = props.concluidaEm;
+    this.tamanhoBytes = props.tamanhoBytes;
+    this.totalCapitulos = props.totalCapitulos;
+    this.totalImagens = props.totalImagens;
   }
 
   /** Starts a new build attempt (D-N): status=gerando, epubcheckStatus=pendente. */
@@ -82,6 +97,9 @@ export class PublicacaoEntity {
   /**
    * `validando -> publicado`. Warnings do not block publication (D-Q): an
    * `avisos` epubcheck verdict still yields a downloadable artifact.
+   *
+   * ADR-004: os campos `tamanhoBytes`, `totalCapitulos` e `totalImagens` são
+   * preenchidos apenas nesta transição — ficam nulos nas demais.
    */
   concluirPublicado(outcome: {
     artefatoRef: string;
@@ -89,6 +107,9 @@ export class PublicacaoEntity {
     totalErros: number;
     totalAvisos: number;
     concluidaEm: Date;
+    tamanhoBytes?: number;
+    totalCapitulos?: number;
+    totalImagens?: number;
   }): PublicacaoEntity {
     this.assertStatus(PublicacaoStatus.VALIDANDO, 'concluirPublicado');
     return new PublicacaoEntity({
@@ -99,6 +120,9 @@ export class PublicacaoEntity {
       totalErros: outcome.totalErros,
       totalAvisos: outcome.totalAvisos,
       concluidaEm: outcome.concluidaEm,
+      tamanhoBytes: outcome.tamanhoBytes,
+      totalCapitulos: outcome.totalCapitulos,
+      totalImagens: outcome.totalImagens,
     });
   }
 
@@ -151,6 +175,9 @@ export class PublicacaoEntity {
       totalAvisos: this.totalAvisos,
       iniciadaEm: this.iniciadaEm,
       concluidaEm: this.concluidaEm,
+      tamanhoBytes: this.tamanhoBytes,
+      totalCapitulos: this.totalCapitulos,
+      totalImagens: this.totalImagens,
     };
   }
 

@@ -1,11 +1,11 @@
 {
   "issue": "PUB-003",
   "layer": "be",
-  "computedAt": "2026-09-03T01:30:30",
+  "computedAt": "2026-09-03T09:21:03",
   "checklist": {
     "total": 12,
-    "done": 9,
-    "partial": 3,
+    "done": 12,
+    "partial": 0,
     "missing": 0,
     "blocked": 0,
     "items": [
@@ -20,9 +20,9 @@
         "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/use-cases/generate-publication.use-case.spec.ts"
       },
       {
-        "text": "`src/domain/pub/ports/publicacao-repository.port.ts` — interface `PublicacaoRepositoryPort` com `findInFlight`, `save`, `nextSequencia`, `findById`, `listByProjeto`, etc.; re-exportado de `modules/pub/ports/publicacao-repository.port.ts`; verificado P12",
-        "state": "PARTIAL",
-        "evidence": "parcial -- faltam: modules/pub/ports/publicacao-repository.port.ts"
+        "text": "`src/domain/pub/ports/publicacao-repository.port.ts` — interface `PublicacaoRepositoryPort` com `findInFlight`, `save`, `nextSequencia`, `findById`, `listByProjeto`, etc.; re-exportado de `src/modules/pub/ports/publicacao-repository.port.ts`; verificado P12 (DRIFT P14)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/domain/pub/ports/publicacao-repository.port.ts, src/modules/pub/ports/publicacao-repository.port.ts"
       },
       {
         "text": "`src/modules/pub/ports/manuscript-content.port.ts` — interface `ManuscriptContentPort` com `getContentTree(projetoId, bearerToken)`; verificado P12",
@@ -30,14 +30,14 @@
         "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/ports/manuscript-content.port.ts"
       },
       {
-        "text": "`src/modules/pub/ports/composition-metadata.port.ts` + `src/modules/pub/ports/composition-layout.port.ts` — split em dois ports (metadata + layout) em vez de `composition-read.port.ts`; verificado P12",
-        "state": "PARTIAL",
-        "evidence": "parcial -- faltam: composition-read.port.ts"
+        "text": "`src/modules/pub/ports/composition-metadata.port.ts` + `src/modules/pub/ports/composition-layout.port.ts` — split em dois ports (metadata + layout) em vez de composition-read.port.ts; verificado P12 (DRIFT P14)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/ports/composition-metadata.port.ts, src/modules/pub/ports/composition-layout.port.ts"
       },
       {
-        "text": "`src/modules/pub/ports/advance-projeto-status.port.ts` — `AdvanceProjetoStatusPort.advanceTo(input, bearerToken)` (path real difere de `project-status.port.ts`); verificado P12",
-        "state": "PARTIAL",
-        "evidence": "parcial -- faltam: project-status.port.ts"
+        "text": "`src/modules/pub/ports/advance-projeto-status.port.ts` — `AdvanceProjetoStatusPort.advanceTo(input, bearerToken)` (path real difere de project-status.port.ts); verificado P12 (DRIFT P14)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/ports/advance-projeto-status.port.ts"
       },
       {
         "text": "`pnpm test src/modules/pub/use-cases/generate-publication.use-case.spec.ts` exits 0 (passes)",
@@ -73,26 +73,26 @@
   },
   "gates": {
     "build": "unknown",
-    "lint": "unknown",
+    "lint": "pass",
     "test": "unknown",
     "e2e": "unknown"
   },
   "score": {
-    "total": 36,
+    "total": 48,
     "provisional": false,
     "range": [
-      36,
-      36
+      48,
+      48
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 11,
+        "value": 15,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 22,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -113,10 +113,10 @@
         "needsAgentConfirm": false
       }
     },
-    "band": "Inicial",
+    "band": "Parcial",
     "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 22/30 -- a funcionalidade alvo funciona?"
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?"
   ]
 }

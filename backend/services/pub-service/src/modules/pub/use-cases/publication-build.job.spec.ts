@@ -73,7 +73,8 @@ describe('PublicationBuildJob', () => {
     compositionLayoutPort = { get: jest.fn().mockResolvedValue(null) };
     epubValidationPort = { validate: jest.fn() };
     fileStoragePort = {
-      put: jest.fn().mockResolvedValue({ url: 'stub://output.epub' }),
+      // ADR-004: put() retorna { url, bytesWritten }
+      put: jest.fn().mockResolvedValue({ url: 'stub://output.epub', bytesWritten: 1024 }),
       get: jest.fn(),
       delete: jest.fn(),
       signUrl: jest.fn(),
@@ -170,5 +171,42 @@ describe('PublicationBuildJob', () => {
 
     expect(epubValidationPort.validate).not.toHaveBeenCalled();
     expect(repository.save).not.toHaveBeenCalled();
+  });
+
+  describe('ADR-004: campos KPI de resumo persistidos na publicação (tamanhoBytes, totalCapitulos, totalImagens)', () => {
+    it('persiste tamanhoBytes, totalCapitulos e totalImagens no aggregate publicado', async () => {
+      epubValidationPort.validate.mockResolvedValue({ verdict: EpubcheckStatus.VALIDO, messages: [] });
+      // bytesWritten retornado pelo put() simulado
+      fileStoragePort.put.mockResolvedValue({ url: 'stub://output.epub', bytesWritten: 4096 });
+
+      await job.run({ publicacaoId: PUBLICACAO_ID, projetoId: PROJETO_ID, empresaId: 'empresa-aetos' });
+
+      const savedCalls = repository.save.mock.calls.map(([p]) => p as PublicacaoEntity);
+      const terminal = savedCalls[savedCalls.length - 1];
+      expect(terminal.status).toBe(PublicacaoStatus.PUBLICADO);
+      // tamanhoBytes vem de fileStoragePort.put().bytesWritten
+      expect(terminal.tamanhoBytes).toBe(4096);
+      // totalCapitulos e totalImagens vêm do EpubBuilder — com o mock de manuscriptContentPort
+      // retornando { manuscritoId: ..., estrutura: [] }, o builder insere 0 capítulos/imagens
+      expect(typeof terminal.totalCapitulos).toBe('number');
+      expect(typeof terminal.totalImagens).toBe('number');
+    });
+
+    it('não persiste KPIs de resumo em publicação com_erros', async () => {
+      epubValidationPort.validate.mockResolvedValue({
+        verdict: EpubcheckStatus.ERROS_CRITICOS,
+        messages: [{ severity: ValidationSeverity.ERROR, code: 'RSC-005', message: 'invalid ref' }],
+      });
+
+      await job.run({ publicacaoId: PUBLICACAO_ID, projetoId: PROJETO_ID, empresaId: 'empresa-aetos' });
+
+      const savedCalls = repository.save.mock.calls.map(([p]) => p as PublicacaoEntity);
+      const terminal = savedCalls[savedCalls.length - 1];
+      expect(terminal.status).toBe(PublicacaoStatus.COM_ERROS);
+      // KPIs ausentes em build com erros (undefined — não definidos em concluirComErros)
+      expect(terminal.tamanhoBytes).toBeUndefined();
+      expect(terminal.totalCapitulos).toBeUndefined();
+      expect(terminal.totalImagens).toBeUndefined();
+    });
   });
 });

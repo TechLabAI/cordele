@@ -1,0 +1,73 @@
+{
+  "issue": "PUB-003",
+  "layer": "be",
+  "checklist": {
+    "total": 12,
+    "done": 9,
+    "partial": 3,
+    "missing": 0,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/pub/use-cases/generate-publication.use-case.ts` — (path real difere: `use-cases/` em vez de `application/`); pré-flight + criação + enfileiramento `PublicationBuildJob`; retorna `{ publicacao, isNew: boolean }`; verificado P12",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/use-cases/generate-publication.use-case.ts"
+      },
+      {
+        "text": "`src/modules/pub/use-cases/generate-publication.use-case.spec.ts` — unit tests: happy path `202`, em-voo `200`, sem manuscrito `409`, sem metadados `422`; verificado P12",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/use-cases/generate-publication.use-case.spec.ts"
+      },
+      {
+        "text": "`src/domain/pub/ports/publicacao-repository.port.ts` — interface `PublicacaoRepositoryPort` com `findInFlight`, `save`, `nextSequencia`, `findById`, `listByProjeto`, etc.; re-exportado de `modules/pub/ports/publicacao-repository.port.ts`; verificado P12",
+        "state": "PARTIAL",
+        "evidence": "parcial -- faltam: modules/pub/ports/publicacao-repository.port.ts"
+      },
+      {
+        "text": "`src/modules/pub/ports/manuscript-content.port.ts` — interface `ManuscriptContentPort` com `getContentTree(projetoId, bearerToken)`; verificado P12",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/ports/manuscript-content.port.ts"
+      },
+      {
+        "text": "`src/modules/pub/ports/composition-metadata.port.ts` + `src/modules/pub/ports/composition-layout.port.ts` — split em dois ports (metadata + layout) em vez de `composition-read.port.ts`; verificado P12",
+        "state": "PARTIAL",
+        "evidence": "parcial -- faltam: composition-read.port.ts"
+      },
+      {
+        "text": "`src/modules/pub/ports/advance-projeto-status.port.ts` — `AdvanceProjetoStatusPort.advanceTo(input, bearerToken)` (path real difere de `project-status.port.ts`); verificado P12",
+        "state": "PARTIAL",
+        "evidence": "parcial -- faltam: project-status.port.ts"
+      },
+      {
+        "text": "`pnpm test src/modules/pub/use-cases/generate-publication.use-case.spec.ts` exits 0 (passes)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/use-cases/generate-publication.use-case.spec.ts"
+      },
+      {
+        "text": "Disparo com build em voo retorna o `publicacao` existente e não chama `save()` uma segunda vez — verificado no código (`findInFlight` retorna early)",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Disparo sem manuscrito rejeita com `409 manuscript-missing` antes de criar Publicacao — verificado no código",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Disparo sem `titulo`/`autor`/`idioma` rejeita com `422 metadata-incomplete` — verificado no código",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "`sequencia` = `nextSequencia()` = `max(sequencia)+1` por projeto — verificado no código e repositório",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      },
+      {
+        "text": "Nenhuma lógica de montagem de ePub presente neste use case — verificado: apenas dispara `buildJob.run`",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      }
+    ]
+  }
+}

@@ -1,12 +1,12 @@
 {
   "issue": "PUB-014",
   "layer": "be",
-  "computedAt": "2026-09-03T01:31:49",
+  "computedAt": "2026-09-03T09:32:37",
   "checklist": {
     "total": 9,
-    "done": 7,
-    "partial": 0,
-    "missing": 2,
+    "done": 8,
+    "partial": 1,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -21,8 +21,8 @@
       },
       {
         "text": "`src/modules/pub/publication-history.service.spec.ts` — NÃO EXISTE spec dedicada; comportamento testado via `use-cases/get-publication-history.use-case.spec.ts` e BDD (22/22 scenarios PASS); gap identificado em P12",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/modules/pub/publication-history.service.spec.ts, use-cases/get-publication-history.use-case.spec.ts"
+        "state": "PARTIAL",
+        "evidence": "parcial -- faltam: use-cases/get-publication-history.use-case.spec.ts"
       },
       {
         "text": "`src/modules/pub/pub.module.ts` — exporta `PUBLICATION_HISTORY_PORT` token; verificado P12",
@@ -36,8 +36,8 @@
       },
       {
         "text": "`pnpm test publication-history.service.spec.ts exits 0` — NÃO EXISTE spec dedicada (gap identificado)",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: publication-history.service.spec.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: publication-history.service.spec.ts"
       },
       {
         "text": "`latest` com N projetoIds gera 1 query ao repositório (sem N+1) — verificado no código: `findLatestByProjetoIds` usa `findMany WHERE projetoId IN (...)`",
@@ -63,21 +63,21 @@
     "e2e": "unknown"
   },
   "score": {
-    "total": 35,
+    "total": 43,
     "provisional": false,
     "range": [
-      35,
-      35
+      43,
+      43
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 9,
+        "value": 13,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 23,
+        "value": 27,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -98,10 +98,10 @@
         "needsAgentConfirm": false
       }
     },
-    "band": "Inicial",
+    "band": "Parcial",
     "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 23/30 -- a funcionalidade alvo funciona?"
+    "Confirmar functionality 27/30 -- a funcionalidade alvo funciona?"
   ]
 }

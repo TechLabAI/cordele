@@ -94,18 +94,18 @@ export class PublicationBuildJob {
         this.compositionLayoutPort.get(input.projetoId),
       ]);
 
-      const epubBytes = await this.assemble(contentTree, metadados, layout);
+      const buildResult = await this.assemble(contentTree, metadados, layout);
 
       const validando = gerando.iniciarValidacao();
       await this.repository.save(validando);
 
-      const report = await this.validateEpub(epubBytes, validando, input);
+      const report = await this.validateEpub(buildResult.epubBytes, validando, input);
       if (!report) return; // EpubcheckUnavailableError handled inside validateEpub
 
       const { publicacao: terminal, targetStatus } = await this.resolveOutcome(
         validando,
         report,
-        epubBytes,
+        buildResult,
         input,
       );
       await this.repository.save(terminal);
@@ -120,10 +120,11 @@ export class PublicationBuildJob {
    * Assembles the OCF/ePub 3 package using the `EpubBuilder` domain service
    * (PUB-009, P4).
    *
-   * If content tree or metadata are absent (pre-flight guard missed or null
-   * returned by stub), returns an empty Buffer — the epubcheck adapter will
-   * reject it with `erros_criticos`, correctly yielding `com_erros` (D-Q,
-   * ADR-003: never publish unvalidated).
+   * ADR-004: retorna o objeto `{ epubBytes, totalCapitulos, totalImagens }` em vez de
+   * apenas o Buffer, para que `resolveOutcome` possa persistir os KPIs de resumo.
+   *
+   * Se a árvore de conteúdo ou os metadados estiverem ausentes, retorna um Buffer vazio
+   * com contagens zeradas — o adaptador epubcheck rejeita e o resultado é `com_erros`.
    *
    * Images are loaded via `fileStoragePort.get()` as Readable streams,
    * converted to Buffers inline; failures per-image are silently absorbed
@@ -133,9 +134,9 @@ export class PublicationBuildJob {
     contentTree: ManuscriptContentTree | null,
     metadados: MetadadosRead | null,
     layout: LayoutRead | null,
-  ): Promise<Buffer> {
+  ): Promise<{ epubBytes: Buffer; totalCapitulos: number; totalImagens: number }> {
     if (!contentTree || !metadados) {
-      return Buffer.alloc(0);
+      return { epubBytes: Buffer.alloc(0), totalCapitulos: 0, totalImagens: 0 };
     }
 
     const loadImage = async (storageKey: string): Promise<Buffer | null> => {
@@ -154,7 +155,7 @@ export class PublicationBuildJob {
   private async resolveOutcome(
     validando: PublicacaoEntity,
     report: ValidationReport,
-    epubBytes: Buffer,
+    buildResult: { epubBytes: Buffer; totalCapitulos: number; totalImagens: number },
     input: PublicationBuildJobInput,
   ): Promise<{ publicacao: PublicacaoEntity; targetStatus: ProjetoTargetStatus }> {
     const totalErros = report.messages.filter((m) => m.severity === ValidationSeverity.ERROR).length;
@@ -174,8 +175,9 @@ export class PublicationBuildJob {
     }
 
     const key = `publicacoes/${input.publicacaoId}/output.epub`;
+    let storeResult: { url: string; bytesWritten: number };
     try {
-      await this.fileStoragePort.put(key, epubBytes, 'application/epub+zip');
+      storeResult = await this.fileStoragePort.put(key, buildResult.epubBytes, 'application/epub+zip');
     } catch (error) {
       this.logger.error(`Artifact storage failed for publicacao ${input.publicacaoId}`, error as Error);
       return {
@@ -196,6 +198,10 @@ export class PublicationBuildJob {
         totalErros,
         totalAvisos,
         concluidaEm,
+        // ADR-004: KPIs de resumo do ePub gerado
+        tamanhoBytes: storeResult.bytesWritten,
+        totalCapitulos: buildResult.totalCapitulos,
+        totalImagens: buildResult.totalImagens,
       }),
       targetStatus: 'publicado',
     };

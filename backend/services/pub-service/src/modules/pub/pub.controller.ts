@@ -232,6 +232,10 @@ export class PubController {
       arquivoDisponivel: publicacao.arquivoDisponivel(),
       iniciadaEm: publicacao.iniciadaEm.toISOString(),
       concluidaEm: publicacao.concluidaEm?.toISOString() ?? null,
+      // ADR-004: KPIs de resumo — nulos enquanto build em andamento ou com_erros
+      tamanhoBytes: publicacao.tamanhoBytes ?? null,
+      totalCapitulos: publicacao.totalCapitulos ?? null,
+      totalImagens: publicacao.totalImagens ?? null,
     };
   }
 

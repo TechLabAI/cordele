@@ -3,11 +3,11 @@
   "module": "PUB",
   "service": "pub-service",
   "pipeline": "implement",
-  "currentStep": "planner",
-  "nextStep": "implement",
-  "progressUnit": "P12",
-  "notes": "Planner INCREMENTAL: P1-P11 DONE, P12 (reconciliar checklist/mark) + P13 (PUB-021 campos ADR-004) pendentes. Bloqueios cross-modulo eram falsos: paths divergentes nas issues. Prioridade alvo P12.",
-  "iteration": 4,
-  "timestamp": "2026-09-03T01:14:25",
+  "currentStep": "implement",
+  "nextStep": "validate",
+  "progressUnit": "P15",
+  "notes": "P15 DONE: 4 specs criados, 35 testes PASS. PUB-007 10/10, PUB-013 9/9, PUB-015 8/8, PUB-014 8/9 (1 PARTIAL residual). Resta P16 (domain events PUB-004).",
+  "iteration": 3,
+  "timestamp": "2026-09-03T09:34:14",
   "capReached": false
 }

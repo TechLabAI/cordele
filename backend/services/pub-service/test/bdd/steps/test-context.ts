@@ -111,7 +111,8 @@ export function createBddTestContext(): BddTestContext {
 
   // Sensible defaults so fire-and-forget build jobs don't throw unhandled rejections.
   compositionLayoutPort.get.mockResolvedValue(null);
-  fileStoragePort.put.mockResolvedValue({ url: 'http://test-storage/output.epub' });
+  // ADR-004: put() now returns { url, bytesWritten }
+  fileStoragePort.put.mockResolvedValue({ url: 'http://test-storage/output.epub', bytesWritten: 2048 });
   fileStoragePort.get.mockRejectedValue(new Error('get not configured'));
   fileStoragePort.delete.mockResolvedValue(undefined);
   fileStoragePort.signUrl.mockResolvedValue({

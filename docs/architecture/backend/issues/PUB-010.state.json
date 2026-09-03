@@ -1,7 +1,7 @@
 {
   "issue": "PUB-010",
   "layer": "be",
-  "computedAt": "2026-09-03T00:54:13",
+  "computedAt": "2026-09-03T09:21:04",
   "checklist": {
     "total": 9,
     "done": 9,
@@ -57,22 +57,22 @@
     ]
   },
   "gates": {
-    "build": "pass",
+    "build": "unknown",
     "lint": "pass",
-    "test": "pass",
-    "e2e": "pass"
+    "test": "unknown",
+    "e2e": "unknown"
   },
   "score": {
-    "total": 93,
+    "total": 48,
     "provisional": false,
     "range": [
-      93,
-      93
+      48,
+      48
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 30,
+        "value": 15,
         "basis": "deterministic"
       },
       "functionality": {
@@ -83,12 +83,12 @@
       },
       "tests_lint": {
         "max": 20,
-        "value": 20,
+        "value": 0,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 10,
+        "value": 0,
         "basis": "deterministic"
       },
       "soft": {
@@ -98,7 +98,7 @@
         "needsAgentConfirm": false
       }
     },
-    "band": "Maduro",
+    "band": "Parcial",
     "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [

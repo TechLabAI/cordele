@@ -47,6 +47,9 @@ model Publicacao {
   totalAvisos      Int                 @default(0) @map("total_avisos")
   iniciadaEm       DateTime            @default(now()) @map("iniciada_em") @db.Timestamptz(6)
   concluidaEm      DateTime?           @map("concluida_em") @db.Timestamptz(6)
+  tamanhoBytes     Int?                @map("tamanho_bytes")
+  totalCapitulos   Int?                @map("total_capitulos")
+  totalImagens     Int?                @map("total_imagens")
 
   validationMessages ValidationMessage[]
 

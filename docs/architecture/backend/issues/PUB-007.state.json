@@ -1,12 +1,12 @@
 {
   "issue": "PUB-007",
   "layer": "be",
-  "computedAt": "2026-09-03T01:31:42",
+  "computedAt": "2026-09-03T09:31:12",
   "checklist": {
     "total": 10,
-    "done": 7,
-    "partial": 2,
-    "missing": 1,
+    "done": 10,
+    "partial": 0,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -20,9 +20,9 @@
         "evidence": "arquivo(s) presente(s) e nao-stub: prisma/migrations/20260825164528_init/migration.sql"
       },
       {
-        "text": "`src/infrastructure/persistence/database.module.ts` + `src/infrastructure/persistence/persistence.module.ts` — (path real difere: sem subpasta `pub/`); providers PrismaService + repositories globais; verificado P12",
-        "state": "PARTIAL",
-        "evidence": "arquivo presente porem stub: src/infrastructure/persistence/database.module.ts"
+        "text": "`src/infrastructure/persistence/persistence.module.ts` — (path real difere: sem subpasta `pub/`; inclui database.module.ts via imports); providers PrismaService + repositories globais; verificado P12 (DRIFT P14)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/persistence/persistence.module.ts"
       },
       {
         "text": "`src/infrastructure/persistence/prisma.service.ts` — PrismaService com `onModuleInit`/`onModuleDestroy`; acesso ao schema via search_path; verificado P12",
@@ -31,8 +31,8 @@
       },
       {
         "text": "`src/infrastructure/persistence/prisma.service.spec.ts` — NÃO EXISTE spec dedicada para PrismaService (gap identificado em P12); testado indiretamente via `prisma-publicacao.repository.spec.ts`",
-        "state": "PARTIAL",
-        "evidence": "parcial -- faltam: src/infrastructure/persistence/prisma.service.spec.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/persistence/prisma.service.spec.ts, prisma-publicacao.repository.spec.ts"
       },
       {
         "text": "`npx prisma validate --schema prisma/schema.prisma` exits 0 — schema é válido (build e testes passam)",
@@ -51,8 +51,8 @@
       },
       {
         "text": "`pnpm test prisma.service.spec.ts exits 0` — NÃO EXISTE spec dedicada; testado indiretamente",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: prisma.service.spec.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: prisma.service.spec.ts"
       },
       {
         "text": "`pnpm build` exits 0 — confirmado em BASELINE 2026-09-03",
@@ -68,21 +68,21 @@
     "e2e": "unknown"
   },
   "score": {
-    "total": 36,
+    "total": 48,
     "provisional": false,
     "range": [
-      36,
-      36
+      48,
+      48
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 12,
+        "value": 15,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 21,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -103,10 +103,10 @@
         "needsAgentConfirm": false
       }
     },
-    "band": "Inicial",
-    "statusTag": "REDUCED"
+    "band": "Parcial",
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 21/30 -- a funcionalidade alvo funciona?"
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?"
   ]
 }

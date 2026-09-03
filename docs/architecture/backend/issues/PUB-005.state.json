@@ -1,11 +1,11 @@
 {
   "issue": "PUB-005",
   "layer": "be",
-  "computedAt": "2026-09-03T01:30:32",
+  "computedAt": "2026-09-03T09:21:03",
   "checklist": {
     "total": 8,
-    "done": 7,
-    "partial": 1,
+    "done": 8,
+    "partial": 0,
     "missing": 0,
     "blocked": 0,
     "items": [
@@ -25,9 +25,9 @@
         "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/use-cases/get-signed-download-url.use-case.ts"
       },
       {
-        "text": "`src/modules/pub/use-cases/get-publication-status.use-case.spec.ts` + `get-publication-history.use-case.spec.ts` + `get-signed-download-url.use-case.spec.ts` — specs individuais por use case (em vez de `publication-query.spec.ts`); verificado P12",
-        "state": "PARTIAL",
-        "evidence": "parcial -- faltam: publication-query.spec.ts"
+        "text": "`src/modules/pub/use-cases/get-publication-status.use-case.spec.ts` + `src/modules/pub/use-cases/get-publication-history.use-case.spec.ts` + `src/modules/pub/use-cases/get-signed-download-url.use-case.spec.ts` — specs individuais por use case (em vez de publication-query.spec.ts); verificado P12 (DRIFT P14)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/use-cases/get-publication-status.use-case.spec.ts, src/modules/pub/use-cases/get-publication-history.use-case.spec.ts, src/modules/pub/use-cases/get-signed-download-url.use-case.spec.ts"
       },
       {
         "text": "`pnpm test src/modules/pub/use-cases/get-signed-download-url.use-case.spec.ts` exits 0 (passes)",
@@ -53,26 +53,26 @@
   },
   "gates": {
     "build": "unknown",
-    "lint": "unknown",
+    "lint": "pass",
     "test": "unknown",
     "e2e": "unknown"
   },
   "score": {
-    "total": 42,
+    "total": 48,
     "provisional": false,
     "range": [
-      42,
-      42
+      48,
+      48
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 13,
+        "value": 15,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 26,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -97,6 +97,6 @@
     "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 26/30 -- a funcionalidade alvo funciona?"
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?"
   ]
 }

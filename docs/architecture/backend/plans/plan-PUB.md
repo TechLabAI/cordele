@@ -13,8 +13,11 @@
 - P9 -- DONE (PUB-020: Runbook + findStaleInFlight + script reconciliação; todos [x] confirmados @ 2026-09-02)
 - P10 -- DONE (INT-PUB-002: adapters HTTP CompCompositionMetadataAdapter + CompCompositionLayoutAdapter criados; wiring em PubInfraBindingsModule; test=PASS lint=PASS build=PASS arch-conformance=OK 5/5 @ 2026-09-02)
 - P11 -- DONE (REGRESS-INT-PUB-002: asserções runAs corrigidas com 3º arg bearerToken; prisma-client/** adicionado aos ignores ESLint; test=PASS 143/143 lint=PASS build=PASS arch-conformance=OK 5/5 @ 2026-09-02)
-- P12 -- pendente (Reconciliar checklist: confirmar e marcar done PUB-002..PUB-008, PUB-013..PUB-015, PUB-017..PUB-018, INT-PUB-001..006 — código existe, checklist desatualizado)
-- P13 -- pendente (PUB-021: implementar campos EpubSummaryVM — tamanho_bytes, total_capitulos, total_imagens; ADR-004 decidido, código pendente)
+- P12 -- DONE (Reconciliar checklist: paths divergentes corrigidos em 18 issues; itens verificados marcados [x]; gaps reais documentados com [ ]; score --write-back executado em todas; 108/157 itens done @ 2026-09-03)
+- P13 -- DONE (PUB-021: código de P13 executado @ 2026-09-03T04:48:59Z — schema Prisma, EpubBuilder, BuildJob e DTOs; itens PUB-021 [MISSING] são drift de path — ADR-004 existe em adr/ de serviço, implementação existe mas não foi marcada)
+- P14 -- pendente (Reconciliar DRIFT: 14 itens PARTIAL/MISSING de 8 issues são drift de naming/path — PUB-002, PUB-003, PUB-005, PUB-007, PUB-013, PUB-016, PUB-018, PUB-021)
+- P15 -- pendente (Criar 4 specs ausentes: prisma.service.spec.ts, jwt-auth.guard.spec.ts, publication-history.service.spec.ts, publication-erasure.service.spec.ts — PUB-007, PUB-013, PUB-014, PUB-015)
+- P16 -- pendente (Domain events PUB-004: publication-succeeded.event.ts + publication-failed.event.ts + wiring no BuildJob)
 
 ---
 
@@ -44,13 +47,14 @@ ports exportados (history + erasure para PROJ) → BDD cobrindo D-N/D-R/D-P/D-Q/
 - **G3 — Build órfão:** RESOLVIDO — PUB-020 runbook + findStaleInFlight + script one-shot entregues.
 - **G4 — Step definitions manuais:** RESOLVIDO — PUB-019 22/22 scenarios PASS.
 
-### Estado BASELINE 2026-09-03
+### Estado 2026-09-03 (pós P12+P13)
 
-Score: **68/100** Consistente (avg). Gates: test=PASS(161/161) build=PASS lint=PASS arch-conformance=PASS(5/5).
-Checklist: **78/177 done (44.1%)** — discrepância com estado real: código de P2..P8 existe em produção
-mas as issues PUB-002..008, PUB-013..015, PUB-017..018, INT-PUB-001..006 não foram marcadas via
-`validator-score.py mark` nas sessões anteriores. P12 reconcilia esse debt. Gap funcional real: PUB-021
-(campos EpubSummaryVM — tamanho_bytes/total_capitulos/total_imagens ausentes do schema Prisma e DTOs).
+Score: **58/100** Parcial (provisional — test/build/e2e deferred no último tier-light). Gates tier-light:
+lint=PASS arch-conformance=PASS(5/5). Checklist: **163/187 done (87%)** — 24 itens restantes em
+11 issues. P13 foi executado (código completo); os 2 MISSING de PUB-021 são drift de path que P14 resolve.
+Diagnóstico dos 24 itens: **14 DRIFT** (naming/path diverge entre spec e código real) +
+**6 REAL** (specs de teste ausentes + 2 event files) + **4 NÃO-VERIFICÁVEL** (gates comportamentais
+que se tornam verificáveis após P15/P16). Ver seção 2 para classificação detalhada por issue.
 
 ### Multi-empresa
 
@@ -64,16 +68,37 @@ em `PublicationBuildJob` via `runAs(empresaId, fn, bearerToken)` (P5/INT-PUB-006
 
 ### Objetivo macro
 
-Fechar o módulo PUB: reconciliar o checklist das issues implementadas (P12) e entregar os campos
-EpubSummaryVM do ADR-004 (P13). Após P12+P13 o score deve atingir >= 90/100.
+Fechar o módulo PUB: 163/187 done (87%). Os 24 itens restantes classificam em 14 DRIFT + 6 REAL
++ 4 NÃO-VERIFICÁVEL. P14 resolve os 14 DRIFT via reconciliação de paths/naming. P15 cria 4 specs
+ausentes (6 REAL + 3 NÃO-VERIFICÁVEL). P16 implementa domain events PUB-004 (2 REAL + 1
+NÃO-VERIFICÁVEL). Após P14+P15+P16: 187/187, validator deve fechar o módulo com score >= 90.
+
+### Classificação de itens restantes por issue
+
+| Issue | done/total | Itens MISSING/PARTIAL | Classificação | Evidência |
+|---|---|---|---|---|
+| PUB-002 | 7/10 | 3 PARTIAL | **DRIFT** (3/3) | publication-status.vo.ts → publicacao-status.enum.ts; pub.enums.ts → enums individuais; pub.domain.spec.ts → publicacao.entity.spec.ts |
+| PUB-003 | 9/12 | 3 PARTIAL | **DRIFT** (3/3) | modules/.../publicacao-repository.port.ts existe; composition-read.port.ts → split em 2; project-status.port.ts → advance-projeto-status.port.ts |
+| PUB-004 | 9/12 | 3 MISSING | **REAL** (2) + **NÃO-VERIFICÁVEL** (1) | event files ausentes confirmados; dispatch timing é comportamental |
+| PUB-005 | 7/8 | 1 PARTIAL | **DRIFT** (1/1) | publication-query.spec.ts → specs individuais em use-cases/ (7 arquivos) |
+| PUB-007 | 7/10 | 2 PARTIAL + 1 MISSING | **DRIFT** (1) + **REAL** (1) + **NÃO-VERIFICÁVEL** (1) | database.module.ts funcional; prisma.service.spec.ts ausente; gate depende do spec |
+| PUB-013 | 7/9 | 2 PARTIAL | **DRIFT** (1) + **REAL** (1) | require-scope.decorator.ts existe (nome diverge); jwt-auth.guard.spec.ts ausente (guard.ts existe) |
+| PUB-014 | 7/9 | 2 MISSING | **REAL** (1) + **NÃO-VERIFICÁVEL** (1) | publication-history.service.spec.ts ausente; gate depende do spec |
+| PUB-015 | 6/8 | 2 MISSING | **REAL** (1) + **NÃO-VERIFICÁVEL** (1) | publication-erasure.service.spec.ts ausente; gate depende do spec |
+| PUB-016 | 9/10 | 1 MISSING | **DRIFT** (1/1) | §4.6 validation-messages existe em contracts/api-contract.md do serviço; checker buscou path relativo |
+| PUB-018 | 6/8 | 2 PARTIAL | **DRIFT** (2/2) | pub-health.module.ts funcional; health.controller.ts existe (app.health.controller.ts era nome esperado) |
+| PUB-021 | 5/7 | 2 MISSING | **DRIFT** (2/2) | ADR-004 existe em adr/ do serviço; EpubBuilder+BuildJob+schema implementados em P13 |
 
 ### Ordem das prioridades
 
 | P | Título | Motivo | Issues |
 |---|---|---|---|
 | P1..P11 | DONE | Implementação core completa | PUB-001..020, INT-PUB-001..006 |
-| P12 | Reconciliar checklist | Código existe; issues não marcadas causam score 68; marcar done via validator-score.py mark | PUB-002..008, PUB-013..015, PUB-017..018, INT-PUB-001..006 |
-| P13 | Implementar PUB-021 EpubSummaryVM | ADR-004 decidido; Prisma schema, EpubBuilder, BuildJob e DTOs precisam dos 3 campos | PUB-021 |
+| P12 | DONE — Reconciliar checklist geral | Código existia; issues não marcadas; 108/157 reconciliados | PUB-002..018 |
+| P13 | DONE — Implementar PUB-021 EpubSummaryVM | ADR-004; Prisma schema + EpubBuilder + BuildJob + DTOs | PUB-021 |
+| P14 | Reconciliar DRIFT (14 itens em 8 issues) | Naming/path diverge entre spec e código real; checker falhou por path; marcar done | PUB-002, PUB-003, PUB-005, PUB-007, PUB-013, PUB-016, PUB-018, PUB-021 |
+| P15 | Criar 4 specs ausentes | Specs de serviço dedicadas não existem; gate "pnpm test X exits 0" bloqueados | PUB-007, PUB-013, PUB-014, PUB-015 |
+| P16 | Domain events PUB-004 | 2 event files ausentes confirmados; job usa callbacks diretos em vez de domain events | PUB-004 |
 
 ---
 
@@ -1651,6 +1676,309 @@ Na Fase 3, verificar TODOS os callers de `store()` via grep antes de alterar a a
 Na Fase 2, verificar TODOS os callers de `EpubBuilder.build()` via grep antes de alterar o retorno.
 Não adicionar `totalPaginas` — foi decidido omitir permanentemente (ADR-004).
 Não adicionar os 3 campos a `PublicacaoHistoryItemDto` — apenas `PublicacaoStatusDto` (ADR-004 §D-S).
+
+---
+
+### Prioridade 14 -- Reconciliar DRIFT das 8 issues (PUB-002, PUB-003, PUB-005, PUB-007, PUB-013, PUB-016, PUB-018, PUB-021)
+Status: pendente
+Issues cobertas: PUB-002, PUB-003, PUB-005, PUB-007, PUB-013, PUB-016, PUB-018, PUB-021
+
+#### Objetivo
+
+14 itens classificados como DRIFT: o artefato existe no repo mas o checker buscou por um path/nome
+que diverge do path/nome real. A correção é executar `validator-score.py mark` com os itens corretos
+em cada issue. Nenhum arquivo novo a criar; nenhum código a alterar.
+
+#### Problemas identificados
+
+| Issue | Item PARTIAL/MISSING | Path esperado pela spec | Path real no repo | Ação |
+|---|---|---|---|---|
+| PUB-002 | publication-status.vo.ts | `domain/pub/publication-status.vo.ts` | `domain/pub/publicacao-status.enum.ts` | mark item done |
+| PUB-002 | pub.enums.ts | `domain/pub/pub.enums.ts` | enums individuais (3 arquivos enum) | mark item done |
+| PUB-002 | pub.domain.spec.ts | `domain/pub.domain.spec.ts` | `domain/pub/publicacao.entity.spec.ts` | mark item done |
+| PUB-003 | modules/pub/ports/publicacao-repository.port.ts | `modules/pub/ports/publicacao-repository.port.ts` | existe (e também em `domain/pub/ports/`) | mark item done |
+| PUB-003 | composition-read.port.ts | `modules/pub/ports/composition-read.port.ts` | split: composition-metadata.port.ts + composition-layout.port.ts | mark item done |
+| PUB-003 | project-status.port.ts | `modules/pub/ports/project-status.port.ts` | `modules/pub/ports/advance-projeto-status.port.ts` | mark item done |
+| PUB-005 | publication-query.spec.ts | `use-cases/publication-query.spec.ts` | 7 arquivos spec individuais em `use-cases/` | mark item done |
+| PUB-007 | database.module.ts "stub" | marcado como stub | funcional: `@Global() @Module` com PrismaService | mark item done |
+| PUB-013 | pub-scope.decorator.ts | `decorators/pub-scope.decorator.ts` | `decorators/require-scope.decorator.ts` | mark item done |
+| PUB-016 | contracts/api-contract.md §4.6 | path relativo curto | `docs/architecture/backend/services/pub-service/contracts/api-contract.md` (§4.6 existe na linha 249) | mark item done |
+| PUB-018 | pub-health.module.ts "stub" | marcado como stub | `infrastructure/pub/health/pub-health.module.ts` funcional | mark item done |
+| PUB-018 | app.health.controller.ts | `infrastructure/health/app.health.controller.ts` | `infrastructure/health/health.controller.ts` | mark item done |
+| PUB-021 | adr/ADR-004-epub-summary-kpi-field-sources.md | `adr/ADR-004-...` relativo | `docs/architecture/backend/services/pub-service/adr/ADR-004-epub-summary-kpi-field-sources.md` | mark item done |
+| PUB-021 | EpubBuilder popula 3 campos | "desmarcado" | EpubBuilder retorna `{epubBytes, totalCapitulos, totalImagens}`; BuildJob persiste `tamanhoBytes + totalCapitulos + totalImagens` (confirmado em P13) | mark item done |
+
+#### Correcoes mandatorias
+
+Para cada issue: executar `python scripts/validator-score.py mark --issue <ISSUE> --layer be --item "<texto-do-item>" --done`.
+Ao final de cada issue: executar `python scripts/validator-score.py score --issue <ISSUE> --layer be --write-back` para gravar o score atualizado.
+
+#### Alvos de alteracao
+
+- `docs/architecture/backend/issues/PUB-002.state.json` (3 itens PARTIAL → done)
+- `docs/architecture/backend/issues/PUB-003.state.json` (3 itens PARTIAL → done)
+- `docs/architecture/backend/issues/PUB-005.state.json` (1 item PARTIAL → done)
+- `docs/architecture/backend/issues/PUB-007.state.json` (1 item PARTIAL → done)
+- `docs/architecture/backend/issues/PUB-013.state.json` (1 item PARTIAL → done)
+- `docs/architecture/backend/issues/PUB-016.state.json` (1 item MISSING → done)
+- `docs/architecture/backend/issues/PUB-018.state.json` (2 itens PARTIAL → done)
+- `docs/architecture/backend/issues/PUB-021.state.json` (2 itens MISSING → done)
+
+#### Contrato operacional
+
+Deve existir:
+- `python scripts/validator-score.py score --issue PUB-002 --layer be` retorna `done: 10` (todos)
+- `python scripts/validator-score.py score --issue PUB-003 --layer be` retorna `done: 12`
+- `python scripts/validator-score.py score --issue PUB-005 --layer be` retorna `done: 8`
+- `python scripts/validator-score.py score --issue PUB-007 --layer be` retorna `done: 9` (o item do spec permanece MISSING — tratado em P15)
+- `python scripts/validator-score.py score --issue PUB-013 --layer be` retorna `done: 8` (o item do guard spec permanece MISSING — tratado em P15)
+- `python scripts/validator-score.py score --issue PUB-016 --layer be` retorna `done: 10`
+- `python scripts/validator-score.py score --issue PUB-018 --layer be` retorna `done: 8`
+- `python scripts/validator-score.py score --issue PUB-021 --layer be` retorna `done: 7`
+
+Nao deve existir:
+- Nenhuma edição de código-fonte em P14 — apenas state.json
+- Novos arquivos criados — zero
+
+Verificacao objetiva:
+- `python scripts/validator-score.py score --issue PUB-021 --layer be` → done: 7/7
+- Total de itens done no módulo: 163 + 14 = 177/187
+
+Condicao de bloqueio: nenhuma (P14 é independente)
+
+#### Sequencia de execucao
+
+- Fase 1: Reconciliar PUB-021 (prioridade máxima — é o trigger do planner)
+- Fase 2: Reconciliar PUB-016, PUB-018 (1-2 itens cada; triviais)
+- Fase 3: Reconciliar PUB-002, PUB-003, PUB-005 (3, 3, 1 itens)
+- Fase 4: Reconciliar PUB-007, PUB-013 (1 item DRIFT cada; demais itens permanecem para P15)
+- Fase 5: Executar `--write-back` em todas as 8 issues e verificar totais
+
+#### Politica de testes
+
+Nenhum teste a executar em P14 — apenas state.json alterados. O `pnpm lint` e `arch-conformance` não
+são afetados por mudanças em state.json.
+
+#### Multi-empresa
+
+Não se aplica — P14 não toca código de negócio.
+
+#### Migracoes Prisma Migrate necessarias
+
+Não.
+
+#### Criterios de aceite
+
+- `python scripts/validator-score.py score --issue PUB-021 --layer be` → `done: 7, missing: 0`
+- Todos os 8 issues têm `missing: 0` exceto PUB-007 (`missing: 2` → resolvido em P15) e PUB-013 (`missing: 1` → resolvido em P15)
+- Checklist global: 177/187 done (163 + 14 reconciliados)
+
+#### Riscos
+
+Baixo. O único risco é marcar um item done que de fato não está — o validator na próxima rodada
+detectaria e reverteria o score. Mitigação: verificar o path real de cada artefato antes de marcar.
+
+#### Instrucao para implementador
+
+Não alterar nenhum arquivo `.ts`. Usar exclusivamente `validator-score.py mark --done` e
+`validator-score.py score --write-back`. Começar pela Fase 1 (PUB-021) e terminar com o
+write-back de cada issue ao final de cada fase.
+
+---
+
+### Prioridade 15 -- Criar 4 specs ausentes (PUB-007, PUB-013, PUB-014, PUB-015)
+Status: pendente
+Issues cobertas: PUB-007, PUB-013, PUB-014, PUB-015
+
+#### Objetivo
+
+4 arquivos de spec declarados nas issues não existem no repo. Os gates comportamentais
+"pnpm test X exits 0" permanecem MISSING enquanto os specs não existirem. P15 cria os 4 specs.
+
+#### Problemas identificados
+
+1. `src/infrastructure/persistence/prisma.service.spec.ts` — `PrismaService` existe mas não tem spec dedicada. O comportamento é testado indiretamente nos repositórios.
+2. `src/infrastructure/auth/jwt-auth.guard.spec.ts` — `jwt-auth.guard.ts` existe mas não tem spec. A guarda é testada via integração no controller, não unitariamente.
+3. `src/modules/pub/publication-history.service.spec.ts` — se existe `PublicationHistoryService`, precisa de spec própria; o comportamento é testado via `get-publication-history.use-case.spec.ts`.
+4. `src/modules/pub/publication-erasure.service.spec.ts` — não existe nenhum spec para o serviço de erasure.
+
+#### Correcoes mandatorias
+
+- Criar `prisma.service.spec.ts`: testar `onModuleInit()` (chama `$connect()`), `enableShutdownHooks()` (chama `$on('beforeExit', ...)`), e que `$connect()` é chamado exatamente uma vez.
+- Criar `jwt-auth.guard.spec.ts`: testar que `canActivate()` retorna `true` para JWT válido, lança `UnauthorizedException` para JWT inválido, e que rotas com `@Public()` passam sem token.
+- Criar `publication-history.service.spec.ts` (ou `get-publication-history.use-case.spec.ts` se o serviço é o use-case): verificar se `PublicationHistoryService` ou equivalente existe; se o comportamento já está coberto em `get-publication-history.use-case.spec.ts`, criar um spec mínimo que importe e instancie o serviço.
+- Criar `publication-erasure.service.spec.ts`: testar `erasePublications(projetoId)` deleta todas as publicações do projeto e seus arquivos no storage.
+
+#### Alvos de alteracao (arquivos a criar)
+
+- `backend/services/pub-service/src/infrastructure/persistence/prisma.service.spec.ts` (novo)
+- `backend/services/pub-service/src/infrastructure/auth/jwt-auth.guard.spec.ts` (novo)
+- `backend/services/pub-service/src/modules/pub/publication-history.service.spec.ts` (novo, ou confirmar que use-case spec cobre)
+- `backend/services/pub-service/src/modules/pub/publication-erasure.service.spec.ts` (novo)
+
+#### Contrato operacional
+
+Deve existir:
+- `backend/services/pub-service/src/infrastructure/persistence/prisma.service.spec.ts`
+- `backend/services/pub-service/src/infrastructure/auth/jwt-auth.guard.spec.ts`
+- `backend/services/pub-service/src/modules/pub/publication-history.service.spec.ts`
+- `backend/services/pub-service/src/modules/pub/publication-erasure.service.spec.ts`
+- `pnpm test` no pub-service exits 0 com todos os specs acima passando
+
+Nao deve existir:
+- Import de `@prisma/client` em arquivos de `domain/` (RULE-01 não afetado por specs em outros layers)
+- Mocks de comportamentos não implementados (specs só testam o que o código faz)
+
+Verificacao objetiva:
+- `find src -name "prisma.service.spec.ts"` retorna 1 resultado
+- `find src -name "jwt-auth.guard.spec.ts"` retorna 1 resultado
+- `find src -name "publication-history.service.spec.ts"` retorna 1 resultado
+- `find src -name "publication-erasure.service.spec.ts"` retorna 1 resultado
+- `pnpm test --testPathPattern="prisma.service|jwt-auth.guard|publication-history.service|publication-erasure.service"` exits 0
+
+Condicao de bloqueio: P14 deve estar DONE (score reconciliado reduz ruído)
+
+#### Sequencia de execucao
+
+- Fase 1: Criar `prisma.service.spec.ts` — spec simples com mock de `$connect` e `$on`
+- Fase 2: Criar `jwt-auth.guard.spec.ts` — mock de `JwtService.verify()`; testar 3 casos (válido/inválido/public)
+- Fase 3: Verificar se `PublicationHistoryService` existe como classe separada; criar spec adequada
+- Fase 4: Criar `publication-erasure.service.spec.ts` — mock de `PublicacaoRepositoryPort` e `FileStoragePort`
+- Fase 5: Executar `pnpm test` e `pnpm lint` no pub-service; corrigir erros antes de marcar done
+
+#### Politica de testes
+
+Unit tests obrigatórios para todos os 4 specs. Sem integration tests (sem DB real necessário em P15).
+
+#### Multi-empresa
+
+`PrismaService` usa `EmpresaContext` (AsyncLocalStorage) para definir `search_path`. O spec de
+`prisma.service.spec.ts` deve mockar `EmpresaContextHolder` se `onModuleInit` o invoca.
+Demais specs não tocam multi-empresa.
+
+#### Migracoes Prisma Migrate necessarias
+
+Não.
+
+#### Criterios de aceite
+
+- 4 arquivos de spec criados nos paths declarados
+- `pnpm test` no pub-service exits 0 (todos os 161+ testes existentes + novos)
+- `pnpm lint` exits 0
+- `python scripts/validator-score.py score --issue PUB-007 --layer be` → `done: 10/10` (após mark dos itens de spec)
+- `python scripts/validator-score.py score --issue PUB-013 --layer be` → `done: 9/9`
+- `python scripts/validator-score.py score --issue PUB-014 --layer be` → `done: 9/9`
+- `python scripts/validator-score.py score --issue PUB-015 --layer be` → `done: 8/8`
+
+#### Riscos
+
+- `PublicationHistoryService`: verificar via grep se a classe existe ou se é apenas o use-case; o spec deve apontar para o artefato certo.
+- `JwtAuthGuard` usa `PassportAuthGuard` como base — mock de `ExecutionContext` pode ser verboso; seguir padrão de `empresa-context.middleware.spec.ts` do próprio serviço.
+
+#### Instrucao para implementador
+
+Antes de criar cada spec, executar `grep -rn "class Publication.*Service\|class PrismaService\|class JwtAuthGuard" src/` para confirmar nomes exatos de classe. Não criar mocks de comportamentos ausentes. Após criar, executar `pnpm test --testPathPattern=<spec>` para verificar passe individual antes de avançar para o próximo.
+
+---
+
+### Prioridade 16 -- Domain events PUB-004 (publication-succeeded.event.ts + publication-failed.event.ts)
+Status: pendente
+Issues cobertas: PUB-004
+
+#### Objetivo
+
+PUB-004 tem 3 itens MISSING: 2 arquivos de domain event ausentes e 1 gate comportamental (dispatch
+após persistência). A implementação atual de `PublicationBuildJob` usa callbacks diretos em vez de
+domain events. P16 cria os 2 value-object classes de domain event e atualiza o BuildJob para
+instanciá-los e despachá-los via `EventEmitter2` (já disponível no ecossistema NestJS) após o
+`update()` de persistência.
+
+#### Problemas identificados
+
+1. `src/domain/pub/events/publication-succeeded.event.ts` — diretório `events/` não existe em `domain/pub/`; evento não criado.
+2. `src/domain/pub/events/publication-failed.event.ts` — idem.
+3. Dispatch após persistência — gate comportamental: `PublicationBuildJob` deve disparar o evento depois do `update()` final, não antes.
+
+#### Correcoes mandatorias
+
+- Criar diretório `src/domain/pub/events/`
+- Criar `publication-succeeded.event.ts`: classe `PublicationSucceededEvent` com campos `publicacaoId: string`, `projetoId: string`, `empresaId: string`, `tamanhoBytes: number`, `totalCapitulos: number`, `totalImagens: number`.
+- Criar `publication-failed.event.ts`: classe `PublicationFailedEvent` com campos `publicacaoId: string`, `projetoId: string`, `empresaId: string`, `reason: string`.
+- Adicionar `EventEmitter2` ao `PubModule` (ou `PubInfraBindingsModule`): `imports: [EventEmitterModule.forRoot()]` — verificar se já existe no app.module.
+- Atualizar `PublicationBuildJob`: injetar `EventEmitter2`; após o bloco de persistência de desfecho `publicado` ou `com_erros`, emitir o evento correspondente: `this.eventEmitter.emit('publication.succeeded', new PublicationSucceededEvent(...))` ou `publication.failed`.
+
+#### Alvos de alteracao (caminhos completos)
+
+- `backend/services/pub-service/src/domain/pub/events/publication-succeeded.event.ts` (novo)
+- `backend/services/pub-service/src/domain/pub/events/publication-failed.event.ts` (novo)
+- `backend/services/pub-service/src/modules/pub/use-cases/publication-build.job.ts` (adicionar EventEmitter2 + emit após persistência)
+- `backend/services/pub-service/src/modules/pub/use-cases/publication-build.job.spec.ts` (assertar que event.emit é chamado após update)
+- `backend/services/pub-service/src/modules/pub/pub.module.ts` (ou infra bindings module — adicionar EventEmitterModule se ausente)
+
+#### Contrato operacional
+
+Deve existir:
+- `src/domain/pub/events/publication-succeeded.event.ts` com classe `PublicationSucceededEvent`
+- `src/domain/pub/events/publication-failed.event.ts` com classe `PublicationFailedEvent`
+- `PublicationBuildJob` chama `eventEmitter.emit(...)` após o `update()` de desfecho (nunca antes)
+- `publication-build.job.spec.ts` asserta `eventEmitterMock.emit` chamado 1 vez com os dados corretos
+
+Nao deve existir:
+- Import de `@nestjs/*` ou `@prisma/client` nas classes de evento em `domain/pub/events/` (RULE-01, RULE-02)
+- Evento emitido ANTES da persistência
+- `EventEmitter2` injetado diretamente em classes de `domain/` (apenas em `modules/` e `infrastructure/`)
+
+Verificacao objetiva:
+- `grep -rn "EventEmitter2\|eventEmitter" src/modules/pub/use-cases/publication-build.job.ts` retorna hits
+- `find src/domain/pub/events -name "*.ts"` retorna 2 arquivos
+- `grep "import.*@nestjs\|import.*@prisma" src/domain/pub/events/publication-succeeded.event.ts` retorna 0 linhas (RULE-01/02)
+- `pnpm test` exits 0
+- `pnpm lint` exits 0
+- `python scripts/arch-conformance.py check --layer be --target backend/services/pub-service` exits 0 (5/5)
+
+Condicao de bloqueio: P15 deve estar DONE (para não misturar gates de pnpm test)
+
+#### Sequencia de execucao
+
+- Fase 1 — domain/events: criar `publication-succeeded.event.ts` e `publication-failed.event.ts` como plain TypeScript classes (zero decorators NestJS, zero Prisma imports)
+- Fase 2 — module wiring: verificar se `EventEmitterModule` já está registrado no app; se não, adicionar `EventEmitterModule.forRoot()` em `pub.module.ts` ou `PubInfraBindingsModule`
+- Fase 3 — BuildJob update: injetar `EventEmitter2` no construtor de `PublicationBuildJob`; após `this.publicacaoRepository.update(...)` no bloco de desfecho `publicado`, emitir `publication.succeeded`; no bloco de desfecho `com_erros`, emitir `publication.failed`
+- Fase 4 — spec update: no `publication-build.job.spec.ts`, adicionar mock de `EventEmitter2` e assertar que `emit` é chamado após `update()` no cenário happy-path e no cenário de falha
+- Fase 5 — gate: `pnpm test`, `pnpm lint`, `pnpm exec tsc --noEmit`, `arch-conformance.py` — todos devem passar
+
+#### Politica de testes
+
+Unit test obrigatório: `publication-build.job.spec.ts` (atualizar, não criar). Integration test não necessário.
+
+#### Multi-empresa
+
+`PublicationSucceededEvent` e `PublicationFailedEvent` devem incluir `empresaId` como campo para
+que handlers downstream possam propagar o contexto. O BuildJob já tem acesso ao `empresaId` via
+`runAs` — passar no construtor do evento.
+
+#### Migracoes Prisma Migrate necessarias
+
+Não.
+
+#### Criterios de aceite
+
+- `find src/domain/pub/events -name "*.ts"` → 2 arquivos
+- `grep "import.*@nestjs\|import.*@prisma" src/domain/pub/events/*.ts` → 0 linhas
+- `pnpm test` exits 0 (todos os specs incluindo os 4 de P15)
+- `pnpm lint` exits 0
+- `python scripts/arch-conformance.py check --layer be --target backend/services/pub-service` exits 0 (5/5)
+- `python scripts/validator-score.py score --issue PUB-004 --layer be` → `done: 12/12`
+
+#### Riscos
+
+- `EventEmitterModule.forRoot()` pode conflitar com módulo já registrado como Global; verificar via grep antes de adicionar.
+- Testes de `PublicationBuildJob` podem ser sensíveis à ordem de chamadas (verify order): usar `jest.fn()` simples + `toHaveBeenCalledWith`.
+
+#### Instrucao para implementador
+
+Criar os event files primeiro (Fase 1) para garantir RULE-01/02 antes de tocar o BuildJob.
+Em Fase 3, procurar o exato bloco de persistência do desfecho via `grep -n "publicado\|com_erros\|update(" src/modules/pub/use-cases/publication-build.job.ts`.
+O emit deve ser a ÚLTIMA instrução antes do bloco de cleanup/finally do job — nunca antes do `update()` de persistência.
 
 ---
 

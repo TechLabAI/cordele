@@ -1,11 +1,11 @@
 {
   "issue": "PUB-002",
   "layer": "be",
-  "computedAt": "2026-09-03T01:30:26",
+  "computedAt": "2026-09-03T09:20:20",
   "checklist": {
     "total": 10,
-    "done": 7,
-    "partial": 3,
+    "done": 10,
+    "partial": 0,
     "missing": 0,
     "blocked": 0,
     "items": [
@@ -20,19 +20,19 @@
         "evidence": "arquivo(s) presente(s) e nao-stub: src/domain/pub/validation-message.entity.ts"
       },
       {
-        "text": "`src/domain/pub/publicacao.entity.ts` (state machine inline) + `src/domain/pub/publicacao-status.enum.ts` + `src/domain/pub/epubcheck-status.enum.ts` — tabela de transições e `isTerminal()`/`arquivoDisponivel()` na própria entidade; sem VO separado; spec original especificava `publication-status.vo.ts` mas implementação consolida na entidade; verificado P12",
-        "state": "PARTIAL",
-        "evidence": "parcial -- faltam: publication-status.vo.ts"
+        "text": "`src/domain/pub/publicacao.entity.ts` (state machine inline) + `src/domain/pub/publicacao-status.enum.ts` + `src/domain/pub/epubcheck-status.enum.ts` — tabela de transições e `isTerminal()`/`arquivoDisponivel()` na própria entidade; sem VO separado; spec original especificava publication-status.vo.ts mas implementação consolida na entidade; verificado P12 (DRIFT P14)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/domain/pub/publicacao.entity.ts, src/domain/pub/publicacao-status.enum.ts, src/domain/pub/epubcheck-status.enum.ts"
       },
       {
-        "text": "`src/domain/pub/publicacao-status.enum.ts` + `src/domain/pub/epubcheck-status.enum.ts` + `src/domain/pub/validation-severity.enum.ts` — enums split em arquivos individuais em vez de `pub.enums.ts`; verificado P12",
-        "state": "PARTIAL",
-        "evidence": "parcial -- faltam: pub.enums.ts"
+        "text": "`src/domain/pub/publicacao-status.enum.ts` + `src/domain/pub/epubcheck-status.enum.ts` + `src/domain/pub/validation-severity.enum.ts` — enums split em arquivos individuais em vez de pub.enums.ts; verificado P12 (DRIFT P14)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/domain/pub/publicacao-status.enum.ts, src/domain/pub/epubcheck-status.enum.ts, src/domain/pub/validation-severity.enum.ts"
       },
       {
-        "text": "`src/domain/pub/publicacao.entity.spec.ts` — (path real difere de `pub.domain.spec.ts`); testes: `iniciar` com gerando/pendente, `iniciarValidacao→concluirPublicado(avisos)`, `→concluirComErros`, rejeição de transição inválida, invariante `artefatoRef`, `sequencia < 1`; verificado P12",
-        "state": "PARTIAL",
-        "evidence": "parcial -- faltam: pub.domain.spec.ts"
+        "text": "`src/domain/pub/publicacao.entity.spec.ts` — (path real difere de pub.domain.spec.ts); testes: `iniciar` com gerando/pendente, `iniciarValidacao→concluirPublicado(avisos)`, `→concluirComErros`, rejeição de transição inválida, invariante `artefatoRef`, `sequencia < 1`; verificado P12 (DRIFT P14)",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/domain/pub/publicacao.entity.spec.ts"
       },
       {
         "text": "`pnpm test src/domain/pub/publicacao.entity.spec.ts` exits 0 (passes — spec em path real)",
@@ -63,26 +63,26 @@
   },
   "gates": {
     "build": "unknown",
-    "lint": "unknown",
+    "lint": "pass",
     "test": "unknown",
     "e2e": "unknown"
   },
   "score": {
-    "total": 36,
+    "total": 48,
     "provisional": false,
     "range": [
-      36,
-      36
+      48,
+      48
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 12,
+        "value": 15,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 21,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
@@ -103,10 +103,10 @@
         "needsAgentConfirm": false
       }
     },
-    "band": "Inicial",
-    "statusTag": "REDUCED"
+    "band": "Parcial",
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 21/30 -- a funcionalidade alvo funciona?"
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?"
   ]
 }

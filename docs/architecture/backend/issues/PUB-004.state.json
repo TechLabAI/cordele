@@ -1,7 +1,7 @@
 {
   "issue": "PUB-004",
   "layer": "be",
-  "computedAt": "2026-09-03T01:31:39",
+  "computedAt": "2026-09-03T09:21:03",
   "checklist": {
     "total": 12,
     "done": 9,
@@ -73,7 +73,7 @@
   },
   "gates": {
     "build": "unknown",
-    "lint": "unknown",
+    "lint": "pass",
     "test": "unknown",
     "e2e": "unknown"
   },
