@@ -75,3 +75,14 @@ export const LIST_VALIDATION_MESSAGES_USE_CASE = Symbol('ListValidationMessagesU
  * (INT-PUB-006).
  */
 export const EMPRESA_CONTEXT_RUNNER_PORT = Symbol('EmpresaContextRunnerPort');
+
+// --- Domain-event publisher (P16 — PUB-004) ---
+
+/**
+ * Injection token for EventPublisherPort.
+ *
+ * Bound to a Node.js EventEmitter-based adapter in `PubModule`. Injected by
+ * `PublicationBuildJob` to dispatch `publication.succeeded` /
+ * `publication.failed` domain events **after** the terminal persistence call.
+ */
+export { EventPublisherPort as EVENT_PUBLISHER_PORT } from './ports/event-publisher.port';

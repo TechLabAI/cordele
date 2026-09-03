@@ -3,11 +3,11 @@
   "module": "PUB",
   "service": "pub-service",
   "pipeline": "implement",
-  "currentStep": "implement",
-  "nextStep": "validate",
-  "progressUnit": "P15",
-  "notes": "P15 DONE: 4 specs criados, 35 testes PASS. PUB-007 10/10, PUB-013 9/9, PUB-015 8/8, PUB-014 8/9 (1 PARTIAL residual). Resta P16 (domain events PUB-004).",
-  "iteration": 3,
-  "timestamp": "2026-09-03T09:34:14",
+  "currentStep": "full-validate",
+  "nextStep": "done",
+  "progressUnit": "P16",
+  "notes": "FINALIZADO: checklist 187/187, score 93/100 Maduro, gates test/build/e2e/lint PASS, arch 5/5. Prioridades P8/P14/P15/P16 fechadas nesta retomada.",
+  "iteration": 4,
+  "timestamp": "2026-09-03T10:03:18",
   "capReached": false
 }

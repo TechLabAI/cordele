@@ -19,6 +19,7 @@ import { type AdvanceProjetoStatusPort } from 'src/modules/pub/ports/advance-pro
 import { type CompositionLayoutPort } from 'src/modules/pub/ports/composition-layout.port';
 import { type CompositionMetadataPort } from 'src/modules/pub/ports/composition-metadata.port';
 import { type EpubValidationPort } from 'src/modules/pub/ports/epub-validation.port';
+import { type EventPublisherPort } from 'src/modules/pub/ports/event-publisher.port';
 import { type FileStoragePort } from 'src/modules/pub/ports/file-storage.port';
 import { type ManuscriptContentPort } from 'src/modules/pub/ports/manuscript-content.port';
 import { PublicationErasureService } from 'src/modules/pub/publication-erasure.service';
@@ -53,6 +54,7 @@ export interface BddTestContext {
   readonly epubValidationPort: jest.Mocked<EpubValidationPort>;
   readonly fileStoragePort: jest.Mocked<FileStoragePort>;
   readonly advanceProjetoStatusPort: jest.Mocked<AdvanceProjetoStatusPort>;
+  readonly eventPublisherPort: jest.Mocked<EventPublisherPort>;
 
   /* Use-cases (direct injection, no DI container) */
   readonly generatePublicationUseCase: GeneratePublicationUseCase;
@@ -109,6 +111,10 @@ export function createBddTestContext(): BddTestContext {
     advanceTo: jest.fn(),
   } as unknown as jest.Mocked<AdvanceProjetoStatusPort>;
 
+  const eventPublisherPort = {
+    emit: jest.fn(),
+  } as unknown as jest.Mocked<EventPublisherPort>;
+
   // Sensible defaults so fire-and-forget build jobs don't throw unhandled rejections.
   compositionLayoutPort.get.mockResolvedValue(null);
   // ADR-004: put() now returns { url, bytesWritten }
@@ -133,6 +139,7 @@ export function createBddTestContext(): BddTestContext {
     epubValidationPort,
     fileStoragePort,
     advanceProjetoStatusPort,
+    eventPublisherPort,
   );
 
   const generatePublicationUseCase = new GeneratePublicationUseCase(
@@ -160,6 +167,7 @@ export function createBddTestContext(): BddTestContext {
     epubValidationPort,
     fileStoragePort,
     advanceProjetoStatusPort,
+    eventPublisherPort,
     generatePublicationUseCase,
     getPublicationHistoryUseCase,
     getPublicationStatsUseCase,

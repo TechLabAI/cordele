@@ -1,12 +1,12 @@
 {
   "issue": "PUB-004",
   "layer": "be",
-  "computedAt": "2026-09-03T09:21:03",
+  "computedAt": "2026-09-03T09:59:05",
   "checklist": {
     "total": 12,
-    "done": 9,
+    "done": 12,
     "partial": 0,
-    "missing": 3,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -31,13 +31,13 @@
       },
       {
         "text": "`src/domain/pub/events/publication-succeeded.event.ts` — NÃO IMPLEMENTADO: domain events não foram criados; job usa logging estruturado em vez de eventos de domínio; gap identificado em P12 — sem bloqueio funcional (build pipeline funciona corretamente)",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/domain/pub/events/publication-succeeded.event.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/domain/pub/events/publication-succeeded.event.ts"
       },
       {
         "text": "`src/domain/pub/events/publication-failed.event.ts` — NÃO IMPLEMENTADO: ver item anterior",
-        "state": "MISSING",
-        "evidence": "arquivo citado ausente: src/domain/pub/events/publication-failed.event.ts"
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/domain/pub/events/publication-failed.event.ts"
       },
       {
         "text": "`pnpm test src/modules/pub/use-cases/publication-build.job.spec.ts` exits 0 (143/143 passing)",
@@ -61,8 +61,8 @@
       },
       {
         "text": "Eventos despachados somente após persistência — NÃO IMPLEMENTADO: domain events não existem na implementação atual",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "Job roda no `EmpresaContext` da requisição disparadora — verificado: `GeneratePublicationUseCase` captura `empresaId` antes de `Promise.resolve()` e passa via `EmpresaContextRunner.runAs(empresaId, fn)`",
@@ -72,38 +72,38 @@
     ]
   },
   "gates": {
-    "build": "unknown",
+    "build": "pass",
     "lint": "pass",
-    "test": "unknown",
-    "e2e": "unknown"
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 36,
+    "total": 93,
     "provisional": false,
     "range": [
-      36,
-      36
+      93,
+      93
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 11,
+        "value": 30,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 22,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
@@ -113,10 +113,10 @@
         "needsAgentConfirm": false
       }
     },
-    "band": "Inicial",
+    "band": "Maduro",
     "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 22/30 -- a funcionalidade alvo funciona?"
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?"
   ]
 }

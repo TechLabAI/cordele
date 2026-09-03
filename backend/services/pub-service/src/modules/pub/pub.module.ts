@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import { Module } from '@nestjs/common';
 
 import { PubController } from './pub.controller';
@@ -12,6 +13,7 @@ import { ListValidationMessagesUseCase } from './use-cases/list-validation-messa
 import { PublicationHistoryService } from './publication-history.service';
 import { PublicationErasureService } from './publication-erasure.service';
 import {
+  EVENT_PUBLISHER_PORT,
   GENERATE_PUBLICATION_USE_CASE,
   GET_PUBLICATION_HISTORY_USE_CASE,
   GET_PUBLICATION_STATS_USE_CASE,
@@ -55,6 +57,21 @@ import {
 
     // --- PUB-016: List validation messages ---
     { provide: LIST_VALIDATION_MESSAGES_USE_CASE, useClass: ListValidationMessagesUseCase },
+
+    // --- P16 — PUB-004: Domain-event publisher ---
+    /**
+     * Provides a Node.js EventEmitter adapter for `EventPublisherPort`.
+     * `PublicationBuildJob` uses it to dispatch `publication.succeeded` /
+     * `publication.failed` domain events after the terminal persistence call.
+     *
+     * A single shared EventEmitter instance is sufficient for in-process
+     * event dispatch. Downstream handlers can subscribe via standard Node.js
+     * EventEmitter API. RULE-04 compliant: no infrastructure/ import here.
+     */
+    {
+      provide: EVENT_PUBLISHER_PORT,
+      useFactory: () => new EventEmitter(),
+    },
 
     // --- P6 — PUB-014: PublicationHistoryPort (exported to PROJ) ---
     /**

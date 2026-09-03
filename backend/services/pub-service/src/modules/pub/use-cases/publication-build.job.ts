@@ -11,11 +11,15 @@ import {
   COMPOSITION_LAYOUT_PORT,
   COMPOSITION_METADATA_PORT,
   EPUB_VALIDATION_PORT,
+  EVENT_PUBLISHER_PORT,
   FILE_STORAGE_PORT,
   MANUSCRIPT_CONTENT_PORT,
   PUBLICACAO_REPOSITORY_PORT,
 } from '../pub.tokens';
 import { type AdvanceProjetoStatusPort, type ProjetoTargetStatus } from '../ports/advance-projeto-status.port';
+import { type EventPublisherPort } from '../ports/event-publisher.port';
+import { PublicationFailedEvent } from '../../../domain/pub/events/publication-failed.event';
+import { PublicationSucceededEvent } from '../../../domain/pub/events/publication-succeeded.event';
 import { type CompositionLayoutPort, type LayoutRead } from '../ports/composition-layout.port';
 import { type CompositionMetadataPort, type MetadadosRead } from '../ports/composition-metadata.port';
 import { type EpubValidationPort, type ValidationReport } from '../ports/epub-validation.port';
@@ -77,6 +81,8 @@ export class PublicationBuildJob {
     private readonly fileStoragePort: FileStoragePort,
     @Inject(ADVANCE_PROJETO_STATUS_PORT)
     private readonly advanceProjetoStatusPort: AdvanceProjetoStatusPort,
+    @Inject(EVENT_PUBLISHER_PORT)
+    private readonly eventEmitter: EventPublisherPort,
   ) {}
 
   async run(input: PublicationBuildJobInput): Promise<void> {
@@ -108,7 +114,11 @@ export class PublicationBuildJob {
         buildResult,
         input,
       );
+      // Persist the terminal outcome BEFORE dispatching any domain event (PUB-004).
       await this.repository.save(terminal);
+
+      // Dispatch domain event after persistence — timing is contractual (PUB-004).
+      this.dispatchOutcomeEvent(terminal, targetStatus, input, buildResult);
 
       await this.requestProjectStatus(input.projetoId, targetStatus, input.publicacaoId, bearerToken);
     } catch (error) {
@@ -233,11 +243,60 @@ export class PublicationBuildJob {
           totalAvisos: 0,
           concluidaEm: new Date(),
         });
+        // Persist failure BEFORE dispatching the domain event (PUB-004).
         await this.repository.save(comErros);
+        this.dispatchOutcomeEvent(comErros, 'com_erros', input, { epubBytes: Buffer.alloc(0), totalCapitulos: 0, totalImagens: 0 });
         await this.requestProjectStatus(input.projetoId, 'com_erros', input.publicacaoId, input.bearerToken ?? '');
         return null;
       }
       throw error;
+    }
+  }
+
+  /**
+   * Dispatches the appropriate domain event after the terminal Publicacao
+   * state has been **durably persisted** (PUB-004).
+   *
+   * Called as the LAST step before `requestProjectStatus` so the event is
+   * never emitted before the database write commits. Best-effort: failures
+   * in the event bus are logged and swallowed — they must not affect the
+   * recorded build result (same resilience contract as `advanceTo`).
+   */
+  private dispatchOutcomeEvent(
+    terminal: PublicacaoEntity,
+    targetStatus: ProjetoTargetStatus,
+    input: PublicationBuildJobInput,
+    buildResult: { epubBytes: Buffer; totalCapitulos: number; totalImagens: number },
+  ): void {
+    try {
+      if (targetStatus === 'publicado') {
+        this.eventEmitter.emit(
+          'publication.succeeded',
+          new PublicationSucceededEvent({
+            publicacaoId: input.publicacaoId,
+            projetoId: input.projetoId,
+            empresaId: input.empresaId,
+            tamanhoBytes: terminal.tamanhoBytes ?? buildResult.epubBytes.byteLength,
+            totalCapitulos: terminal.totalCapitulos ?? buildResult.totalCapitulos,
+            totalImagens: terminal.totalImagens ?? buildResult.totalImagens,
+          }),
+        );
+      } else {
+        this.eventEmitter.emit(
+          'publication.failed',
+          new PublicationFailedEvent({
+            publicacaoId: input.publicacaoId,
+            projetoId: input.projetoId,
+            empresaId: input.empresaId,
+            reason: terminal.resumoErro ?? 'publication build failed',
+          }),
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `domain event dispatch failed for publicacao ${input.publicacaoId}`,
+        error as Error,
+      );
     }
   }
 

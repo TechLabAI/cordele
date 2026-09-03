@@ -1,11 +1,11 @@
 {
   "issue": "PUB-014",
   "layer": "be",
-  "computedAt": "2026-09-03T09:32:37",
+  "computedAt": "2026-09-03T09:59:10",
   "checklist": {
     "total": 9,
-    "done": 8,
-    "partial": 1,
+    "done": 9,
+    "partial": 0,
     "missing": 0,
     "blocked": 0,
     "items": [
@@ -20,9 +20,9 @@
         "evidence": "arquivo(s) presente(s) e nao-stub: src/domain/pub/ports/publication-history.port.ts"
       },
       {
-        "text": "`src/modules/pub/publication-history.service.spec.ts` — NÃO EXISTE spec dedicada; comportamento testado via `use-cases/get-publication-history.use-case.spec.ts` e BDD (22/22 scenarios PASS); gap identificado em P12",
-        "state": "PARTIAL",
-        "evidence": "parcial -- faltam: use-cases/get-publication-history.use-case.spec.ts"
+        "text": "`src/modules/pub/publication-history.service.spec.ts` — spec dedicada implementada em P15 (10 testes: latest batch, history, signedDownloadUrl); exercita `latest()`, `history()`, `signedDownloadUrl()` com mocks de repository e fileStorage",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: src/modules/pub/publication-history.service.spec.ts"
       },
       {
         "text": "`src/modules/pub/pub.module.ts` — exporta `PUBLICATION_HISTORY_PORT` token; verificado P12",
@@ -35,7 +35,7 @@
         "evidence": "arquivo(s) presente(s) e nao-stub: src/infrastructure/persistence/prisma-publicacao.repository.ts"
       },
       {
-        "text": "`pnpm test publication-history.service.spec.ts exits 0` — NÃO EXISTE spec dedicada (gap identificado)",
+        "text": "`pnpm test publication-history.service.spec.ts exits 0` — spec dedicada implementada em P15, todos os testes PASS",
         "state": "DONE",
         "evidence": "arquivo(s) presente(s) e nao-stub: publication-history.service.spec.ts"
       },
@@ -57,38 +57,38 @@
     ]
   },
   "gates": {
-    "build": "unknown",
-    "lint": "unknown",
-    "test": "unknown",
-    "e2e": "unknown"
+    "build": "pass",
+    "lint": "pass",
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 43,
+    "total": 93,
     "provisional": false,
     "range": [
-      43,
-      43
+      93,
+      93
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 13,
+        "value": 30,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 27,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
@@ -98,10 +98,10 @@
         "needsAgentConfirm": false
       }
     },
-    "band": "Parcial",
+    "band": "Maduro",
     "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 27/30 -- a funcionalidade alvo funciona?"
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?"
   ]
 }
