@@ -17,8 +17,7 @@
     "paths": {
       "@cordele/imp": ["libs/imp/src/index.ts"],
       "@cordele/comp": ["libs/comp/src/index.ts"],
-      "@cordele/pub": ["libs/pub/src/index.ts"],
-      "@cordele/proj": ["libs/proj/src/index.ts"],
+"@cordele/proj": ["libs/proj/src/index.ts"],
       "@cordele/shared/auth-session": ["libs/shared/auth-session/src/index.ts"],
       "@cordele/shared/empresa-context": [
         "libs/shared/empresa-context/src/index.ts"
