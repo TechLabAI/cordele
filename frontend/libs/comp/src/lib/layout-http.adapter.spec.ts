@@ -151,4 +151,46 @@ describe('LayoutHttpAdapter', () => {
       overrides: [],
     });
   });
+
+  /**
+   * URL prefix regression guard.
+   *
+   * Locks the /api/v1/comp/ prefix so that a revert to /api/comp/ is caught here
+   * before reaching runtime. URL is derived from moduleBase('comp') — never hardcoded.
+   */
+  describe('URL prefix regression guard', () => {
+    it('getLayout uses /api/v1/comp/ prefix (not /api/comp/)', () => {
+      adapter.getLayout(PROJECT_ID).subscribe();
+      httpMock.expectNone(r => r.url.startsWith('/api/comp/'));
+      const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/comp/'));
+      expect(req.request.url).toBe(`${BASE}/layout`);
+      req.flush(MOCK_LAYOUT);
+    });
+
+    it('upsertLayout uses /api/v1/comp/ prefix (not /api/comp/)', () => {
+      const body: UpsertLayoutBody = {
+        fonteCorpoFamilia: 'serif',
+        fonteCorpoTamanho: 12,
+        espacamentoLinha: 1.5,
+        margemLateral: 20,
+        h1Tamanho: 28,
+        h2Tamanho: 22,
+        h3Tamanho: 18,
+        overrides: [],
+      };
+      adapter.upsertLayout(PROJECT_ID, body).subscribe();
+      httpMock.expectNone(r => r.url.startsWith('/api/comp/'));
+      const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/comp/'));
+      expect(req.request.url).toBe(`${BASE}/layout`);
+      req.flush(MOCK_LAYOUT);
+    });
+
+    it('getPreviewContext uses /api/v1/comp/ prefix (not /api/comp/)', () => {
+      adapter.getPreviewContext(PROJECT_ID).subscribe();
+      httpMock.expectNone(r => r.url.startsWith('/api/comp/'));
+      const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/comp/'));
+      expect(req.request.url).toBe(`${BASE}/preview-context`);
+      req.flush({ projetoId: PROJECT_ID, arvore: [], layout: MOCK_LAYOUT, overrides: [] });
+    });
+  });
 });

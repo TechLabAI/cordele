@@ -6,9 +6,11 @@
  */
 import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { HttpErrorResponse } from '@angular/common/http';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { HttpErrorResponse, provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ProjetoApiService } from './projeto-api.service';
+import { ACCESS_EMPRESA_ID, moduleBase } from '@cordele/shared/access-http-base';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -134,5 +136,104 @@ describe('ProjetoApiService', () => {
       expect(deleteSpy).toHaveBeenCalledWith('/api/v1/proj/projetos/proj-1');
       expect(emitted).toBeUndefined();
     });
+  });
+});
+
+/**
+ * ProjetoApiService — URL prefix regression guard.
+ *
+ * The tests above (spy-based) already verify URL strings but with hardcoded literals.
+ * These tests use provideHttpClientTesting() to intercept real HTTP calls and derive
+ * the expected URLs from moduleBase('proj') — the same source as production code —
+ * so the guard cannot become a copy of the bug.
+ *
+ * A revert of ACCESS_HTTP_BASE from '/api/v1' to '/api' would change what moduleBase()
+ * returns AND what the adapter constructs, causing both to change together; that's why
+ * deriving from moduleBase() is the correct approach: if someone changes only one side,
+ * the guard catches it. If both sides are changed (the regression), the guard also catches
+ * it because the expectOne predicate would find no matching request.
+ *
+ * ProjetoApiService extends AccessHttpClient which wraps inject(HttpClient).
+ * With provideHttpClientTesting(), Angular replaces the HttpBackend with a mock,
+ * so every inherited get/post/delete call is intercepted here.
+ */
+describe('ProjetoApiService — URL prefix regression guard', () => {
+  let service: ProjetoApiService;
+  let httpMock: HttpTestingController;
+
+  /** Derives from moduleBase so spec tracks the same source as production code. */
+  const PROJ_BASE = `${moduleBase('proj')}/projetos`;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      providers: [
+        ProjetoApiService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: ACCESS_EMPRESA_ID, useValue: 'emp-aetos' },
+      ],
+    });
+    service  = TestBed.inject(ProjetoApiService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
+  it('listProjetos uses /api/v1/proj/ prefix (not /api/proj/)', () => {
+    service.listProjetos().subscribe();
+    httpMock.expectNone(r => r.url.startsWith('/api/proj/'));
+    const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/proj/'));
+    expect(req.request.url).toBe(PROJ_BASE);
+    req.flush([]);
+  });
+
+  it('getProjeto uses /api/v1/proj/ prefix (not /api/proj/)', () => {
+    service.getProjeto('proj-1').subscribe();
+    httpMock.expectNone(r => r.url.startsWith('/api/proj/'));
+    const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/proj/'));
+    expect(req.request.url).toBe(`${PROJ_BASE}/proj-1`);
+    req.flush({ id: 'proj-1' });
+  });
+
+  it('listPublicacoes uses /api/v1/proj/ prefix (not /api/proj/)', () => {
+    service.listPublicacoes('proj-1').subscribe();
+    httpMock.expectNone(r => r.url.startsWith('/api/proj/'));
+    const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/proj/'));
+    expect(req.request.url).toBe(`${PROJ_BASE}/proj-1/publicacoes`);
+    req.flush([]);
+  });
+
+  it('resolveDownloadUrl uses /api/v1/proj/ prefix (not /api/proj/)', () => {
+    service.resolveDownloadUrl('proj-1', 'pub-1').subscribe();
+    httpMock.expectNone(r => r.url.startsWith('/api/proj/'));
+    const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/proj/'));
+    expect(req.request.url).toBe(`${PROJ_BASE}/proj-1/publicacoes/pub-1/download`);
+    req.flush({ publicacaoId: 'pub-1', arquivoUrl: 'https://cdn.example.com/file.epub', expiresAt: '' });
+  });
+
+  it('reopenProjeto uses /api/v1/proj/ prefix (not /api/proj/)', () => {
+    service.reopenProjeto('proj-1').subscribe();
+    httpMock.expectNone(r => r.url.startsWith('/api/proj/'));
+    const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/proj/'));
+    expect(req.request.url).toBe(`${PROJ_BASE}/proj-1/reopen`);
+    req.flush({ id: 'proj-1', status: 'em_composicao' });
+  });
+
+  it('createProjeto uses /api/v1/proj/ prefix (not /api/proj/)', () => {
+    service.createProjeto({ nome: 'Novo Projeto' }).subscribe();
+    httpMock.expectNone(r => r.url.startsWith('/api/proj/'));
+    const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/proj/'));
+    expect(req.request.url).toBe(PROJ_BASE);
+    req.flush({ id: 'new-id' });
+  });
+
+  it('deleteProjeto uses /api/v1/proj/ prefix (not /api/proj/)', () => {
+    service.deleteProjeto('proj-1').subscribe();
+    httpMock.expectNone(r => r.url.startsWith('/api/proj/'));
+    const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/proj/'));
+    expect(req.request.url).toBe(`${PROJ_BASE}/proj-1`);
+    req.flush(null, { status: 204, statusText: 'No Content' });
   });
 });

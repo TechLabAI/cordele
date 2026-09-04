@@ -17,7 +17,7 @@ import { ActivatedRouteSnapshot, Router, UrlTree } from '@angular/router';
 import { beforeEach, afterEach, describe, expect, it } from 'vitest';
 import { lastValueFrom } from 'rxjs';
 import { Observable } from 'rxjs';
-import { ACCESS_EMPRESA_ID } from '@cordele/shared/access-http-base';
+import { ACCESS_EMPRESA_ID, moduleBase } from '@cordele/shared/access-http-base';
 import { compStatusGuard } from './comp-status.guard';
 
 const PROJECT_ID = 'proj-guard-001';
@@ -156,5 +156,36 @@ describe('compStatusGuard', () => {
     httpMock.expectNone(`/api/v1/proj/projetos/`);
     const url = urlTreeToString(result as UrlTree);
     expect(url).toContain('biblioteca-de-projetos');
+  });
+
+  /**
+   * URL prefix regression guard — critical: this COMP guard calls PROJ-service.
+   *
+   * Locks two things at once:
+   *   1. The versioned /api/v1/proj/ prefix (not /api/proj/).
+   *   2. That the guard talks to proj-service (moduleBase('proj')), NOT comp-service.
+   *      The natural "fix" for a confused reader would be to change 'proj' to 'comp' —
+   *      this guard makes that regression visible immediately.
+   *
+   * URL derived from moduleBase('proj') — never hardcoded.
+   */
+  it('GET uses /api/v1/proj/ prefix (not /api/proj/) — guard calls proj-service, not comp-service', async () => {
+    const route = makeRoute(PROJECT_ID);
+    const PROJ_BASE = moduleBase('proj');
+
+    const resultPromise = TestBed.runInInjectionContext(() => {
+      const obs = compStatusGuard(route, {} as never) as Observable<boolean | UrlTree>;
+      return lastValueFrom(obs);
+    });
+
+    // negative: no request to un-versioned path or accidentally to comp-service
+    httpMock.expectNone(r => r.url.startsWith('/api/proj/'));
+    httpMock.expectNone(r => r.url.startsWith('/api/comp/'));
+
+    const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/proj/'));
+    expect(req.request.url).toBe(`${PROJ_BASE}/projetos/${PROJECT_ID}`);
+    req.flush({ id: PROJECT_ID, status: 'em_composicao' });
+
+    await resultPromise;
   });
 });
