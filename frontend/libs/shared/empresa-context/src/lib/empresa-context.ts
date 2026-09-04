@@ -76,6 +76,7 @@ export class EmpresaContextService {
         // NgZone.run() ensures Angular's change detection triggers after the signal update.
         this.ngZone.run(() => this._storageEmpresaId.set(id));
       });
+    // eslint-disable-next-line no-restricted-syntax -- SSR / sandboxed iframe: window.addEventListener is unavailable; silence is correct and no alternative exists
     } catch {
       // SSR or sandboxed iframe — window not available.
     }

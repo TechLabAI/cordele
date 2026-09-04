@@ -72,6 +72,7 @@ function initAuthSession(): () => void {
       if (token) {
         authService.setToken(token);
       }
+    // eslint-disable-next-line no-restricted-syntax -- SSR/sandbox: localStorage unavailable in some environments (SSR, sandboxed iframes, private-browsing locks); silence is correct here because the app initializes without a token and Keycloak redirect handles re-auth.
     } catch {
       // localStorage unavailable (SSR, sandboxed iframe, private-browsing locks) — safe to ignore.
     }

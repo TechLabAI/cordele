@@ -138,6 +138,7 @@ export class LibraryFacade {
         this.projetoApi.resolveDownloadUrl(card.id, latest.publicacaoId),
       );
       window.open(signed.arquivoUrl, '_blank', 'noopener,noreferrer');
+    // eslint-disable-next-line no-restricted-syntax -- quick-download failure is intentionally silent per UX spec (user retries from the full history view T08). A toast requires product decision about message text and is tracked separately.
     } catch {
       // Non-blocking: quick-download failure is silent (user can try from T08)
     }
