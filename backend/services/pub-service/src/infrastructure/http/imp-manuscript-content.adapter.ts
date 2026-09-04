@@ -49,7 +49,7 @@ export class ImpManuscriptContentAdapter implements ManuscriptContentPort {
   private readonly impBaseUrl: string;
 
   constructor(config: ConfigService) {
-    this.impBaseUrl = config.get<string>('IMP_SERVICE_URL') ?? 'http://localhost:3001';
+    this.impBaseUrl = config.getOrThrow<string>('IMP_SERVICE_URL');
   }
 
   async getContentTree(projetoId: string, bearerToken: string): Promise<ManuscriptContentTree | null> {

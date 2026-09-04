@@ -100,6 +100,7 @@ export class EpubcheckValidationAdapter implements EpubValidationPort {
   private async cleanup(path: string): Promise<void> {
     try {
       await unlink(path);
+    // eslint-disable-next-line no-restricted-syntax -- best-effort cleanup: ENOENT means the file was never created; propagating it would mask the real error from the caller.
     } catch {
       // Ignore ENOENT — file may not have been created yet
     }

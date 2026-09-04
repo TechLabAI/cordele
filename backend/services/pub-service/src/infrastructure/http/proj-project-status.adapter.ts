@@ -50,7 +50,7 @@ export class ProjProjectStatusAdapter implements AdvanceProjetoStatusPort {
   private readonly projBaseUrl: string;
 
   constructor(config: ConfigService) {
-    this.projBaseUrl = config.get<string>('PROJ_SERVICE_BASE_URL') ?? 'http://localhost:3002';
+    this.projBaseUrl = config.getOrThrow<string>('PROJ_SERVICE_BASE_URL');
   }
 
   async advanceTo(
@@ -103,6 +103,7 @@ export class ProjProjectStatusAdapter implements AdvanceProjetoStatusPort {
     let errorBody: ProjErrorResponse = {};
     try {
       errorBody = (await response.json()) as ProjErrorResponse;
+    // eslint-disable-next-line no-restricted-syntax -- best-effort: JSON parse failure on the PROJ error-response body only affects log enrichment; the outer throw always runs unconditionally, so no error is swallowed.
     } catch {
       // Ignore parse failure — use status code as the reason.
     }
