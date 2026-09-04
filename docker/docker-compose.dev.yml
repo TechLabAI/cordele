@@ -110,6 +110,12 @@ services:
       DATABASE_URL: postgresql://cordele:cordele@postgres:5432/cordele_dev?schema=public
       JWT_ISSUER_URI: http://host.docker.internal:8180/realms/cordele
       JWT_AUDIENCE: proj-service
+      # Cross-context read-port adapters — activates real HTTP adapters over stubs.
+      # Absent URLs fall back to in-memory stubs (PROJ-INT-001..003) and mark
+      # the response degraded=true (Problem 3 fix).
+      IMP_SERVICE_URL: http://imp-service:3000
+      COMP_SERVICE_URL: http://comp-service:3000
+      PUB_SERVICE_URL: http://pub-service:3000
     ports:
       - "3003:3000"
     depends_on:
