@@ -53,7 +53,10 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       username: payload.preferred_username ?? payload.email ?? payload.sub,
       roles: payload.realm_access?.roles ?? [],
       scopes: (payload.scope ?? '').split(' ').filter((scope) => scope.length > 0),
-      empresaId: payload.empresa_id ?? '',
+      // Normalize: strip any legacy "emp_" prefix so empresaId is always the
+      // plain slug (e.g. "aetos"). TenantPrismaFactory prepends "emp_" when
+      // opening the schema, so the full chain always produces "emp_<slug>".
+      empresaId: (payload.empresa_id ?? '').replace(/^emp_/, ''),
     };
   }
 }

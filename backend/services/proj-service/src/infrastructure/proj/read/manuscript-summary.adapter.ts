@@ -9,8 +9,15 @@
  * RULE-05: infrastructure must not import modules/.
  * RULE-06: this is the correct place for outbound HTTP clients.
  *
- * Error handling: when IMP is unreachable, the adapter returns empty Map
- * and logs WARN. Callers (GetProjetoLibraryUseCase) degrade gracefully.
+ * Degradation contract:
+ *   - Empty projetoIds → returns empty Map (legitimate, not a degradation).
+ *   - Missing IMP_SERVICE_URL → throws Error (callPort in use case marks degraded).
+ *   - Non-2xx HTTP response → throws Error (callPort in use case marks degraded).
+ *   - Network/fetch error → propagates (callPort in use case marks degraded).
+ *
+ * Bearer token is forwarded from the originating request so the IMP service
+ * validates the same JWT principal and scope (imp:read). The header is mounted
+ * only when a token is present; its value is never logged (security gate).
  */
 
 import { Injectable, Logger } from '@nestjs/common';
@@ -23,7 +30,6 @@ import type {
 
 /**
  * Shape of the response from IMP's batch-query endpoint.
- * Adjust to match IMP's actual contract when IMP is scaffolded.
  */
 interface ImpManuscriptResponse {
   projetoId: string;
@@ -40,6 +46,7 @@ export class ImpManuscriptSummaryAdapter implements ManuscriptSummaryPort {
   async summaries(
     projetoIds: string[],
     empresaId: string,
+    bearerToken?: string,
   ): Promise<Map<string, ManuscriptSummary>> {
     if (projetoIds.length === 0) {
       return new Map();
@@ -47,42 +54,39 @@ export class ImpManuscriptSummaryAdapter implements ManuscriptSummaryPort {
 
     const baseUrl = this.config.get<string>('IMP_SERVICE_URL');
     if (!baseUrl) {
-      this.logger.warn('IMP_SERVICE_URL not configured — returning empty summaries');
-      return new Map();
+      throw new Error('IMP_SERVICE_URL not configured — cannot fetch manuscript summaries');
     }
 
-    try {
-      const url = `${baseUrl}/api/v1/imp/manuscripts/summaries`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Empresa-Id': empresaId,
-        },
-        body: JSON.stringify({ projetoIds }),
-      });
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-Empresa-Id': empresaId,
+    };
+    if (bearerToken) {
+      headers['Authorization'] = `Bearer ${bearerToken}`;
+      this.logger.debug('ImpManuscriptSummaryAdapter: Authorization header mounted');
+    }
 
-      if (!response.ok) {
-        this.logger.warn(
-          `IMP manuscript summaries returned ${response.status} — degrading`,
-        );
-        return new Map();
-      }
+    const url = `${baseUrl}/api/v1/imp/manuscripts/summaries`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ projetoIds }),
+    });
 
-      const data = (await response.json()) as ImpManuscriptResponse[];
-      const result = new Map<string, ManuscriptSummary>();
-      for (const item of data) {
-        result.set(item.projetoId, {
-          totalCapitulos: item.totalCapitulos,
-          totalImagens: item.totalImagens,
-        });
-      }
-      return result;
-    } catch (err) {
-      this.logger.warn(
-        `ImpManuscriptSummaryAdapter error — degrading: ${(err as Error).message}`,
+    if (!response.ok) {
+      throw new Error(
+        `IMP manuscripts/summaries returned ${response.status} for empresaId=${empresaId}`,
       );
-      return new Map();
     }
+
+    const data = (await response.json()) as ImpManuscriptResponse[];
+    const result = new Map<string, ManuscriptSummary>();
+    for (const item of data) {
+      result.set(item.projetoId, {
+        totalCapitulos: item.totalCapitulos,
+        totalImagens: item.totalImagens,
+      });
+    }
+    return result;
   }
 }

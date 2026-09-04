@@ -110,7 +110,7 @@ class TestJwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       username: payload.sub,
       roles: payload.realm_access?.roles ?? [],
       scopes: (payload.scope ?? '').split(' ').filter((s) => s.length > 0),
-      empresaId: payload.empresa_id ?? '',
+      empresaId: (payload.empresa_id ?? '').replace(/^emp_/, ''),
     };
   }
 }

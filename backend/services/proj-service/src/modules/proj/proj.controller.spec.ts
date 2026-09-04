@@ -52,14 +52,14 @@ describe('ProjController', () => {
   let controller: ProjController;
 
   const NOW = new Date('2026-08-25T10:00:00Z');
-  const user = { id: 'user-1', empresaId: 'emp_aetos', scopes: ['proj:read', 'proj:write'] };
+  const user = { id: 'user-1', empresaId: 'aetos', scopes: ['proj:read', 'proj:write'] };
 
   const mockCreateUseCase = {
     execute: jest.fn().mockResolvedValue({
       id: 'proj-id-1',
       nome: 'Romance das Cidades',
       descricao: null,
-      editoraId: 'emp_aetos',
+      editoraId: 'aetos',
       status: 'rascunho',
       criadoEm: NOW,
       atualizadoEm: NOW,
@@ -81,7 +81,7 @@ describe('ProjController', () => {
   const mockDetailUseCase = {
     execute: jest.fn().mockResolvedValue({
       id: 'proj-id-1',
-      editoraId: 'emp_aetos',
+      editoraId: 'aetos',
       nome: 'Romance das Cidades',
       descricao: null,
       status: 'rascunho',
@@ -174,8 +174,9 @@ describe('ProjController', () => {
     });
 
     it('accepts optional status, limit and cursor query params without throwing', async () => {
+      // Third arg is authHeader (new), then status, limit, cursor
       await expect(
-        controller.findAll(user, mockRes, 'rascunho', 10, 'cursor-abc'),
+        controller.findAll(user, mockRes, undefined, 'rascunho', 10, 'cursor-abc'),
       ).resolves.toBeDefined();
     });
 

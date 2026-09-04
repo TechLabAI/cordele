@@ -3,6 +3,13 @@
  *
  * Uses jest-fetch-mock pattern: replaces globalThis.fetch with a jest mock
  * to avoid real HTTP calls while keeping the adapter logic testable.
+ *
+ * Post-fix (2026-09-04) contract:
+ *   - Empty projetoIds → empty Map (no HTTP call, not a degradation).
+ *   - Missing IMP_SERVICE_URL → throws (callPort marks degraded).
+ *   - Non-2xx HTTP → throws (callPort marks degraded).
+ *   - Network error → propagates (callPort marks degraded).
+ *   - Authorization header mounted when bearerToken provided.
  */
 
 import { ConfigService } from '@nestjs/config';
@@ -39,12 +46,20 @@ describe('ImpManuscriptSummaryAdapter', () => {
     adapter = new ImpManuscriptSummaryAdapter(mockConfig);
   });
 
+  // ---------------------------------------------------------------------------
+  // Legitimate empty input
+  // ---------------------------------------------------------------------------
+
   it('returns empty Map for empty projetoIds (no HTTP call)', async () => {
     const result = await adapter.summaries([], 'emp-aetos');
 
     expect(result.size).toBe(0);
     expect(mockFetch).not.toHaveBeenCalled();
   });
+
+  // ---------------------------------------------------------------------------
+  // Happy path
+  // ---------------------------------------------------------------------------
 
   it('makes exactly 1 call to IMP for any number of project IDs', async () => {
     const ids = ['id-1', 'id-2', 'id-3'];
@@ -81,29 +96,67 @@ describe('ImpManuscriptSummaryAdapter', () => {
     expect(summary!.totalImagens).toBe(3);
   });
 
-  it('returns empty Map (not thrown error) when IMP returns non-200', async () => {
+  // ---------------------------------------------------------------------------
+  // Degradation: adapter throws so callPort can mark degraded=true (Problem 1 fix)
+  // ---------------------------------------------------------------------------
+
+  it('throws when IMP returns non-200 (callPort will catch and mark degraded)', async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 503 });
 
-    const result = await adapter.summaries(['id-1'], 'emp-aetos');
-
-    expect(result.size).toBe(0);
+    await expect(adapter.summaries(['id-1'], 'emp-aetos')).rejects.toThrow(
+      /503/,
+    );
   });
 
-  it('returns empty Map (not thrown error) when IMP is unreachable', async () => {
+  it('throws when IMP is unreachable (callPort will catch and mark degraded)', async () => {
     mockFetch.mockRejectedValue(new Error('ECONNREFUSED'));
 
-    const result = await adapter.summaries(['id-1'], 'emp-aetos');
-
-    expect(result.size).toBe(0);
+    await expect(adapter.summaries(['id-1'], 'emp-aetos')).rejects.toThrow(
+      'ECONNREFUSED',
+    );
   });
 
-  it('returns empty Map when IMP_SERVICE_URL is not configured', async () => {
+  it('throws when IMP_SERVICE_URL is not configured (callPort will catch and mark degraded)', async () => {
     mockConfig.get = jest.fn().mockReturnValue(undefined);
     adapter = new ImpManuscriptSummaryAdapter(mockConfig);
 
-    const result = await adapter.summaries(['id-1'], 'emp-aetos');
-
-    expect(result.size).toBe(0);
+    await expect(adapter.summaries(['id-1'], 'emp-aetos')).rejects.toThrow(
+      'IMP_SERVICE_URL not configured',
+    );
     expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Bearer token propagation (Problem 2 fix)
+  // ---------------------------------------------------------------------------
+
+  it('mounts Authorization header when bearerToken is provided', async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+
+    await adapter.summaries(['id-1'], 'emp-aetos', 'test-token-123');
+
+    const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+    const headers = options.headers as Record<string, string>;
+    expect(headers['Authorization']).toBe('Bearer test-token-123');
+  });
+
+  it('does NOT mount Authorization header when bearerToken is absent', async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+
+    await adapter.summaries(['id-1'], 'emp-aetos');
+
+    const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+    const headers = options.headers as Record<string, string>;
+    expect(headers['Authorization']).toBeUndefined();
+  });
+
+  it('always sends X-Empresa-Id regardless of bearerToken', async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+
+    await adapter.summaries(['id-1'], 'emp-aetos', 'tok');
+
+    const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+    const headers = options.headers as Record<string, string>;
+    expect(headers['X-Empresa-Id']).toBe('emp-aetos');
   });
 });

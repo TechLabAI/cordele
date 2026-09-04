@@ -32,6 +32,8 @@ import {
 export interface GetProjetoDetailInput {
   readonly projetoId: string;
   readonly empresaId: string;
+  /** JWT bearer from the originating HTTP request, forwarded to cross-context ports. */
+  readonly bearerToken?: string;
 }
 
 /** null when the project does not exist or belongs to a different empresa. */
@@ -71,21 +73,21 @@ export class GetProjetoDetailUseCase {
 
     // Batched: one call per port even for a single project
     const summaries = await this.callPort(
-      () => this.manuscriptPort.summaries([input.projetoId], input.empresaId),
+      () => this.manuscriptPort.summaries([input.projetoId], input.empresaId, input.bearerToken),
       'ManuscriptSummaryPort',
       new Map(),
       markDegraded,
     );
 
     const metadataMap = await this.callPort(
-      () => this.metadataPort.metadata([input.projetoId], input.empresaId),
+      () => this.metadataPort.metadata([input.projetoId], input.empresaId, input.bearerToken),
       'ProjectMetadataPort',
       new Map(),
       markDegraded,
     );
 
     const publicationHistory = await this.callPort(
-      () => this.publicationPort.history(input.projetoId, input.empresaId),
+      () => this.publicationPort.history(input.projetoId, input.empresaId, input.bearerToken),
       'PublicationHistoryPort',
       [],
       markDegraded,

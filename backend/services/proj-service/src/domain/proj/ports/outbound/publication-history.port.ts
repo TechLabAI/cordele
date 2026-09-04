@@ -60,16 +60,18 @@ export interface PublicationHistoryPort {
   latest(
     projetoIds: string[],
     empresaId: string,
+    bearerToken?: string,
   ): Promise<Map<string, LatestPublicationSummary>>;
 
   /**
    * Returns the full publication history for one project, ordered by criadoEm DESC.
    * Returns empty array when the project has never been published.
    *
-   * @param projetoId - single project UUID
-   * @param empresaId - active tenant
+   * @param projetoId   - single project UUID
+   * @param empresaId   - active tenant
+   * @param bearerToken - JWT bearer from the originating request (forwarded to PUB)
    */
-  history(projetoId: string, empresaId: string): Promise<PublicationRecord[]>;
+  history(projetoId: string, empresaId: string, bearerToken?: string): Promise<PublicationRecord[]>;
 
   /**
    * Returns a short-TTL signed URL for downloading the ePub artifact.
@@ -78,11 +80,15 @@ export interface PublicationHistoryPort {
    * before calling this method.
    *
    * @param publicacaoId - UUID of the specific publication
+   * @param projetoId    - UUID of the owning project (required by PUB's download endpoint)
    * @param empresaId    - active tenant
+   * @param bearerToken  - JWT bearer from the originating request (forwarded to PUB)
    */
   signedDownloadUrl(
     publicacaoId: string,
+    projetoId: string,
     empresaId: string,
+    bearerToken?: string,
   ): Promise<SignedDownloadUrlResult>;
 }
 

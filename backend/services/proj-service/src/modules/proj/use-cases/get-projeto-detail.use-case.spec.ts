@@ -206,4 +206,52 @@ describe('GetProjetoDetailUseCase', () => {
       expect(loggerWarnSpy).not.toHaveBeenCalled();
     });
   });
+
+  // ---------------------------------------------------------------------------
+  // Bearer token forwarding (Problem 2 fix)
+  // ---------------------------------------------------------------------------
+
+  describe('bearer token forwarding', () => {
+    it('forwards bearerToken from input to all three ports', async () => {
+      repository.findById.mockResolvedValue(makeProject());
+      manuscriptPort.summaries.mockResolvedValue(new Map());
+      metadataPort.metadata.mockResolvedValue(new Map());
+      publicationPort.history.mockResolvedValue([]);
+
+      await useCase.execute({ projetoId: PROJETO_ID, empresaId: EMPRESA_ID, bearerToken: 'test-jwt' });
+
+      expect(manuscriptPort.summaries).toHaveBeenCalledWith(
+        [PROJETO_ID], EMPRESA_ID, 'test-jwt',
+      );
+      expect(metadataPort.metadata).toHaveBeenCalledWith(
+        [PROJETO_ID], EMPRESA_ID, 'test-jwt',
+      );
+      expect(publicationPort.history).toHaveBeenCalledWith(
+        PROJETO_ID, EMPRESA_ID, 'test-jwt',
+      );
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Real-adapter degradation path (Problem 1 fix)
+  // ---------------------------------------------------------------------------
+
+  describe('real-adapter degradation (Problem 1 fix)', () => {
+    it('returns degraded=true when real adapter throws (simulated non-OK HTTP response)', async () => {
+      repository.findById.mockResolvedValue(makeProject());
+      // Simulate real IMP adapter throwing because IMP returned 404 (not returning empty Map)
+      manuscriptPort.summaries.mockRejectedValue(
+        new Error('IMP manuscripts/summaries returned 404 for empresaId=emp-aetos'),
+      );
+      metadataPort.metadata.mockResolvedValue(new Map());
+      publicationPort.history.mockResolvedValue([]);
+
+      const result = await useCase.execute({ projetoId: PROJETO_ID, empresaId: EMPRESA_ID });
+
+      expect(result).not.toBeNull();
+      expect(result!.degraded).toBe(true);
+      // Own fields always present
+      expect(result!.id).toBe(PROJETO_ID);
+    });
+  });
 });

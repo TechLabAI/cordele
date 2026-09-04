@@ -102,11 +102,11 @@ describe('GetProjetoLibraryUseCase', () => {
       expect(metadataPort.metadata).toHaveBeenCalledTimes(1);
       expect(publicationPort.latest).toHaveBeenCalledTimes(1);
 
-      // All 5 project IDs passed in one call (no N+1)
+      // All 5 project IDs passed in one call (no N+1); bearerToken=undefined (no token in test input)
       const ids = projects.map((p) => p.id);
-      expect(manuscriptPort.summaries).toHaveBeenCalledWith(ids, 'emp-aetos');
-      expect(metadataPort.metadata).toHaveBeenCalledWith(ids, 'emp-aetos');
-      expect(publicationPort.latest).toHaveBeenCalledWith(ids, 'emp-aetos');
+      expect(manuscriptPort.summaries).toHaveBeenCalledWith(ids, 'emp-aetos', undefined);
+      expect(metadataPort.metadata).toHaveBeenCalledWith(ids, 'emp-aetos', undefined);
+      expect(publicationPort.latest).toHaveBeenCalledWith(ids, 'emp-aetos', undefined);
     });
 
     it('makes zero port calls when repository returns empty list', async () => {
@@ -346,6 +346,102 @@ describe('GetProjetoLibraryUseCase', () => {
       const result = await useCase.execute({ empresaId: 'emp-aetos' });
 
       expect(result.degraded).toBe(false);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Bearer token forwarding (Problem 2 fix)
+  // ---------------------------------------------------------------------------
+
+  describe('bearer token forwarding', () => {
+    it('forwards bearerToken from input to all three ports', async () => {
+      const project = makeProject('id-1', ProjetoStatus.publicado);
+      repository.findAll.mockResolvedValue([project]);
+      manuscriptPort.summaries.mockResolvedValue(new Map());
+      metadataPort.metadata.mockResolvedValue(new Map());
+      publicationPort.latest.mockResolvedValue(new Map());
+
+      await useCase.execute({ empresaId: 'emp-aetos', bearerToken: 'test-jwt' });
+
+      expect(manuscriptPort.summaries).toHaveBeenCalledWith(
+        [project.id], 'emp-aetos', 'test-jwt',
+      );
+      expect(metadataPort.metadata).toHaveBeenCalledWith(
+        [project.id], 'emp-aetos', 'test-jwt',
+      );
+      expect(publicationPort.latest).toHaveBeenCalledWith(
+        [project.id], 'emp-aetos', 'test-jwt',
+      );
+    });
+
+    it('passes undefined bearerToken when not provided in input', async () => {
+      const project = makeProject('id-1');
+      repository.findAll.mockResolvedValue([project]);
+      manuscriptPort.summaries.mockResolvedValue(new Map());
+      metadataPort.metadata.mockResolvedValue(new Map());
+      publicationPort.latest.mockResolvedValue(new Map());
+
+      await useCase.execute({ empresaId: 'emp-aetos' });
+
+      expect(manuscriptPort.summaries).toHaveBeenCalledWith(
+        [project.id], 'emp-aetos', undefined,
+      );
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Real-adapter degradation path (Problem 1 fix)
+  // The callPort wrapper catches exceptions thrown by the real adapter and
+  // marks degraded=true. With stub flags all false, the only way degraded fires
+  // is an exception from the port — previously the real adapter returned empty
+  // instead of throwing, so callPort never fired and degraded stayed false.
+  // ---------------------------------------------------------------------------
+
+  describe('real-adapter degradation (Problem 1 fix)', () => {
+    it('returns degraded=true when ManuscriptSummaryPort throws (real adapter path)', async () => {
+      const project = makeProject('id-1');
+      repository.findAll.mockResolvedValue([project]);
+      // Simulate the real adapter throwing because IMP returned 404
+      manuscriptPort.summaries.mockRejectedValue(
+        new Error('IMP manuscripts/summaries returned 404 for empresaId=emp-aetos'),
+      );
+      metadataPort.metadata.mockResolvedValue(new Map());
+      publicationPort.latest.mockResolvedValue(new Map());
+
+      const result = await useCase.execute({ empresaId: 'emp-aetos' });
+
+      // degraded must be true — callPort caught the exception from the real adapter
+      expect(result.degraded).toBe(true);
+      // Other ports still contribute their data
+      expect(result.cards).toHaveLength(1);
+    });
+
+    it('returns degraded=true when CompProjectMetadataPort throws (real adapter path)', async () => {
+      const project = makeProject('id-1');
+      repository.findAll.mockResolvedValue([project]);
+      manuscriptPort.summaries.mockResolvedValue(new Map());
+      metadataPort.metadata.mockRejectedValue(
+        new Error('COMP metadata/batch returned 404 for empresaId=emp-aetos'),
+      );
+      publicationPort.latest.mockResolvedValue(new Map());
+
+      const result = await useCase.execute({ empresaId: 'emp-aetos' });
+
+      expect(result.degraded).toBe(true);
+    });
+
+    it('returns degraded=true when PublicationHistoryPort throws (real adapter path)', async () => {
+      const project = makeProject('id-1');
+      repository.findAll.mockResolvedValue([project]);
+      manuscriptPort.summaries.mockResolvedValue(new Map());
+      metadataPort.metadata.mockResolvedValue(new Map());
+      publicationPort.latest.mockRejectedValue(
+        new Error('PUB publications/latest-batch returned 404 for empresaId=emp-aetos'),
+      );
+
+      const result = await useCase.execute({ empresaId: 'emp-aetos' });
+
+      expect(result.degraded).toBe(true);
     });
   });
 });

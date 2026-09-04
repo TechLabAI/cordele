@@ -26,6 +26,8 @@ import {
 export interface GetPublicationHistoryInput {
   readonly projetoId: string;
   readonly empresaId: string;
+  /** JWT bearer from the originating HTTP request, forwarded to PUB port. */
+  readonly bearerToken?: string;
 }
 
 @Injectable()
@@ -49,6 +51,7 @@ export class GetPublicationHistoryUseCase {
     const records = await this.publicationPort.history(
       input.projetoId,
       input.empresaId,
+      input.bearerToken,
     );
 
     return records.map((r) => this.toDto(r));

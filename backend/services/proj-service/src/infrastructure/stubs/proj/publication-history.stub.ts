@@ -30,6 +30,7 @@ export class PublicationHistoryStub implements PublicationHistoryPort {
   async latest(
     projetoIds: string[],
     empresaId: string,
+    _bearerToken?: string,
   ): Promise<Map<string, LatestPublicationSummary>> {
     if (projetoIds.length === 0) {
       return new Map();
@@ -44,6 +45,7 @@ export class PublicationHistoryStub implements PublicationHistoryPort {
   async history(
     projetoId: string,
     empresaId: string,
+    _bearerToken?: string,
   ): Promise<PublicationRecord[]> {
     this.logger.warn(
       `degraded:true port=PublicationHistoryPort#history projetoId=${projetoId} empresaId=${empresaId}`,
@@ -53,7 +55,9 @@ export class PublicationHistoryStub implements PublicationHistoryPort {
 
   async signedDownloadUrl(
     publicacaoId: string,
+    _projetoId: string,
     empresaId: string,
+    _bearerToken?: string,
   ): Promise<SignedDownloadUrlResult> {
     this.logger.warn(
       `degraded:true port=PublicationHistoryPort#signedDownloadUrl publicacaoId=${publicacaoId} empresaId=${empresaId}`,

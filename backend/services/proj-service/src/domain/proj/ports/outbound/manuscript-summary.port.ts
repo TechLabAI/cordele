@@ -37,6 +37,7 @@ export interface ManuscriptSummaryPort {
   summaries(
     projetoIds: string[],
     empresaId: string,
+    bearerToken?: string,
   ): Promise<Map<string, ManuscriptSummary>>;
 }
 

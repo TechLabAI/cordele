@@ -36,6 +36,8 @@ import {
 export interface GetProjetoLibraryInput {
   readonly empresaId: string;
   readonly status?: ProjetoStatus;
+  /** JWT bearer from the originating HTTP request, forwarded to cross-context ports. */
+  readonly bearerToken?: string;
   /** Accepted but not enforced in POC (G5 reserve). */
   readonly limit?: number;
   /** Accepted but not enforced in POC (G5 reserve). */
@@ -89,21 +91,21 @@ export class GetProjetoLibraryUseCase {
     const markDegraded = () => { degraded = true; };
 
     const summaries = await this.callPort(
-      () => this.manuscriptPort.summaries(ids, input.empresaId),
+      () => this.manuscriptPort.summaries(ids, input.empresaId, input.bearerToken),
       'ManuscriptSummaryPort',
       new Map(),
       markDegraded,
     );
 
     const metadataMap = await this.callPort(
-      () => this.metadataPort.metadata(ids, input.empresaId),
+      () => this.metadataPort.metadata(ids, input.empresaId, input.bearerToken),
       'ProjectMetadataPort',
       new Map(),
       markDegraded,
     );
 
     const latestMap = await this.callPort(
-      () => this.publicationPort.latest(ids, input.empresaId),
+      () => this.publicationPort.latest(ids, input.empresaId, input.bearerToken),
       'PublicationHistoryPort',
       new Map(),
       markDegraded,

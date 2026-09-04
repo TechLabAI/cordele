@@ -1,5 +1,12 @@
 /**
  * Unit tests for CompProjectMetadataAdapter (PROJ-INT-002).
+ *
+ * Post-fix (2026-09-04) contract:
+ *   - Empty projetoIds → empty Map (no HTTP call, not a degradation).
+ *   - Missing COMP_SERVICE_URL → throws (callPort marks degraded).
+ *   - Non-2xx HTTP → throws (callPort marks degraded).
+ *   - Network error → propagates (callPort marks degraded).
+ *   - Authorization header mounted when bearerToken provided.
  */
 
 import { ConfigService } from '@nestjs/config';
@@ -24,12 +31,20 @@ describe('CompProjectMetadataAdapter', () => {
     adapter = new CompProjectMetadataAdapter(mockConfig);
   });
 
+  // ---------------------------------------------------------------------------
+  // Legitimate empty input
+  // ---------------------------------------------------------------------------
+
   it('returns empty Map for empty projetoIds (no HTTP call)', async () => {
     const result = await adapter.metadata([], 'emp-aetos');
 
     expect(result.size).toBe(0);
     expect(mockFetch).not.toHaveBeenCalled();
   });
+
+  // ---------------------------------------------------------------------------
+  // Happy path
+  // ---------------------------------------------------------------------------
 
   it('makes exactly 1 call to COMP for any number of project IDs', async () => {
     const ids = ['id-1', 'id-2'];
@@ -58,8 +73,6 @@ describe('CompProjectMetadataAdapter', () => {
   });
 
   it('returns { autor: null } when COMP returns project without autor field', async () => {
-    // COMP responds with the project but omits the autor field — adapter normalises to null.
-    // autor is typed as string | null | undefined; adapter uses `?? null` to be explicit.
     mockFetch.mockResolvedValue({
       ok: true,
       json: async () => [{ projetoId: 'id-1' }],
@@ -71,12 +84,9 @@ describe('CompProjectMetadataAdapter', () => {
   });
 
   it('project absent from COMP response is absent from the Map — no metadata is not an error', async () => {
-    // When COMP has no record for a project it simply omits it from the batch response.
-    // The adapter must NOT insert the project into the Map with an undefined/null value;
-    // it must leave it absent — callers treat absence as "no COMP data yet" (not degraded).
     mockFetch.mockResolvedValue({
       ok: true,
-      json: async () => [],  // COMP returns empty array — project has no COMP metadata yet
+      json: async () => [],
     });
 
     const result = await adapter.metadata(['id-1'], 'emp-aetos');
@@ -85,19 +95,63 @@ describe('CompProjectMetadataAdapter', () => {
     expect(result.size).toBe(0);
   });
 
-  it('returns empty Map (not thrown error) when COMP is unavailable', async () => {
+  // ---------------------------------------------------------------------------
+  // Degradation: adapter throws so callPort can mark degraded=true (Problem 1 fix)
+  // ---------------------------------------------------------------------------
+
+  it('throws when COMP is unavailable (callPort will catch and mark degraded)', async () => {
     mockFetch.mockRejectedValue(new Error('ECONNREFUSED'));
 
-    const result = await adapter.metadata(['id-1'], 'emp-aetos');
-
-    expect(result.size).toBe(0);
+    await expect(adapter.metadata(['id-1'], 'emp-aetos')).rejects.toThrow('ECONNREFUSED');
   });
 
-  it('returns empty Map (not thrown error) when COMP returns non-200', async () => {
+  it('throws when COMP returns non-200 (callPort will catch and mark degraded)', async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 502 });
 
-    const result = await adapter.metadata(['id-1'], 'emp-aetos');
+    await expect(adapter.metadata(['id-1'], 'emp-aetos')).rejects.toThrow(/502/);
+  });
 
-    expect(result.size).toBe(0);
+  it('throws when COMP_SERVICE_URL is not configured (callPort will catch and mark degraded)', async () => {
+    mockConfig.get = jest.fn().mockReturnValue(undefined);
+    adapter = new CompProjectMetadataAdapter(mockConfig);
+
+    await expect(adapter.metadata(['id-1'], 'emp-aetos')).rejects.toThrow(
+      'COMP_SERVICE_URL not configured',
+    );
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Bearer token propagation (Problem 2 fix)
+  // ---------------------------------------------------------------------------
+
+  it('mounts Authorization header when bearerToken is provided', async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+
+    await adapter.metadata(['id-1'], 'emp-aetos', 'my-token');
+
+    const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+    const headers = options.headers as Record<string, string>;
+    expect(headers['Authorization']).toBe('Bearer my-token');
+  });
+
+  it('does NOT mount Authorization header when bearerToken is absent', async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+
+    await adapter.metadata(['id-1'], 'emp-aetos');
+
+    const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+    const headers = options.headers as Record<string, string>;
+    expect(headers['Authorization']).toBeUndefined();
+  });
+
+  it('always sends X-Empresa-Id regardless of bearerToken', async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+
+    await adapter.metadata(['id-1'], 'emp-aetos', 'tok');
+
+    const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
+    const headers = options.headers as Record<string, string>;
+    expect(headers['X-Empresa-Id']).toBe('emp-aetos');
   });
 });

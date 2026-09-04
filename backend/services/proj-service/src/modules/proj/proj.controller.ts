@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Inject,
@@ -173,13 +174,16 @@ export class ProjController {
   async findAll(
     @CurrentUser() user: UsuarioContext,
     @Res({ passthrough: true }) res: Response,
+    @Headers('authorization') authHeader?: string,
     @Query('status') status?: string,
     @Query('limit') limit?: number,
     @Query('cursor') cursor?: string,
   ): Promise<ProjetoCardDto[]> {
     const empresaId = user.empresaId;
+    const bearerToken = authHeader?.replace(/^Bearer\s+/i, '') ?? undefined;
     const result = await this.libraryUseCase.execute({
       empresaId,
+      bearerToken,
       status: status ? (status as unknown as ProjetoStatus) : undefined,
       limit,
       cursor
@@ -203,9 +207,11 @@ export class ProjController {
   async findOne(
     @Param('projetoId', ParseUUIDPipe) id: string,
     @CurrentUser() user: UsuarioContext,
+    @Headers('authorization') authHeader?: string,
   ): Promise<ProjetoDetailDto> {
     const empresaId = user.empresaId;
-    const result = await this.detailUseCase.execute({ projetoId: id, empresaId });
+    const bearerToken = authHeader?.replace(/^Bearer\s+/i, '') ?? undefined;
+    const result = await this.detailUseCase.execute({ projetoId: id, empresaId, bearerToken });
     if (!result) {
       throw new NotFoundException(`ProjetoEditorial ${id} not found`);
     }
@@ -230,9 +236,11 @@ export class ProjController {
   async findPublicacoes(
     @Param('projetoId', ParseUUIDPipe) projetoId: string,
     @CurrentUser() user: UsuarioContext,
+    @Headers('authorization') authHeader?: string,
   ): Promise<PublicacaoHistoryItemDto[]> {
     const empresaId = user.empresaId;
-    return this.historyUseCase.execute({ projetoId, empresaId });
+    const bearerToken = authHeader?.replace(/^Bearer\s+/i, '') ?? undefined;
+    return this.historyUseCase.execute({ projetoId, empresaId, bearerToken });
   }
 
   // ---------------------------------------------------------------------------
@@ -256,9 +264,11 @@ export class ProjController {
     @Param('projetoId', ParseUUIDPipe) projetoId: string,
     @Param('publicacaoId', ParseUUIDPipe) publicacaoId: string,
     @CurrentUser() user: UsuarioContext,
+    @Headers('authorization') authHeader?: string,
   ): Promise<SignedDownloadUrlDto> {
     const empresaId = user.empresaId;
-    return this.downloadUrlUseCase.execute({ projetoId, publicacaoId, empresaId });
+    const bearerToken = authHeader?.replace(/^Bearer\s+/i, '') ?? undefined;
+    return this.downloadUrlUseCase.execute({ projetoId, publicacaoId, empresaId, bearerToken });
   }
 
   // ---------------------------------------------------------------------------
