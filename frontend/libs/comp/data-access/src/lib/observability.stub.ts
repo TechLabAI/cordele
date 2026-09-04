@@ -22,17 +22,13 @@ export interface ObservabilityEvent {
 
 @Injectable({ providedIn: 'root' })
 export class ObservabilityService {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  track(event: ObservabilityEvent): void {
+  track(_event: ObservabilityEvent): void {
     if (OBSERVABILITY_IS_MOCK) {
-      // Stub: emit to debug channel only — not sent to any backend.
-      // Replace with real sink when @cordele/shared/observability ships ObservabilityService.
-      // eslint-disable-next-line no-console
-      console.debug('[COMP telemetry]', event.name, {
-        projetoId: event.projetoId,
-        correlationId: event.correlationId,
-        timestamp: event.timestamp,
-      });
+      // Stub: deliberately no-op — real sink wired when @cordele/shared/observability
+      // ships ObservabilityService. No console output: arch-conformance no-console-log
+      // applies to stubs too; the rule exists to keep production logs clean regardless
+      // of whether the code is behind an IS_MOCK guard.
+      return;
     }
   }
 }
