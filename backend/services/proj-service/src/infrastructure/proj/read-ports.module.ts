@@ -28,6 +28,11 @@ import { ConfigService } from '@nestjs/config';
 import { ManuscriptSummaryPort } from '../../domain/proj/ports/outbound/manuscript-summary.port';
 import { ProjectMetadataPort } from '../../domain/proj/ports/outbound/project-metadata.port';
 import { PublicationHistoryPort } from '../../domain/proj/ports/outbound/publication-history.port';
+import {
+  MANUSCRIPT_SUMMARY_IS_STUB,
+  PROJECT_METADATA_IS_STUB,
+  PUBLICATION_HISTORY_IS_STUB,
+} from '../../domain/proj/ports/outbound/read-port-flags';
 
 import { ManuscriptSummaryStub } from '../stubs/proj/manuscript-summary.stub';
 import { ProjectMetadataStub } from '../stubs/proj/project-metadata.stub';
@@ -90,11 +95,40 @@ import { PubPublicationHistoryAdapter } from './read/publication-history.adapter
       ) => (config.get<string>('PUB_SERVICE_URL') ? real : stub),
       inject: [ConfigService, PubPublicationHistoryAdapter, PublicationHistoryStub],
     },
+
+    /**
+     * Stub-mode flags — one boolean token per port.
+     *
+     * `true` when the corresponding service URL is absent and the stub adapter
+     * is active.  Use cases inject these to pre-set degraded=true without
+     * waiting for a thrown error (stubs return valid defaults, never throw).
+     *
+     * Each factory re-evaluates the same ConfigService condition used above so
+     * the flag is always consistent with the port binding (SPEC-07 fix).
+     */
+    {
+      provide: MANUSCRIPT_SUMMARY_IS_STUB,
+      useFactory: (config: ConfigService) => !config.get<string>('IMP_SERVICE_URL'),
+      inject: [ConfigService],
+    },
+    {
+      provide: PROJECT_METADATA_IS_STUB,
+      useFactory: (config: ConfigService) => !config.get<string>('COMP_SERVICE_URL'),
+      inject: [ConfigService],
+    },
+    {
+      provide: PUBLICATION_HISTORY_IS_STUB,
+      useFactory: (config: ConfigService) => !config.get<string>('PUB_SERVICE_URL'),
+      inject: [ConfigService],
+    },
   ],
   exports: [
     ManuscriptSummaryPort,
     ProjectMetadataPort,
     PublicationHistoryPort,
+    MANUSCRIPT_SUMMARY_IS_STUB,
+    PUBLICATION_HISTORY_IS_STUB,
+    PROJECT_METADATA_IS_STUB,
   ],
 })
 export class ReadPortsModule {}

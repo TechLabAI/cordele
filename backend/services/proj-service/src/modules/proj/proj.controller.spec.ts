@@ -163,8 +163,11 @@ describe('ProjController', () => {
   // ---------------------------------------------------------------------------
 
   describe('findAll() — GET /projetos', () => {
+    // Mock express Response: findAll calls res.setHeader when degraded.
+    const mockRes = { setHeader: jest.fn() } as unknown as import('express').Response;
+
     it('returns a ProjetoCardDto array from library use case', async () => {
-      const result = await controller.findAll(user);
+      const result = await controller.findAll(user, mockRes);
 
       expect(Array.isArray(result)).toBe(true);
       expect(mockLibraryUseCase.execute).toHaveBeenCalledTimes(1);
@@ -172,8 +175,18 @@ describe('ProjController', () => {
 
     it('accepts optional status, limit and cursor query params without throwing', async () => {
       await expect(
-        controller.findAll(user, 'rascunho', 10, 'cursor-abc'),
+        controller.findAll(user, mockRes, 'rascunho', 10, 'cursor-abc'),
       ).resolves.toBeDefined();
+    });
+
+    it('sets X-Degraded header when library use case returns degraded=true', async () => {
+      const setHeaderFn = jest.fn();
+      const degradedRes = { setHeader: setHeaderFn } as unknown as import('express').Response;
+      mockLibraryUseCase.execute.mockResolvedValueOnce({ cards: [], degraded: true });
+
+      await controller.findAll(user, degradedRes);
+
+      expect(setHeaderFn).toHaveBeenCalledWith('X-Degraded', 'true');
     });
   });
 

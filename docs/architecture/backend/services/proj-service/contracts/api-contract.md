@@ -76,6 +76,7 @@ mechanism (storage binaries are not in the DB). Order, idempotency and failure s
 | `X-Correlation-Id` | request (optional) / response (always) | propagated to logs and pipeline events; generated if absent |
 | `Content-Type: application/json` | request | create / reopen |
 | `Content-Type: application/problem+json` | response | error responses |
+| `X-Degraded: true` | response (conditional) | present on `GET /api/proj/projetos` when one or more cross-context read ports are operating in stub/fallback mode (SPEC-07). Response body shape is unchanged — body is still `ProjetoCard[]`. |
 
 ---
 
@@ -117,6 +118,10 @@ resolved through outbound read ports in a **single batched read** (no N+1 — §
 **Scope:** `proj:read` · **Query:** `?status=<enum>` (optional filter), `?limit`/`?cursor` (optional
 pagination; POC default returns all — G5). **Success — `200 OK`**, body = `ProjetoCard[]` (§6.2).
 
+**Response headers (conditional):** `X-Degraded: true` is added when any cross-context read port is
+operating in stub/fallback mode. The body shape (`ProjetoCard[]`) is unchanged — body serialisation is
+stable; callers that need degraded-mode awareness read this header (see §3).
+
 Acceptance criteria (EARS):
 
 - `WHEN an authenticated editor lists projects, THE SYSTEM SHALL return the projects of the active empresa
@@ -127,7 +132,8 @@ Acceptance criteria (EARS):
 - `WHERE a project has no manuscript yet, THE SYSTEM SHALL return totalCapitulos=0, totalImagens=0 and a
   status badge of rascunho.`
 - `IF a cross-context read port is unavailable, THEN THE SYSTEM SHALL still return each project's own
-  identity and status and mark the degraded fields null` (degrade, never fail the library — SPEC-07).
+  identity and status, mark the degraded fields null, and add the response header X-Degraded: true`
+  (degrade, never fail the library — SPEC-07).
 - `WHERE the status query parameter is supplied, THE SYSTEM SHALL return only projects in that status.`
 
 ### 4.3 `GET /api/proj/projetos/{projetoId}` — project detail

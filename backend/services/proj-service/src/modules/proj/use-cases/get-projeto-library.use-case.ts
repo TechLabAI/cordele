@@ -27,6 +27,11 @@ import {
   PROJECT_METADATA_PORT,
   PUBLICATION_HISTORY_PORT,
 } from '../proj.tokens';
+import {
+  MANUSCRIPT_SUMMARY_IS_STUB,
+  PROJECT_METADATA_IS_STUB,
+  PUBLICATION_HISTORY_IS_STUB,
+} from '../../../domain/proj/ports/outbound/read-port-flags';
 
 export interface GetProjetoLibraryInput {
   readonly empresaId: string;
@@ -56,6 +61,12 @@ export class GetProjetoLibraryUseCase {
     private readonly metadataPort: ProjectMetadataPort,
     @Inject(PUBLICATION_HISTORY_PORT)
     private readonly publicationPort: PublicationHistoryPort,
+    @Inject(MANUSCRIPT_SUMMARY_IS_STUB)
+    private readonly manuscriptIsStub: boolean,
+    @Inject(PROJECT_METADATA_IS_STUB)
+    private readonly metadataIsStub: boolean,
+    @Inject(PUBLICATION_HISTORY_IS_STUB)
+    private readonly historyIsStub: boolean,
   ) {}
 
   async execute(input: GetProjetoLibraryInput): Promise<GetProjetoLibraryResult> {
@@ -71,7 +82,10 @@ export class GetProjetoLibraryUseCase {
     const ids = projects.map((p) => p.id);
 
     // --- Batched cross-context reads: exactly 3 port calls per request ---
-    let degraded = false;
+    // Pre-set degraded when any port resolved to its stub adapter at startup
+    // (stubs return valid defaults but never throw, so callPort's catch would
+    // never fire — SPEC-07 fix, Problem 3a).
+    let degraded = this.manuscriptIsStub || this.metadataIsStub || this.historyIsStub;
     const markDegraded = () => { degraded = true; };
 
     const summaries = await this.callPort(

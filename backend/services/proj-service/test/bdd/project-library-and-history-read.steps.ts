@@ -1,4 +1,4 @@
-/**
+﻿/**
  * BDD suite for: Project library and publication history read views
  * Contract: test/bdd/features/project-library-and-history-read.feature
  *
@@ -237,7 +237,7 @@ defineFeature(feature, (test) => {
 
     when('the editor lists projects', async () => {
       theEditorListsProjects();
-      const useCase = new GetProjetoLibraryUseCase(repo, manuscriptPort, metadataPort, publicationPort);
+      const useCase = new GetProjetoLibraryUseCase(repo, manuscriptPort, metadataPort, publicationPort, false, false, false);
       result = await useCase.execute({ empresaId: EMPRESA_ID });
     });
 
@@ -283,7 +283,7 @@ defineFeature(feature, (test) => {
       const manuscriptPort = makeManuscriptPort(new Map());
       const metadataPort = makeMetadataPort(new Map());
       const publicationPort = makePublicationPort({ latestMap: new Map() });
-      const useCase = new GetProjetoLibraryUseCase(repo, manuscriptPort, metadataPort, publicationPort);
+      const useCase = new GetProjetoLibraryUseCase(repo, manuscriptPort, metadataPort, publicationPort, false, false, false);
       result = await useCase.execute({ empresaId: EMPRESA_ID });
     });
 
@@ -328,7 +328,7 @@ defineFeature(feature, (test) => {
       warnSpy = jest.spyOn(Logger.prototype, 'warn');
       const manuscriptPort = makeManuscriptPort(new Map());
       const metadataPort = makeMetadataPort(new Map());
-      const useCase = new GetProjetoLibraryUseCase(repo, manuscriptPort, metadataPort, publicationPort);
+      const useCase = new GetProjetoLibraryUseCase(repo, manuscriptPort, metadataPort, publicationPort, false, false, false);
       result = await useCase.execute({ empresaId: EMPRESA_ID });
     });
 
@@ -529,6 +529,7 @@ defineFeature(feature, (test) => {
         makeManuscriptPort(),
         makeMetadataPort(),
         makePublicationPort(),
+        false, false, false,
       );
       const result = await useCase.execute({ projetoId: 'proj-x', empresaId: EMPRESA_ID });
       // null result → 404 at controller
@@ -661,6 +662,7 @@ defineFeature(feature, (test) => {
         makeManuscriptPort(),
         makeMetadataPort(),
         makePublicationPort(),
+        false, false, false,
       );
       result = await useCase.execute({ empresaId: EMPRESA_ID });
     });
@@ -717,7 +719,7 @@ defineFeature(feature, (test) => {
           },
         ],
       });
-      const useCase = new GetProjetoDetailUseCase(repo, manuscriptPort, metadataPort, publicationPort);
+      const useCase = new GetProjetoDetailUseCase(repo, manuscriptPort, metadataPort, publicationPort, false, false, false);
       result = await useCase.execute({ projetoId: PROJECT_ID, empresaId: EMPRESA_ID });
     });
 
@@ -808,7 +810,7 @@ defineFeature(feature, (test) => {
       manuscriptPort = makeManuscriptPort(new Map());
       const metadataPort = makeMetadataPort(new Map());
       publicationPort = makePublicationPort({ latestMap: new Map() });
-      const useCase = new GetProjetoLibraryUseCase(repo, manuscriptPort, metadataPort, publicationPort);
+      const useCase = new GetProjetoLibraryUseCase(repo, manuscriptPort, metadataPort, publicationPort, false, false, false);
       await useCase.execute({ empresaId: EMPRESA_ID });
     });
 

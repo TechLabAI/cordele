@@ -71,12 +71,17 @@ describe('GetProjetoLibraryUseCase', () => {
       signedDownloadUrl: jest.fn(),
     } as jest.Mocked<PublicationHistoryPort>;
 
-    // Create use case directly (no Nest DI needed for unit tests)
+    // Create use case directly (no Nest DI needed for unit tests).
+    // All three stub-mode flags are false — all ports resolve to the mocked
+    // real adapters, so degraded starts at false (SPEC-07 stub-mode fix).
     useCase = new GetProjetoLibraryUseCase(
       repository,
       manuscriptPort,
       metadataPort,
       publicationPort,
+      false, // manuscriptIsStub
+      false, // metadataIsStub
+      false, // historyIsStub
     );
   });
 
@@ -301,6 +306,46 @@ describe('GetProjetoLibraryUseCase', () => {
       await useCase.execute({ empresaId: 'emp-aetos' });
 
       expect(loggerWarnSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // SPEC-07 stub-mode degraded pre-set (Problem 3a fix)
+  // ---------------------------------------------------------------------------
+
+  describe('stub-mode flag pre-sets degraded (SPEC-07 fix)', () => {
+    it('returns degraded=true when manuscriptIsStub=true even though port does not throw', async () => {
+      // Instantiate with stub flag set — simulates missing IMP_SERVICE_URL.
+      const useCaseWithStub = new GetProjetoLibraryUseCase(
+        repository,
+        manuscriptPort,
+        metadataPort,
+        publicationPort,
+        true,  // manuscriptIsStub
+        false, // metadataIsStub
+        false, // historyIsStub
+      );
+      const project = makeProject('id-1');
+      repository.findAll.mockResolvedValue([project]);
+      manuscriptPort.summaries.mockResolvedValue(new Map());
+      metadataPort.metadata.mockResolvedValue(new Map());
+      publicationPort.latest.mockResolvedValue(new Map());
+
+      const result = await useCaseWithStub.execute({ empresaId: 'emp-aetos' });
+
+      expect(result.degraded).toBe(true);
+    });
+
+    it('returns degraded=false when all stub flags are false and all ports succeed', async () => {
+      const project = makeProject('id-1');
+      repository.findAll.mockResolvedValue([project]);
+      manuscriptPort.summaries.mockResolvedValue(new Map());
+      metadataPort.metadata.mockResolvedValue(new Map());
+      publicationPort.latest.mockResolvedValue(new Map());
+
+      const result = await useCase.execute({ empresaId: 'emp-aetos' });
+
+      expect(result.degraded).toBe(false);
     });
   });
 });

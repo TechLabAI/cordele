@@ -58,11 +58,16 @@ describe('GetProjetoDetailUseCase', () => {
       signedDownloadUrl: jest.fn(),
     } as jest.Mocked<PublicationHistoryPort>;
 
+    // All three stub-mode flags are false — ports resolve to the mocked real
+    // adapters, so degraded starts at false (SPEC-07 stub-mode fix).
     useCase = new GetProjetoDetailUseCase(
       repository,
       manuscriptPort,
       metadataPort,
       publicationPort,
+      false, // manuscriptIsStub
+      false, // metadataIsStub
+      false, // historyIsStub
     );
   });
 

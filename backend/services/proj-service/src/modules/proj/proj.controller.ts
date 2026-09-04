@@ -13,10 +13,13 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   ApiBearerAuth,
   ApiConflictResponse,
+  ApiHeader,
   ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -155,11 +158,21 @@ export class ProjController {
     type: [ProjetoCardDto],
     description: 'Paginated project card list.',
   })
+  @ApiHeader({
+    name: 'X-Degraded',
+    description:
+      'Present and set to "true" when one or more cross-context read ports ' +
+      'are operating in stub/fallback mode (SPEC-07). Response body shape is ' +
+      'unchanged — cards contain safe defaults (0 counts, null autor).',
+    required: false,
+    schema: { type: 'string', enum: ['true'] },
+  })
   @ApiQuery({ name: 'status', required: false, description: 'Filter by project status' })
   @ApiQuery({ name: 'limit', required: false, description: 'Max items (reserved, not enforced in POC)' })
   @ApiQuery({ name: 'cursor', required: false, description: 'Pagination cursor (reserved, not enforced in POC)' })
   async findAll(
     @CurrentUser() user: UsuarioContext,
+    @Res({ passthrough: true }) res: Response,
     @Query('status') status?: string,
     @Query('limit') limit?: number,
     @Query('cursor') cursor?: string,
@@ -173,6 +186,7 @@ export class ProjController {
     });
     if (result.degraded) {
       this.logger.warn(`GET /projetos degraded=true empresaId=${empresaId}`);
+      res.setHeader('X-Degraded', 'true');
     }
     return result.cards;
   }
