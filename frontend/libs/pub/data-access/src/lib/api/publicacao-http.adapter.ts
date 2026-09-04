@@ -21,7 +21,7 @@
  */
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { AccessHttpClient } from '@cordele/shared/access-http-base';
+import { AccessHttpClient, moduleBase } from '@cordele/shared/access-http-base';
 import {
   PublicacaoHistoryItem,
   PublicacaoStatus,
@@ -38,11 +38,11 @@ export class PublicacaoHttpAdapter extends AccessHttpClient implements Publicaca
   readonly isMock = false;
 
   /**
-   * Versioned base path for pub-service (NestJS URI versioning — main.ts setGlobalPrefix('api')
-   * + enableVersioning({ type: VersioningType.URI, defaultVersion: '1' })).
+   * Versioned base path for pub-service.
+   * Derives from ACCESS_HTTP_BASE via moduleBase() — the /v1 prefix lives in one place.
    * Verified: GET /api/v1/pub/... → 401 (auth required); GET /api/pub/... → 404 (route absent).
    */
-  private readonly base = '/api/v1/pub';
+  private readonly base = moduleBase('pub');
 
   private projectBase(projetoId: string): string {
     return `${this.base}/projetos/${projetoId}/publicacoes`;

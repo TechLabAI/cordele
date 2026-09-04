@@ -13,7 +13,7 @@ import { ProjetoApiService } from './projeto-api.service';
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function makeErrorResponse(status: number, body: object): HttpErrorResponse {
-  return new HttpErrorResponse({ error: body, status, url: '/api/proj/projetos/test' });
+  return new HttpErrorResponse({ error: body, status, url: '/api/v1/proj/projetos/test' });
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -44,21 +44,21 @@ describe('ProjetoApiService', () => {
   // ── listProjetos ────────────────────────────────────────────────────────────
 
   describe('listProjetos()', () => {
-    it('calls GET /api/proj/projetos and emits result', () => {
+    it('calls GET /api/v1/proj/projetos and emits result', () => {
       const cards = [{ id: 'p1', nome: 'Test' }];
       getSpy.mockReturnValue(of(cards));
 
       let result: unknown;
       service.listProjetos().subscribe(r => (result = r));
 
-      expect(getSpy).toHaveBeenCalledWith('/api/proj/projetos');
+      expect(getSpy).toHaveBeenCalledWith('/api/v1/proj/projetos');
       expect(result).toEqual(cards);
     });
 
-    it('calls GET /api/proj/projetos?status=rascunho when status filter provided', () => {
+    it('calls GET /api/v1/proj/projetos?status=rascunho when status filter provided', () => {
       getSpy.mockReturnValue(of([]));
       service.listProjetos({ status: 'rascunho' }).subscribe();
-      expect(getSpy).toHaveBeenCalledWith('/api/proj/projetos?status=rascunho');
+      expect(getSpy).toHaveBeenCalledWith('/api/v1/proj/projetos?status=rascunho');
     });
 
     it('maps ProblemDetail error to AppError on failure', () => {
@@ -76,40 +76,40 @@ describe('ProjetoApiService', () => {
   // ── getProjeto ──────────────────────────────────────────────────────────────
 
   describe('getProjeto()', () => {
-    it('calls GET /api/proj/projetos/{id}', () => {
+    it('calls GET /api/v1/proj/projetos/{id}', () => {
       getSpy.mockReturnValue(of({ id: 'proj-1' }));
       service.getProjeto('proj-1').subscribe();
-      expect(getSpy).toHaveBeenCalledWith('/api/proj/projetos/proj-1');
+      expect(getSpy).toHaveBeenCalledWith('/api/v1/proj/projetos/proj-1');
     });
   });
 
   // ── listPublicacoes ─────────────────────────────────────────────────────────
 
   describe('listPublicacoes()', () => {
-    it('calls GET /api/proj/projetos/{id}/publicacoes', () => {
+    it('calls GET /api/v1/proj/projetos/{id}/publicacoes', () => {
       getSpy.mockReturnValue(of([]));
       service.listPublicacoes('proj-1').subscribe();
-      expect(getSpy).toHaveBeenCalledWith('/api/proj/projetos/proj-1/publicacoes');
+      expect(getSpy).toHaveBeenCalledWith('/api/v1/proj/projetos/proj-1/publicacoes');
     });
   });
 
   // ── resolveDownloadUrl ──────────────────────────────────────────────────────
 
   describe('resolveDownloadUrl()', () => {
-    it('calls GET /api/proj/projetos/{id}/publicacoes/{pid}/download', () => {
+    it('calls GET /api/v1/proj/projetos/{id}/publicacoes/{pid}/download', () => {
       getSpy.mockReturnValue(of({ arquivoUrl: 'https://cdn.example.com/file.epub' }));
       service.resolveDownloadUrl('proj-1', 'pub-2').subscribe();
-      expect(getSpy).toHaveBeenCalledWith('/api/proj/projetos/proj-1/publicacoes/pub-2/download');
+      expect(getSpy).toHaveBeenCalledWith('/api/v1/proj/projetos/proj-1/publicacoes/pub-2/download');
     });
   });
 
   // ── reopenProjeto ───────────────────────────────────────────────────────────
 
   describe('reopenProjeto()', () => {
-    it('calls POST /api/proj/projetos/{id}/reopen with empty body', () => {
+    it('calls POST /api/v1/proj/projetos/{id}/reopen with empty body', () => {
       postSpy.mockReturnValue(of({ id: 'proj-1', status: 'em_composicao' }));
       service.reopenProjeto('proj-1').subscribe();
-      expect(postSpy).toHaveBeenCalledWith('/api/proj/projetos/proj-1/reopen', {});
+      expect(postSpy).toHaveBeenCalledWith('/api/v1/proj/projetos/proj-1/reopen', {});
     });
 
     it('maps 409 ProblemDetail error to AppError', () => {
@@ -127,11 +127,11 @@ describe('ProjetoApiService', () => {
   // ── deleteProjeto ───────────────────────────────────────────────────────────
 
   describe('deleteProjeto()', () => {
-    it('calls DELETE /api/proj/projetos/{id} and maps to void', () => {
+    it('calls DELETE /api/v1/proj/projetos/{id} and maps to void', () => {
       deleteSpy.mockReturnValue(of(null));
       let emitted: unknown = 'sentinel';
       service.deleteProjeto('proj-1').subscribe(v => (emitted = v));
-      expect(deleteSpy).toHaveBeenCalledWith('/api/proj/projetos/proj-1');
+      expect(deleteSpy).toHaveBeenCalledWith('/api/v1/proj/projetos/proj-1');
       expect(emitted).toBeUndefined();
     });
   });

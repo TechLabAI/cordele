@@ -23,7 +23,7 @@
  */
 import { inject } from '@angular/core';
 import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
-import { AccessHttpClient } from '@cordele/shared/access-http-base';
+import { AccessHttpClient, moduleBase } from '@cordele/shared/access-http-base';
 import { catchError, map, of } from 'rxjs';
 
 // Canonical project status values (mirrors BE ProjetoStatus enum)
@@ -52,7 +52,7 @@ export const compStatusGuard: CanActivateFn = (route: ActivatedRouteSnapshot) =>
   }
 
   return http
-    .get<ProjetoStatusDto>(`/api/proj/projetos/${projetoId}`)
+    .get<ProjetoStatusDto>(`${moduleBase('proj')}/projetos/${projetoId}`)
     .pipe(
       map(projeto => {
         switch (projeto.status) {

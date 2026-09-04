@@ -70,7 +70,7 @@ describe('compStatusGuard', () => {
       return lastValueFrom(obs);
     });
 
-    const req = httpMock.expectOne(`/api/proj/projetos/${PROJECT_ID}`);
+    const req = httpMock.expectOne(`/api/v1/proj/projetos/${PROJECT_ID}`);
     expect(req.request.headers.get('X-Empresa-Id')).toBe('emp_aetos');
     req.flush({ id: PROJECT_ID, status: 'em_composicao' });
 
@@ -86,7 +86,7 @@ describe('compStatusGuard', () => {
       return lastValueFrom(obs);
     });
 
-    const req = httpMock.expectOne(`/api/proj/projetos/${PROJECT_ID}`);
+    const req = httpMock.expectOne(`/api/v1/proj/projetos/${PROJECT_ID}`);
     req.flush({ id: PROJECT_ID, status: 'rascunho' });
 
     const val = await resultPromise;
@@ -104,7 +104,7 @@ describe('compStatusGuard', () => {
       return lastValueFrom(obs);
     });
 
-    const req = httpMock.expectOne(`/api/proj/projetos/${PROJECT_ID}`);
+    const req = httpMock.expectOne(`/api/v1/proj/projetos/${PROJECT_ID}`);
     req.flush({ id: PROJECT_ID, status: 'publicado' });
 
     const val = await resultPromise;
@@ -121,7 +121,7 @@ describe('compStatusGuard', () => {
       return lastValueFrom(obs);
     });
 
-    const req = httpMock.expectOne(`/api/proj/projetos/${PROJECT_ID}`);
+    const req = httpMock.expectOne(`/api/v1/proj/projetos/${PROJECT_ID}`);
     req.flush({ id: PROJECT_ID, status: 'com_erros' });
 
     const val = await resultPromise;
@@ -138,7 +138,7 @@ describe('compStatusGuard', () => {
       return lastValueFrom(obs);
     });
 
-    const req = httpMock.expectOne(`/api/proj/projetos/${PROJECT_ID}`);
+    const req = httpMock.expectOne(`/api/v1/proj/projetos/${PROJECT_ID}`);
     req.flush({ message: 'Not found' }, { status: 404, statusText: 'Not Found' });
 
     const val = await resultPromise;
@@ -153,7 +153,7 @@ describe('compStatusGuard', () => {
       compStatusGuard(route, {} as never),
     );
 
-    httpMock.expectNone(`/api/proj/projetos/`);
+    httpMock.expectNone(`/api/v1/proj/projetos/`);
     const url = urlTreeToString(result as UrlTree);
     expect(url).toContain('biblioteca-de-projetos');
   });

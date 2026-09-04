@@ -13,6 +13,7 @@
  */
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { moduleBase } from '@cordele/shared/access-http-base';
 import {
   ContentTree,
   ManuscritoDetail,
@@ -22,7 +23,8 @@ import {
 import { ManuscritoPort } from '../ports/manuscrito.port';
 import { ImpHttpClient } from '../imp-http-client';
 
-const BASE = '/api/imp';
+/** Base path for imp-service. Derives from ACCESS_HTTP_BASE — /v1 prefix lives in one place. */
+const BASE = moduleBase('imp');
 
 @Injectable({ providedIn: 'root' })
 export class ManuscritoHttpAdapter implements ManuscritoPort {

@@ -16,7 +16,7 @@
  */
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { AccessHttpClient } from '@cordele/shared/access-http-base';
+import { AccessHttpClient, moduleBase } from '@cordele/shared/access-http-base';
 import { CapaUploadResponse, MetadadosDto } from '../models/comp.models';
 import { MetadadosPort } from './metadados.port';
 
@@ -24,8 +24,9 @@ import { MetadadosPort } from './metadados.port';
 export class MetadadosHttpAdapter implements MetadadosPort {
   private readonly http = inject(AccessHttpClient);
 
+  /** Derives from ACCESS_HTTP_BASE via moduleBase() — /v1 prefix lives in one place. */
   private baseUrl(projetoId: string): string {
-    return `/api/comp/projetos/${projetoId}`;
+    return `${moduleBase('comp')}/projetos/${projetoId}`;
   }
 
   get(projetoId: string): Observable<MetadadosDto> {

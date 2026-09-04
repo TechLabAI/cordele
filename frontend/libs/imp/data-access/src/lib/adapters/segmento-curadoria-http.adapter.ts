@@ -13,11 +13,13 @@
  */
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
+import { moduleBase } from '@cordele/shared/access-http-base';
 import { IgnoredSegmentsResponse, SegmentoCuradoriaDto } from '../models/imp.models';
 import { SegmentoCuradoriaPort } from '../ports/segmento-curadoria.port';
 import { ImpHttpClient } from '../imp-http-client';
 
-const BASE = '/api/imp/manuscripts';
+/** Base path for imp-service manuscripts. Derives from ACCESS_HTTP_BASE — /v1 prefix lives in one place. */
+const BASE = `${moduleBase('imp')}/manuscripts`;
 
 /** Request body shape for the ignore endpoint (mirrors IgnoreSegmentoDto on the backend). */
 interface IgnoreBody {

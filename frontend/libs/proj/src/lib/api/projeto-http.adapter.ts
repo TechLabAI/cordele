@@ -5,8 +5,9 @@
  * Track D: created by fe-architect-promote PROJ @ cordele (D-494).
  */
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { AccessHttpClient, moduleBase } from '@cordele/shared/access-http-base';
 import {
   CriarProjetoRequest,
   ProjetoCard,
@@ -16,8 +17,10 @@ import { ProjetoPort } from './projeto.port';
 
 @Injectable({ providedIn: 'root' })
 export class ProjetoHttpAdapter implements ProjetoPort {
-  private readonly http = inject(HttpClient);
-  private readonly base = '/api/proj/projetos';
+  /** AccessHttpClient (not HttpClient) — X-Empresa-Id header added automatically (RULE-NX-05). */
+  private readonly http = inject(AccessHttpClient);
+  /** Derives from ACCESS_HTTP_BASE via moduleBase() — /v1 prefix lives in one place. */
+  private readonly base = `${moduleBase('proj')}/projetos`;
 
   list(params?: { status?: string }): Observable<ProjetoCard[]> {
     const query = params?.status ? `?status=${params.status}` : '';
@@ -42,6 +45,6 @@ export class ProjetoHttpAdapter implements ProjetoPort {
 
   /** DELETE /api/proj/projetos/{projetoId} — LGPD erasure (204 No Content). */
   delete(projetoId: string): Observable<void> {
-    return this.http.delete<void>(`${this.base}/${projetoId}`);
+    return this.http.delete(`${this.base}/${projetoId}`).pipe(map(() => undefined));
   }
 }

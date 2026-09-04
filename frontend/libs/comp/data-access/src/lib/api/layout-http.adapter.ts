@@ -17,7 +17,7 @@
  */
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { AccessHttpClient } from '@cordele/shared/access-http-base';
+import { AccessHttpClient, moduleBase } from '@cordele/shared/access-http-base';
 import { ConfiguracaoLayoutDto, PreviewContextDto, UpsertLayoutBody } from '../models/comp.models';
 import { LayoutPort } from './layout.port';
 
@@ -25,8 +25,9 @@ import { LayoutPort } from './layout.port';
 export class LayoutHttpAdapter implements LayoutPort {
   private readonly http = inject(AccessHttpClient);
 
+  /** Derives from ACCESS_HTTP_BASE via moduleBase() — /v1 prefix lives in one place. */
   private baseUrl(projetoId: string): string {
-    return `/api/comp/projetos/${projetoId}`;
+    return `${moduleBase('comp')}/projetos/${projetoId}`;
   }
 
   getLayout(projetoId: string): Observable<ConfiguracaoLayoutDto> {

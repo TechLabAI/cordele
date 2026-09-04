@@ -9,7 +9,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, catchError, map, throwError } from 'rxjs';
-import { AccessHttpClient } from '@cordele/shared/access-http-base';
+import { AccessHttpClient, moduleBase } from '@cordele/shared/access-http-base';
 import {
   CriarProjetoRequest,
   ProjetoCard,
@@ -19,7 +19,8 @@ import {
 } from '../models/proj.models';
 import { mapProblemDetailToAppError } from './proj-api.mappers';
 
-const BASE = '/api/proj/projetos';
+/** Base path for proj-service. Derives from ACCESS_HTTP_BASE — /v1 prefix lives in one place. */
+const BASE = `${moduleBase('proj')}/projetos`;
 
 @Injectable({ providedIn: 'root' })
 export class ProjetoApiService extends AccessHttpClient {

@@ -140,15 +140,15 @@ describe('ReviewFacade', () => {
       expect(facade.phase()).toBe('loading');
 
       // Flush to satisfy afterEach verify()
-      httpMock.expectOne('/api/imp/manuscripts/ms-review-001').flush(MOCK_MANUSCRITO);
-      httpMock.expectOne('/api/imp/manuscripts/ms-review-001/segmentos/ignored').flush(MOCK_IGNORED);
+      httpMock.expectOne('/api/v1/imp/manuscripts/ms-review-001').flush(MOCK_MANUSCRITO);
+      httpMock.expectOne('/api/v1/imp/manuscripts/ms-review-001/segmentos/ignored').flush(MOCK_IGNORED);
     });
 
     it('should hydrate estrutura signal on successful load', () => {
       facade.loadStructure('ms-review-001');
 
-      httpMock.expectOne('/api/imp/manuscripts/ms-review-001').flush(MOCK_MANUSCRITO);
-      httpMock.expectOne('/api/imp/manuscripts/ms-review-001/segmentos/ignored').flush(MOCK_IGNORED);
+      httpMock.expectOne('/api/v1/imp/manuscripts/ms-review-001').flush(MOCK_MANUSCRITO);
+      httpMock.expectOne('/api/v1/imp/manuscripts/ms-review-001/segmentos/ignored').flush(MOCK_IGNORED);
 
       expect(facade.phase()).toBe('idle');
       expect(facade.estrutura()).toEqual(MOCK_MANUSCRITO.estrutura);
@@ -157,8 +157,8 @@ describe('ReviewFacade', () => {
     it('should populate ignoredIds from getIgnored response', () => {
       facade.loadStructure('ms-review-001');
 
-      httpMock.expectOne('/api/imp/manuscripts/ms-review-001').flush(MOCK_MANUSCRITO);
-      httpMock.expectOne('/api/imp/manuscripts/ms-review-001/segmentos/ignored').flush({
+      httpMock.expectOne('/api/v1/imp/manuscripts/ms-review-001').flush(MOCK_MANUSCRITO);
+      httpMock.expectOne('/api/v1/imp/manuscripts/ms-review-001/segmentos/ignored').flush({
         ...MOCK_IGNORED,
         ignoredSegmentoIds: ['seg-1'],
       });
@@ -169,7 +169,7 @@ describe('ReviewFacade', () => {
     it('should set phase to error and expose errorMessage on HTTP failure', () => {
       facade.loadStructure('ms-review-001');
 
-      httpMock.expectOne('/api/imp/manuscripts/ms-review-001').flush(
+      httpMock.expectOne('/api/v1/imp/manuscripts/ms-review-001').flush(
         { detail: 'Manuscrito não encontrado.' },
         { status: 404, statusText: 'Not Found' },
       );
@@ -193,7 +193,7 @@ describe('ReviewFacade', () => {
       expect(facade.ignoredIds().has('seg-1')).toBe(true);
 
       // Flush to satisfy verify()
-      httpMock.expectOne('/api/imp/manuscripts/ms-review-001/segmentos/seg-1/ignore')
+      httpMock.expectOne('/api/v1/imp/manuscripts/ms-review-001/segmentos/seg-1/ignore')
         .flush({} as SegmentoCuradoriaDto);
     });
 
@@ -201,7 +201,7 @@ describe('ReviewFacade', () => {
       facade.ignorarSegmento('seg-1');
       expect(facade.ignoredIds().has('seg-1')).toBe(true); // optimistic
 
-      httpMock.expectOne('/api/imp/manuscripts/ms-review-001/segmentos/seg-1/ignore')
+      httpMock.expectOne('/api/v1/imp/manuscripts/ms-review-001/segmentos/seg-1/ignore')
         .flush({ detail: 'Internal error' }, { status: 500, statusText: 'Internal Server Error' });
 
       // After rollback, seg-1 should no longer be in ignoredIds
@@ -213,7 +213,7 @@ describe('ReviewFacade', () => {
       facade.ignorarSegmento('seg-2');
 
       expect(facade.ignoredIds()).not.toBe(originalSet); // new reference
-      httpMock.expectOne('/api/imp/manuscripts/ms-review-001/segmentos/seg-2/ignore')
+      httpMock.expectOne('/api/v1/imp/manuscripts/ms-review-001/segmentos/seg-2/ignore')
         .flush({} as SegmentoCuradoriaDto);
     });
   });
@@ -225,7 +225,7 @@ describe('ReviewFacade', () => {
       facade.hydrateFromResponse(MOCK_MANUSCRITO);
       // Pre-seed ignored set
       facade.ignorarSegmento('seg-1');
-      httpMock.expectOne('/api/imp/manuscripts/ms-review-001/segmentos/seg-1/ignore')
+      httpMock.expectOne('/api/v1/imp/manuscripts/ms-review-001/segmentos/seg-1/ignore')
         .flush({} as SegmentoCuradoriaDto);
     });
 
@@ -233,14 +233,14 @@ describe('ReviewFacade', () => {
       facade.restaurarSegmento('seg-1');
       expect(facade.ignoredIds().has('seg-1')).toBe(false);
 
-      httpMock.expectOne('/api/imp/manuscripts/ms-review-001/segmentos/seg-1/ignore').flush(null);
+      httpMock.expectOne('/api/v1/imp/manuscripts/ms-review-001/segmentos/seg-1/ignore').flush(null);
     });
 
     it('should rollback (re-add) on DELETE failure', () => {
       facade.restaurarSegmento('seg-1');
       expect(facade.ignoredIds().has('seg-1')).toBe(false);
 
-      httpMock.expectOne('/api/imp/manuscripts/ms-review-001/segmentos/seg-1/ignore')
+      httpMock.expectOne('/api/v1/imp/manuscripts/ms-review-001/segmentos/seg-1/ignore')
         .flush(null, { status: 404, statusText: 'Not Found' });
 
       expect(facade.ignoredIds().has('seg-1')).toBe(true); // rolled back
@@ -268,14 +268,14 @@ describe('ReviewFacade', () => {
 
       expect(facade.phase()).toBe('confirming');
 
-      httpMock.expectOne('/api/imp/manuscripts/ms-review-001/confirm-estrutura').flush(null);
+      httpMock.expectOne('/api/v1/imp/manuscripts/ms-review-001/confirm-estrutura').flush(null);
     });
 
     it('should navigate to /comp on success', () => {
       const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
       facade.confirmarEstrutura();
 
-      httpMock.expectOne('/api/imp/manuscripts/ms-review-001/confirm-estrutura')
+      httpMock.expectOne('/api/v1/imp/manuscripts/ms-review-001/confirm-estrutura')
         .flush(null, { status: 200, statusText: 'OK' });
 
       expect(facade.phase()).toBe('idle');
@@ -285,7 +285,7 @@ describe('ReviewFacade', () => {
     it('should set phase to error and expose errorMessage on HTTP failure', () => {
       facade.confirmarEstrutura();
 
-      httpMock.expectOne('/api/imp/manuscripts/ms-review-001/confirm-estrutura')
+      httpMock.expectOne('/api/v1/imp/manuscripts/ms-review-001/confirm-estrutura')
         .flush({ detail: 'Confirm falhou.' }, { status: 500, statusText: 'Internal Server Error' });
 
       expect(facade.phase()).toBe('error');
@@ -296,7 +296,7 @@ describe('ReviewFacade', () => {
       const navigateSpy = vi.spyOn(router, 'navigate');
       facade.confirmarEstrutura();
 
-      httpMock.expectOne('/api/imp/manuscripts/ms-review-001/confirm-estrutura')
+      httpMock.expectOne('/api/v1/imp/manuscripts/ms-review-001/confirm-estrutura')
         .flush(null, { status: 500, statusText: 'Internal Server Error' });
 
       expect(navigateSpy).not.toHaveBeenCalled();

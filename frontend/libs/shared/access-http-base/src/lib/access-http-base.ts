@@ -12,8 +12,35 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, InjectionToken, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-/** API base path for all Cordelê backend endpoints. */
-export const ACCESS_HTTP_BASE = '/api';
+/**
+ * Versioned API base path for all Cordelê backend endpoints.
+ *
+ * Every Cordelê service runs:
+ *   app.setGlobalPrefix('api')
+ *   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' })
+ * which puts every route under /api/v1/<mod>/...
+ * The un-versioned path /api/<mod>/... returns 404 — it does NOT exist.
+ *
+ * Verified against running containers (2026-09):
+ *   GET /api/v1/imp/manuscripts/x → 401 (route exists, auth required)
+ *   GET /api/imp/manuscripts/x   → 404 (route absent)
+ *
+ * Do NOT simplify this back to '/api' — the /v1 segment is load-bearing.
+ */
+export const ACCESS_HTTP_BASE = '/api/v1';
+
+/**
+ * Build the canonical base path for a Cordelê backend module.
+ * Derives from ACCESS_HTTP_BASE so the /v1 prefix lives in exactly one place.
+ *
+ * @example moduleBase('pub')  → '/api/v1/pub'
+ * @example moduleBase('proj') → '/api/v1/proj'
+ *
+ * All module adapters and guards MUST use this function instead of hardcoding the prefix.
+ */
+export function moduleBase(mod: 'imp' | 'comp' | 'pub' | 'proj'): string {
+  return `${ACCESS_HTTP_BASE}/${mod}`;
+}
 
 /**
  * Injection token for the current empresa identifier.

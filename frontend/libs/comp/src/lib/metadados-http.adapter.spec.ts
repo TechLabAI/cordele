@@ -8,7 +8,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { MetadadosHttpAdapter } from './api/metadados-http.adapter';
-import { ACCESS_EMPRESA_ID, AccessHttpClient } from '@cordele/shared/access-http-base';
+import { ACCESS_EMPRESA_ID, AccessHttpClient, moduleBase } from '@cordele/shared/access-http-base';
 import type { MetadadosDto } from './models/comp.models';
 
 describe('MetadadosHttpAdapter', () => {
@@ -16,7 +16,8 @@ describe('MetadadosHttpAdapter', () => {
   let httpMock: HttpTestingController;
 
   const PROJECT_ID = 'proj-abc-001';
-  const BASE = `/api/comp/projetos/${PROJECT_ID}`;
+  /** Derives from moduleBase so spec tracks the same source as production code. */
+  const BASE = `${moduleBase('comp')}/projetos/${PROJECT_ID}`;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
