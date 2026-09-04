@@ -125,7 +125,7 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:4500/api/v1/imp/manus
 ```bash
 # Token com apenas imp:read (sem comp:write, pub:write, etc.)
 TOKEN_READONLY=$(curl -s -X POST \
-  "http://localhost:8180/realms/cordele/protocol/openid-connect/token" \
+  "http://host.docker.internal:8180/realms/cordele/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "client_id=cordele-web" \
   -d "grant_type=password" \
