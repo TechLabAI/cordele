@@ -200,6 +200,13 @@
           }
         },
         {
+          "name": "effective-scope-override",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-effective-scope-mapper",
+          "consentRequired": false,
+          "config": {}
+        },
+        {
           "name": "aud-imp-service",
           "protocol": "openid-connect",
           "protocolMapper": "oidc-audience-mapper",
@@ -264,7 +271,8 @@
       ],
       "realmRoles": ["empresa-admin"],
       "attributes": {
-        "empresa_id": ["emp_aetos"]
+        "empresa_id": ["aetos"],
+        "effective_scope": ["openid imp:read imp:write comp:read comp:write pub:read pub:write proj:read proj:write proj:delete"]
       }
     },
     {
@@ -283,7 +291,8 @@
       ],
       "realmRoles": ["coordenadora-editorial"],
       "attributes": {
-        "empresa_id": ["emp_aetos"]
+        "empresa_id": ["aetos"],
+        "effective_scope": ["openid imp:read imp:write comp:read comp:write pub:read pub:write proj:read proj:write"]
       }
     },
     {
@@ -302,7 +311,8 @@
       ],
       "realmRoles": ["leitor-editorial"],
       "attributes": {
-        "empresa_id": ["emp_aetos"]
+        "empresa_id": ["aetos"],
+        "effective_scope": ["openid imp:read comp:read pub:read proj:read"]
       }
     }
   ]

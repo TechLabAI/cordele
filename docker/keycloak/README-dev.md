@@ -23,15 +23,28 @@ Login: `admin` / `admin`
 
 ## Realm `cordele` — O que foi criado
 
-### Papéis (realm roles)
+### Papéis e usuários de dev
 
-| Papel | Usuário de dev | Senha |
-|---|---|---|
-| `empresa-admin` | `admin-aetos` | `admin123` |
-| `coordenadora-editorial` | `coordenadora` | `coord123` |
-| `leitor-editorial` | `leitor` | `leitor123` |
+| Papel | Usuário | Senha | empresa_id | Scopes no token |
+|---|---|---|---|---|
+| `empresa-admin` | `admin-aetos` | `admin123` | `aetos` | todos os 9 |
+| `coordenadora-editorial` | `coordenadora` | `coord123` | `aetos` | read + write (sem `proj:delete`) |
+| `leitor-editorial` | `leitor` | `leitor123` | `aetos` | apenas read |
 
-Todos os usuários têm o atributo `empresa_id = emp_aetos` (schema `emp_aetos` — Editora Aetós).
+**O claim `empresa_id` carrega o slug da empresa (`aetos`), não o nome do schema.**
+Os serviços que precisam do schema fazem `emp_${slug}` internamente, produzindo `emp_aetos`.
+
+### Gating de scope (matriz papel × scope)
+
+O SPI `cordele-effective-scope-mapper` (em `docker/keycloak/spi/`) substitui o claim `scope`
+no token pelo atributo `effective_scope` do usuário. Isso garante que o token de um `leitor`
+**nunca** inclua scopes de escrita, mesmo que o cliente solicite explicitamente.
+
+| Papel | Scopes garantidos |
+|---|---|
+| `empresa-admin` | `openid imp:read imp:write comp:read comp:write pub:read pub:write proj:read proj:write proj:delete` |
+| `coordenadora-editorial` | `openid imp:read imp:write comp:read comp:write pub:read pub:write proj:read proj:write` |
+| `leitor-editorial` | `openid imp:read comp:read pub:read proj:read` |
 
 ### Client Scopes (9)
 
@@ -46,9 +59,10 @@ Todos os usuários têm o atributo `empresa_id = emp_aetos` (schema `emp_aetos` 
 
 - Public client, PKCE (S256)
 - `directAccessGrantsEnabled: true` — permite password grant (dev only)
-- Default scopes: todos os 9 custom + `openid profile email`
+- Default scopes: `openid profile email imp:read comp:read pub:read proj:read`
+- Optional scopes: `imp:write comp:write pub:write proj:write proj:delete`
 - Audience mappers: `imp-service`, `comp-service`, `pub-service`, `proj-service`
-- Protocol mapper: `empresa_id` ← atributo do usuário
+- Protocol mappers: `empresa_id` (atributo do usuário) + `effective-scope-override` (SPI)
 
 ---
 
@@ -60,7 +74,8 @@ serviços o validem (eles têm `JWT_ISSUER_URI: http://host.docker.internal:8180
 No Windows com Docker Desktop, `host.docker.internal` resolve para `127.0.0.1`.
 
 ```bash
-# Token com write scopes para coordenadora-editorial (scopes de escrita são opcionais)
+# Token para coordenadora (o scope no token refletirá sempre o effective_scope do usuário,
+# independentemente do scope solicitado aqui)
 TOKEN=$(curl -s -X POST \
   "http://host.docker.internal:8180/realms/cordele/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
@@ -68,7 +83,7 @@ TOKEN=$(curl -s -X POST \
   -d "grant_type=password" \
   -d "username=coordenadora" \
   -d "password=coord123" \
-  -d "scope=openid imp:write comp:write pub:write proj:write proj:delete" \
+  -d "scope=openid" \
   | python -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 
 echo $TOKEN
@@ -86,7 +101,7 @@ print(json.dumps(json.loads(base64.b64decode(b)), indent=2))
 "
 ```
 
-Payload esperado (campos relevantes):
+Payload esperado para `coordenadora` (campos relevantes):
 
 ```json
 {
@@ -97,25 +112,26 @@ Payload esperado (campos relevantes):
   "realm_access": {
     "roles": ["coordenadora-editorial"]
   },
-  "scope": "openid imp:read comp:read pub:read proj:read imp:write comp:write pub:write proj:write proj:delete",
-  "empresa_id": "emp_aetos"
+  "scope": "openid imp:read imp:write comp:read comp:write pub:read pub:write proj:read proj:write",
+  "empresa_id": "aetos"
 }
 ```
 
-> **Scopes de escrita são OPCIONAIS** no client `cordele-web`. Inclua-os explicitamente
-> no `scope` do token request quando precisar chamar endpoints de escrita. O Keycloak só
-> inclui scopes opcionais quando solicitados; scopes default (read) são sempre incluídos.
+> **Gating de scope é aplicado pelo SPI** — o campo `scope` no token JWT reflete sempre
+> os scopes permitidos para o papel do usuário. Um `leitor` que solicite `pub:write` não
+> o receberá no token.
 
 ---
 
-## Chamar os serviços (via nginx :4500)
+## Chamar os serviços (via nginx :4500 ou diretamente)
 
 ```bash
-# GET projetos — proj-service (proj:read)
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:4500/api/v1/proj/projetos | python -m json.tool
+# GET projetos — proj-service (proj:read) — porta direta 3003
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3003/api/v1/proj/projetos | python -m json.tool
 
-# GET manuscritos — imp-service (imp:read)
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:4500/api/v1/imp/manuscripts | python -m json.tool
+# GET metadados — comp-service (comp:read) — porta direta 3001
+curl -s -H "Authorization: Bearer $TOKEN" \
+  http://localhost:3001/api/v1/comp/projetos/<uuid>/metadados | python -m json.tool
 ```
 
 ---
@@ -123,25 +139,24 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:4500/api/v1/imp/manus
 ## Caso negativo — 403 sem o scope exigido
 
 ```bash
-# Token com apenas imp:read (sem comp:write, pub:write, etc.)
-TOKEN_READONLY=$(curl -s -X POST \
+# Token de leitor (effective_scope = somente read, nunca write)
+TOKEN_LEITOR=$(curl -s -X POST \
   "http://host.docker.internal:8180/realms/cordele/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "client_id=cordele-web" \
   -d "grant_type=password" \
-  -d "username=coordenadora" \
-  -d "password=coord123" \
-  -d "scope=openid imp:read" \
+  -d "username=leitor" \
+  -d "password=leitor123" \
+  -d "scope=openid+proj:write+proj:delete" \
   | python -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 
-# comp:write é exigido pelo PUT /api/v1/comp/metadados
-# Espera-se 403 (token válido, scope ausente)
+# POST /projetos requer proj:write — leitor não tem → 403
 curl -s -o /dev/null -w "%{http_code}" \
-  -X PUT \
-  -H "Authorization: Bearer $TOKEN_READONLY" \
+  -X POST \
+  -H "Authorization: Bearer $TOKEN_LEITOR" \
   -H "Content-Type: application/json" \
-  -d '{}' \
-  http://localhost:4500/api/v1/comp/metadados
+  -d '{"nome":"test"}' \
+  http://localhost:3003/api/v1/proj/projetos
 # → 403
 ```
 
@@ -160,5 +175,7 @@ curl http://localhost:8180/realms/cordele/.well-known/openid-configuration | pyt
 | Arquivo | Descrição |
 |---|---|
 | `docker/keycloak/realms/cordele-realm.json` | Realm JSON versionado — fonte de verdade |
+| `docker/keycloak/spi/` | Maven project: SPI `oidc-effective-scope-mapper` |
+| `docker/keycloak/Dockerfile` | Multi-stage: compila SPI + copia realm |
 | `docker/docker-compose.dev.yml` | Serviço `keycloak` na porta 8180 |
 | `docs/architecture/shared/rbac/modelo.md` | Matriz papel × scope e decisões de RBAC |
