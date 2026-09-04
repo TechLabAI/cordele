@@ -27,6 +27,10 @@ const PROJ_URL = 'http://proj-test:3002';
 function makeConfig(url = PROJ_URL): ConfigService {
   return {
     get: (key: string) => (key === 'PROJ_SERVICE_BASE_URL' ? url : undefined),
+    getOrThrow: (key: string) => {
+      if (key === 'PROJ_SERVICE_BASE_URL') return url;
+      throw new Error(`[test] ConfigService key not found: ${key}`);
+    },
   } as unknown as ConfigService;
 }
 
@@ -154,5 +158,17 @@ describe('ProjProjectStatusAdapter', () => {
     await customAdapter.advanceTo({ projetoId: PROJETO_ID, targetStatus: 'publicado' }, BEARER);
 
     expect(fetchSpy.mock.calls[0]![0]).toContain(customUrl);
+  });
+
+  it('throws during construction when PROJ_SERVICE_BASE_URL env var is absent (SD-01 guard)', () => {
+    // Validates that the adapter fails loudly at boot time instead of silently
+    // falling back to a wrong default. This test would break if getOrThrow()
+    // were reverted to config.get() ?? 'default'.
+    const configWithoutUrl: ConfigService = {
+      get: () => undefined,
+      getOrThrow: (key: string) => { throw new Error(`[test] Missing env var: ${key}`); },
+    } as unknown as ConfigService;
+
+    expect(() => new ProjProjectStatusAdapter(configWithoutUrl)).toThrow(/Missing env var: PROJ_SERVICE_BASE_URL/);
   });
 });
