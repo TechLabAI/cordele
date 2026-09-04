@@ -37,6 +37,7 @@ services:
       JWT_AUDIENCE: imp-service
       FILE_STORAGE_ADAPTER: local
       FILE_STORAGE_BASE_DIR: /tmp/cordele-files
+      PROJ_SERVICE_BASE_URL: http://proj-service:3000
     ports:
       - "3000:3000"
     depends_on:
