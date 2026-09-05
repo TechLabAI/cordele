@@ -342,10 +342,24 @@ describe('ProjController', () => {
     it('delegates to DeleteProjetoUseCase and returns undefined (no body for 204)', async () => {
       const projetoId = '11111111-1111-1111-1111-111111111111';
 
-      const result = await controller.remove(projetoId, user);
+      const result = await controller.remove(projetoId, user, undefined);
 
-      expect(mockDeleteUseCase.execute).toHaveBeenCalledWith({ projetoId }, user);
+      expect(mockDeleteUseCase.execute).toHaveBeenCalledWith(
+        { projetoId, bearerToken: undefined },
+        user,
+      );
       expect(result).toBeUndefined();
+    });
+
+    it('extracts bearer token from Authorization header and forwards it to the use case', async () => {
+      const projetoId = '11111111-1111-1111-1111-111111111111';
+
+      await controller.remove(projetoId, user, 'Bearer my-proj-delete-token');
+
+      expect(mockDeleteUseCase.execute).toHaveBeenCalledWith(
+        { projetoId, bearerToken: 'my-proj-delete-token' },
+        user,
+      );
     });
   });
 

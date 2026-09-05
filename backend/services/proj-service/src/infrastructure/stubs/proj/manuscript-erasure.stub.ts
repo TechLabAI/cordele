@@ -19,7 +19,7 @@ import type { ManuscriptErasurePort } from '../../../domain/proj/ports/outbound/
 export class ManuscriptErasureStub implements ManuscriptErasurePort {
   private readonly logger = new Logger(ManuscriptErasureStub.name);
 
-  async erase(projetoId: string, empresaId: string): Promise<void> {
+  async erase(projetoId: string, empresaId: string, _bearerToken?: string): Promise<void> {
     this.logger.warn(
       `degraded:true port=ManuscriptErasurePort empresaId=${empresaId} projetoId=${projetoId}`,
     );

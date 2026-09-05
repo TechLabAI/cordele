@@ -25,10 +25,16 @@ export class CompCompositionErasureAdapter implements CompositionErasurePort {
 
   constructor(private readonly config: ConfigService) {}
 
-  async erase(projetoId: string, empresaId: string): Promise<void> {
+  async erase(projetoId: string, empresaId: string, bearerToken?: string): Promise<void> {
     const baseUrl = this.config.get<string>('COMP_SERVICE_URL');
     if (!baseUrl) {
       throw new Error('COMP_SERVICE_URL not configured — cannot purge composition data');
+    }
+
+    const headers: Record<string, string> = {};
+    if (bearerToken) {
+      headers['Authorization'] = `Bearer ${bearerToken}`;
+      this.logger.debug('CompCompositionErasureAdapter: Authorization header mounted');
     }
 
     let response: Response;
@@ -36,6 +42,7 @@ export class CompCompositionErasureAdapter implements CompositionErasurePort {
       const url = `${baseUrl}/api/v1/comp/projetos/${projetoId}/erasure`;
       response = await fetch(url, {
         method: 'DELETE',
+        headers,
       });
     } catch (err) {
       this.logger.error(

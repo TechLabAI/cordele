@@ -344,8 +344,10 @@ export class ProjController {
   async remove(
     @Param('projetoId', ParseUUIDPipe) projetoId: string,
     @CurrentUser() user: UsuarioContext,
+    @Headers('authorization') authHeader?: string,
   ): Promise<void> {
-    await this.deleteUseCase.execute({ projetoId }, user);
+    const bearerToken = authHeader?.replace(/^Bearer\s+/i, '') ?? undefined;
+    await this.deleteUseCase.execute({ projetoId, bearerToken }, user);
   }
 
   // ---------------------------------------------------------------------------

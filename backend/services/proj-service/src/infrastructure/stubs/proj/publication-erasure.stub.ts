@@ -20,7 +20,7 @@ import type { PublicationErasurePort } from '../../../domain/proj/ports/outbound
 export class PublicationErasureStub implements PublicationErasurePort {
   private readonly logger = new Logger(PublicationErasureStub.name);
 
-  async erase(projetoId: string, empresaId: string): Promise<void> {
+  async erase(projetoId: string, empresaId: string, _bearerToken?: string): Promise<void> {
     this.logger.warn(
       `degraded:true port=PublicationErasurePort empresaId=${empresaId} projetoId=${projetoId}`,
     );

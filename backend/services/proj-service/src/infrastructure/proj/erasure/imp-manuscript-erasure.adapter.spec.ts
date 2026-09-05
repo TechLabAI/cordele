@@ -81,4 +81,24 @@ describe('ImpManuscriptErasureAdapter', () => {
     const headers = (options?.headers ?? {}) as Record<string, string>;
     expect(headers['X-Empresa-Id']).toBeUndefined();
   });
+
+  it('mounts Authorization header when bearerToken is provided', async () => {
+    mockFetch.mockResolvedValue({ ok: true, status: 204 });
+
+    await adapter.erase('projeto-1', 'emp-aetos', 'test-bearer-token');
+
+    const [, options] = mockFetch.mock.calls[0] as [string, RequestInit | undefined];
+    const headers = (options?.headers ?? {}) as Record<string, string>;
+    expect(headers['Authorization']).toBe('Bearer test-bearer-token');
+  });
+
+  it('does NOT mount Authorization header when bearerToken is absent', async () => {
+    mockFetch.mockResolvedValue({ ok: true, status: 204 });
+
+    await adapter.erase('projeto-1', 'emp-aetos');
+
+    const [, options] = mockFetch.mock.calls[0] as [string, RequestInit | undefined];
+    const headers = (options?.headers ?? {}) as Record<string, string>;
+    expect(headers['Authorization']).toBeUndefined();
+  });
 });
