@@ -6,11 +6,18 @@
  *
  * Behaviours preserved from prototype:
  *   - Badge derivation: rascunho/em_composicao → project status; publication exists → epubcheck (SPEC-03 §3)
- *   - degraded=true: renders identity + status, never error state (api-contract §4.2 + SPEC-03 §1)
+ *   - degraded=true: renders discrete, honest notice — never hides or alarms (api-contract §3)
  *   - Loading skeletons during 'loading' state (CLS-safe, SPEC-03 EARS)
  *   - Empty state only when status==='empty' (no flicker while loading)
  *   - Quick download opens signed URL directly in new tab (D-F)
+ *   - Pagination: "Carregar mais" button — cursor-based keyset, no arbitrary page jump
  * Track D: promoted by fe-architect-promote PROJ @ cordele (D-494).
+ *
+ * Pagination UI decision (api-contract §4.2):
+ *   The backend uses opaque keyset cursors — only sequential forward traversal is
+ *   possible. Numbered pagination with arbitrary jump is not feasible without storing
+ *   all previous cursors. "Carregar mais" (load more / infinite scroll variant) is the
+ *   correct UX for cursor-based pagination and is honest about the data model.
  */
 import {
   ChangeDetectionStrategy,
@@ -18,14 +25,13 @@ import {
   OnInit,
   inject,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { LibraryFacade } from '../library.facade';
 import { ProjetoCardVM } from '../models/proj.models';
 
 @Component({
   selector: 'proj-biblioteca-de-projetos',
   standalone: true,
-  imports: [RouterLink],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="px-8 py-8 max-w-[var(--content-max-width)] mx-auto">
@@ -35,12 +41,9 @@ import { ProjetoCardVM } from '../models/proj.models';
         <div style="border-left:4px solid oklch(42% 0.20 245);padding-left:14px;">
           <h1 class="font-display font-semibold text-2xl" style="color:var(--text-primary)">Seus projetos</h1>
           <p class="mt-1 text-sm" style="color:var(--text-secondary)">
-            @if (facade.status() === 'ready') {
+            @if (facade.status() === 'ready' || facade.status() === 'loading-more') {
               {{ facade.projects().length }} projeto(s)
               @if (facade.empresaNome()) { · {{ facade.empresaNome() }} }
-              @if (facade.degraded()) {
-                <span class="ml-2 text-xs" style="color:var(--color-warn-ink)">(dados parciais)</span>
-              }
             }
           </p>
         </div>
@@ -52,6 +55,17 @@ import { ProjetoCardVM } from '../models/proj.models';
           Novo projeto
         </button>
       </div>
+
+      <!-- Degraded notice — discrete, honest; never alarmist (api-contract §3) -->
+      @if (facade.degraded()) {
+        <div class="mb-4 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm"
+             style="background:oklch(78% 0.16 75 / 0.14);border:1px solid oklch(78% 0.16 75 / 0.40);color:oklch(40% 0.14 75);"
+             role="status" aria-live="polite">
+          <span class="material-symbols-outlined" style="font-size:16px;">info</span>
+          Alguns dados de agregação (autor, capítulos, epubcheck) podem estar incompletos.
+          Os projetos em si estão corretos.
+        </div>
+      }
 
       <!-- Loading skeletons (CLS-safe — never render empty state here) -->
       @if (facade.status() === 'loading') {
@@ -94,7 +108,7 @@ import { ProjetoCardVM } from '../models/proj.models';
       }
 
       <!-- Grid de cards -->
-      @if (facade.status() === 'ready' && !facade.isEmpty()) {
+      @if ((facade.status() === 'ready' || facade.status() === 'loading-more') && !facade.isEmpty()) {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           @for (proj of facade.projects(); track proj.id) {
             <div class="flex flex-col rounded-xl p-5 transition-shadow hover:shadow-md"
@@ -112,6 +126,9 @@ import { ProjetoCardVM } from '../models/proj.models';
 
               @if (proj.autor) {
                 <p class="text-sm" style="color:var(--text-secondary)">{{ proj.autor }}</p>
+              } @else if (facade.degraded()) {
+                <!-- Degraded: author empty may be a fetch failure, not truly absent -->
+                <p class="text-sm italic" style="color:var(--text-tertiary)">Autor indisponível (dados parciais)</p>
               } @else {
                 <p class="text-sm italic" style="color:var(--text-tertiary)">Autor não definido</p>
               }
@@ -144,6 +161,26 @@ import { ProjetoCardVM } from '../models/proj.models';
             </div>
           }
         </div>
+
+        <!-- Carregar mais (cursor-based keyset — only sequential forward traversal is possible;
+             numbered pagination with arbitrary jump is not supported by the API contract) -->
+        @if (facade.hasMore()) {
+          <div class="mt-8 flex justify-center">
+            <button
+              (click)="facade.loadMore()"
+              [disabled]="facade.status() === 'loading-more'"
+              class="inline-flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-semibold border transition-opacity hover:opacity-90 disabled:opacity-50"
+              style="border-color:var(--border-default);color:var(--text-primary);background:var(--bg-surface);">
+              @if (facade.status() === 'loading-more') {
+                <span class="material-symbols-outlined animate-spin" style="font-size:18px;">progress_activity</span>
+                Carregando…
+              } @else {
+                <span class="material-symbols-outlined" style="font-size:18px;">expand_more</span>
+                Carregar mais
+              }
+            </button>
+          </div>
+        }
       }
 
     </div>

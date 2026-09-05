@@ -8,7 +8,7 @@
  * X-Empresa-Id header: added automatically when ACCESS_EMPRESA_ID is provided.
  * Default: null (safe for auth-only environments; override in app providers).
  */
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpResponse } from '@angular/common/http';
 import { Injectable, InjectionToken, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
@@ -80,9 +80,18 @@ export class AccessHttpClient {
       : new HttpHeaders();
   }
 
-  /** GET — emits a single typed response. */
+  /** GET — emits a single typed response (body only). */
   get<T>(url: string): Observable<T> {
     return this.http.get<T>(url, { headers: this.empresaHeaders() });
+  }
+
+  /**
+   * GET with full HTTP response — emits `HttpResponse<T>` so callers can read
+   * response headers (e.g. `X-Degraded`) while still carrying `X-Empresa-Id`.
+   * Use when a response header drives business logic (api-contract §3).
+   */
+  getResponse<T>(url: string): Observable<HttpResponse<T>> {
+    return this.http.get<T>(url, { headers: this.empresaHeaders(), observe: 'response' });
   }
 
   /**
