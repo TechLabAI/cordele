@@ -9,12 +9,14 @@ import { GetPublicationStatsUseCase } from './use-cases/get-publication-stats.us
 import { GetPublicationStatusUseCase } from './use-cases/get-publication-status.use-case';
 import { GetSignedDownloadUrlUseCase } from './use-cases/get-signed-download-url.use-case';
 import { ListValidationMessagesUseCase } from './use-cases/list-validation-messages.use-case';
+import { GetLatestBatchUseCase } from './use-cases/get-latest-batch.use-case';
 // P6 — PUB-014/015: exported in-process ports for PROJ
 import { PublicationHistoryService } from './publication-history.service';
 import { PublicationErasureService } from './publication-erasure.service';
 import {
   EVENT_PUBLISHER_PORT,
   GENERATE_PUBLICATION_USE_CASE,
+  GET_LATEST_BATCH_USE_CASE,
   GET_PUBLICATION_HISTORY_USE_CASE,
   GET_PUBLICATION_STATS_USE_CASE,
   GET_PUBLICATION_STATUS_USE_CASE,
@@ -57,6 +59,9 @@ import {
 
     // --- PUB-016: List validation messages ---
     { provide: LIST_VALIDATION_MESSAGES_USE_CASE, useClass: ListValidationMessagesUseCase },
+
+    // --- api-contract §4.7: Batch latest publication status (PROJ integration) ---
+    { provide: GET_LATEST_BATCH_USE_CASE, useClass: GetLatestBatchUseCase },
 
     // --- P16 — PUB-004: Domain-event publisher ---
     /**

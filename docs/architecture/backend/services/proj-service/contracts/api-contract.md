@@ -76,7 +76,7 @@ mechanism (storage binaries are not in the DB). Order, idempotency and failure s
 | `X-Correlation-Id` | request (optional) / response (always) | propagated to logs and pipeline events; generated if absent |
 | `Content-Type: application/json` | request | create / reopen |
 | `Content-Type: application/problem+json` | response | error responses |
-| `X-Degraded: true` | response (conditional) | present on `GET /api/proj/projetos` when one or more cross-context read ports are operating in stub/fallback mode (SPEC-07). Response body shape is unchanged — body is still `ProjetoCard[]`. |
+| `X-Degraded: true` | response (conditional) | present on `GET /api/proj/projetos` when one or more cross-context read ports are operating in stub/fallback mode (SPEC-07). Response body shape is unchanged — body is still `ProjetoLibraryPage` (`{ items, nextCursor }`). |
 
 ---
 
@@ -113,28 +113,55 @@ Acceptance criteria (EARS):
 Lists the projects of the active empresa (newest activity first) with the composed fields the library
 cards render: status badge, chapter/image counts (from IMP's latest manuscript), last epubcheck outcome
 (from PUB's latest publication), author (from COMP metadata) and last activity. Cross-context fields are
-resolved through outbound read ports in a **single batched read** (no N+1 — §6.4, SPEC-03).
+resolved through outbound read ports in a **single batched read per page** (no N+1 — §6.4, SPEC-03).
 
-**Scope:** `proj:read` · **Query:** `?status=<enum>` (optional filter), `?limit`/`?cursor` (optional
-pagination; POC default returns all — G5). **Success — `200 OK`**, body = `ProjetoCard[]` (§6.2).
+**Scope:** `proj:read`
+
+**Query parameters:**
+
+| Parameter | Type    | Default | Constraints | Description |
+|-----------|---------|---------|-------------|-------------|
+| `status`  | string  | —       | optional    | Filter by project status enum value. |
+| `limit`   | integer | 25      | 1–50        | Items per page. Rejected with `400` if > 50. Max=50 is set equal to the cross-service batch limit so each page fits in exactly one HTTP chunk per downstream service. |
+| `cursor`  | string  | —       | optional    | Opaque cursor from the previous response's `nextCursor` field. Rejected with `400` if corrupted. |
+
+**Success — `200 OK`**, body = `ProjetoLibraryPage` (§6.2b):
+
+```json
+{
+  "items": [ /* ProjetoCard[] */ ],
+  "nextCursor": "eyJhdHVhbGl6YWRvRW0iOiIyMDI2LTA5LTAxVDEyOjAwOjAwWiIsImlkIjoiYWJjZC4uLiJ9"
+}
+```
+
+`nextCursor` is an opaque base64-encoded keyset cursor. Pass it as `?cursor=` on the next request.
+`nextCursor` is `null` on the last (or only) page.
+
+**Ordering:** `ultimaAtividadeEm DESC, id ASC` — stable for keyset pagination (id is always unique).
 
 **Response headers (conditional):** `X-Degraded: true` is added when any cross-context read port is
-operating in stub/fallback mode. The body shape (`ProjetoCard[]`) is unchanged — body serialisation is
-stable; callers that need degraded-mode awareness read this header (see §3).
+operating in stub/fallback mode. The body shape (`ProjetoLibraryPage`) is unchanged — body serialisation
+is stable; callers that need degraded-mode awareness read this header (see §3).
+
+**Note for frontend (`projeto-api.service.ts`):** The response is now an envelope `{ items, nextCursor }`,
+not a flat `ProjetoCard[]` array. The service method must be updated to unwrap `items`.
 
 Acceptance criteria (EARS):
 
-- `WHEN an authenticated editor lists projects, THE SYSTEM SHALL return the projects of the active empresa
-  ordered by ultimaAtividadeEm descending, each as a ProjetoCard.`
+- `WHEN an authenticated editor lists projects, THE SYSTEM SHALL return a page of projects of the active
+  empresa ordered by ultimaAtividadeEm descending with a tiebreak by id ascending, each as a ProjetoCard.`
 - `THE SYSTEM SHALL populate each card's totalCapitulos/totalImagens from the project's latest manuscript
   (ManuscriptSummaryPort) and ultimoEpubcheckStatus from the project's latest publication
   (PublicationHistoryPort).`
-- `WHERE a project has no manuscript yet, THE SYSTEM SHALL return totalCapitulos=0, totalImagens=0 and a
-  status badge of rascunho.`
+- `WHERE a project has no manuscript yet, THE SYSTEM SHALL return totalCapitulos=0, totalImagens=0.`
 - `IF a cross-context read port is unavailable, THEN THE SYSTEM SHALL still return each project's own
   identity and status, mark the degraded fields null, and add the response header X-Degraded: true`
   (degrade, never fail the library — SPEC-07).
 - `WHERE the status query parameter is supplied, THE SYSTEM SHALL return only projects in that status.`
+- `WHERE ?limit exceeds 50, THE SYSTEM SHALL reject the request with 400 Bad Request.`
+- `WHERE ?cursor is present but cannot be decoded, THE SYSTEM SHALL reject the request with 400 Bad Request.`
+- `WHEN a page is not the last, THE SYSTEM SHALL return a non-null nextCursor that, when passed as ?cursor,
+  yields the next page with no overlap or gap.`
 
 ### 4.3 `GET /api/proj/projetos/{projetoId}` — project detail
 

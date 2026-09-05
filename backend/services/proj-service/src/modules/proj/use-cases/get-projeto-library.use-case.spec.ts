@@ -17,6 +17,7 @@ import type { ManuscriptSummaryPort } from '../../../domain/proj/ports/outbound/
 import type { ProjectMetadataPort } from '../../../domain/proj/ports/outbound/project-metadata.port';
 import type { PublicationHistoryPort } from '../../../domain/proj/ports/outbound/publication-history.port';
 import { ProjetoStatus } from '../../../domain/proj/value-objects/project-status.vo';
+import { PartialResultError } from '../../../domain/shared/partial-result.error';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -227,13 +228,16 @@ describe('GetProjetoLibraryUseCase', () => {
       );
     });
 
-    it('accepts limit and cursor without throwing (reserved pagination params)', async () => {
+    it('accepts limit and cursor without throwing (pagination params)', async () => {
       repository.findAll.mockResolvedValue([]);
+      manuscriptPort.summaries.mockResolvedValue(new Map());
+      metadataPort.metadata.mockResolvedValue(new Map());
+      publicationPort.latest.mockResolvedValue(new Map());
 
-      // ?limit and ?cursor are reserved for future pagination (G5); must not cause errors.
+      // Pagination params must not cause errors; empty library → nextCursor: null.
       await expect(
         useCase.execute({ empresaId: 'emp-aetos', limit: 25, cursor: 'cursor-abc' }),
-      ).resolves.toEqual({ cards: [], degraded: false });
+      ).resolves.toEqual({ cards: [], degraded: false, nextCursor: null });
     });
   });
 
@@ -390,6 +394,93 @@ describe('GetProjetoLibraryUseCase', () => {
   });
 
   // ---------------------------------------------------------------------------
+  // Partial degradation — PartialResultError from chunked adapter
+  // When an adapter succeeds on some chunks and fails on others, it throws
+  // PartialResultError<T> carrying the partial data. callPort extracts it and
+  // marks degraded=true, so the response includes real data from the successful
+  // chunks rather than an empty fallback.
+  // ---------------------------------------------------------------------------
+
+  describe('partial degradation via PartialResultError', () => {
+    it('returns partial manuscript data and degraded=true when ManuscriptSummaryPort throws PartialResultError', async () => {
+      const project = makeProject('id-1', ProjetoStatus.publicado);
+      repository.findAll.mockResolvedValue([project]);
+
+      const partialMap = new Map([['id-1', { totalCapitulos: 5, totalImagens: 2 }]]);
+      manuscriptPort.summaries.mockRejectedValue(
+        new PartialResultError(partialMap, 1, 4),
+      );
+      metadataPort.metadata.mockResolvedValue(new Map([['id-1', { autor: 'Ana Lima' }]]));
+      publicationPort.latest.mockResolvedValue(new Map());
+
+      const result = await useCase.execute({ empresaId: 'emp-aetos' });
+
+      expect(result.degraded).toBe(true);
+      // Partial data from successful chunks is used (not empty fallback)
+      expect(result.cards[0].totalCapitulos).toBe(5);
+      expect(result.cards[0].totalImagens).toBe(2);
+      // Other ports still contribute
+      expect(result.cards[0].autor).toBe('Ana Lima');
+    });
+
+    it('returns partial metadata and degraded=true when ProjectMetadataPort throws PartialResultError', async () => {
+      const project = makeProject('id-1', ProjetoStatus.publicado);
+      repository.findAll.mockResolvedValue([project]);
+      manuscriptPort.summaries.mockResolvedValue(new Map());
+
+      const partialMeta = new Map([['id-1', { autor: 'Eliana Moraes' }]]);
+      metadataPort.metadata.mockRejectedValue(
+        new PartialResultError(partialMeta, 2, 4),
+      );
+      publicationPort.latest.mockResolvedValue(new Map());
+
+      const result = await useCase.execute({ empresaId: 'emp-aetos' });
+
+      expect(result.degraded).toBe(true);
+      expect(result.cards[0].autor).toBe('Eliana Moraes');
+    });
+
+    it('returns partial publication data and degraded=true when PublicationHistoryPort throws PartialResultError', async () => {
+      const project = makeProject('id-1', ProjetoStatus.publicado);
+      repository.findAll.mockResolvedValue([project]);
+      manuscriptPort.summaries.mockResolvedValue(new Map());
+      metadataPort.metadata.mockResolvedValue(new Map());
+
+      const partialLatest = new Map([['id-1', { publicacaoId: 'pub-x', epubcheckStatus: 'valido' as const }]]);
+      publicationPort.latest.mockRejectedValue(
+        new PartialResultError(partialLatest, 1, 4),
+      );
+
+      const result = await useCase.execute({ empresaId: 'emp-aetos' });
+
+      expect(result.degraded).toBe(true);
+      expect(result.cards[0].ultimoEpubcheckStatus).toBe('valido');
+    });
+
+    it('emits WARN with degraded:true port=ManuscriptSummaryPort when PartialResultError is thrown', async () => {
+      const loggerWarnSpy = jest
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+
+      const project = makeProject('id-1', ProjetoStatus.publicado);
+      repository.findAll.mockResolvedValue([project]);
+      manuscriptPort.summaries.mockRejectedValue(
+        new PartialResultError(new Map(), 1, 2),
+      );
+      metadataPort.metadata.mockResolvedValue(new Map());
+      publicationPort.latest.mockResolvedValue(new Map());
+
+      await useCase.execute({ empresaId: 'emp-aetos' });
+
+      expect(loggerWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('degraded:true port=ManuscriptSummaryPort'),
+      );
+
+      loggerWarnSpy.mockRestore();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
   // Real-adapter degradation path (Problem 1 fix)
   // The callPort wrapper catches exceptions thrown by the real adapter and
   // marks degraded=true. With stub flags all false, the only way degraded fires
@@ -442,6 +533,106 @@ describe('GetProjetoLibraryUseCase', () => {
       const result = await useCase.execute({ empresaId: 'emp-aetos' });
 
       expect(result.degraded).toBe(true);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Keyset pagination (cursor-based)
+  // ---------------------------------------------------------------------------
+
+  describe('pagination (keyset cursor)', () => {
+    function makeProjects(count: number): ReturnType<typeof makeProject>[] {
+      return Array.from({ length: count }, (_, i) => ({
+        ...makeProject(`id-${i + 1}`, ProjetoStatus.rascunho),
+        atualizadoEm: new Date(`2026-08-25T10:${String(i).padStart(2, '0')}:00Z`),
+      }));
+    }
+
+    beforeEach(() => {
+      manuscriptPort.summaries.mockResolvedValue(new Map());
+      metadataPort.metadata.mockResolvedValue(new Map());
+      publicationPort.latest.mockResolvedValue(new Map());
+    });
+
+    it('returns nextCursor=null when repository returns fewer items than limit', async () => {
+      const projects = makeProjects(10);
+      repository.findAll.mockResolvedValue(projects);
+
+      const result = await useCase.execute({ empresaId: 'emp-aetos', limit: 25 });
+
+      expect(result.nextCursor).toBeNull();
+      expect(result.cards).toHaveLength(10);
+    });
+
+    it('returns nextCursor when repository returns limit+1 items', async () => {
+      // Repository returns 26 items (limit+1), signalling there is more.
+      const projects = makeProjects(26);
+      repository.findAll.mockResolvedValue(projects);
+
+      const result = await useCase.execute({ empresaId: 'emp-aetos', limit: 25 });
+
+      expect(result.nextCursor).not.toBeNull();
+      // Use case slices to limit (25), not 26
+      expect(result.cards).toHaveLength(25);
+    });
+
+    it('nextCursor encodes atualizadoEm and id of the last item on the page', async () => {
+      const projects = makeProjects(26);
+      repository.findAll.mockResolvedValue(projects);
+
+      const result = await useCase.execute({ empresaId: 'emp-aetos', limit: 25 });
+
+      const decoded = JSON.parse(Buffer.from(result.nextCursor!, 'base64').toString('utf-8')) as {
+        atualizadoEm: string;
+        id: string;
+      };
+      const lastPage = projects[24]; // 25th item (index 24)
+      expect(decoded.id).toBe(lastPage.id);
+      expect(decoded.atualizadoEm).toBe(lastPage.atualizadoEm.toISOString());
+    });
+
+    it('passes limit+1 to repository so has-next-page can be detected without a count query', async () => {
+      repository.findAll.mockResolvedValue([]);
+
+      await useCase.execute({ empresaId: 'emp-aetos', limit: 10 });
+
+      expect(repository.findAll).toHaveBeenCalledWith(
+        'emp-aetos',
+        expect.objectContaining({ limit: 11 }),
+      );
+    });
+
+    it('passes cursor to repository when provided', async () => {
+      const cursor = Buffer.from(JSON.stringify({ atualizadoEm: '2026-08-25T10:00:00Z', id: 'abc' })).toString('base64');
+      repository.findAll.mockResolvedValue([]);
+
+      await useCase.execute({ empresaId: 'emp-aetos', cursor });
+
+      expect(repository.findAll).toHaveBeenCalledWith(
+        'emp-aetos',
+        expect.objectContaining({ cursor }),
+      );
+    });
+
+    it('returns nextCursor=null on last page (fewer than limit items)', async () => {
+      // Simulate the last page: only 3 items returned (< limit 25).
+      const projects = makeProjects(3);
+      repository.findAll.mockResolvedValue(projects);
+
+      const result = await useCase.execute({ empresaId: 'emp-aetos', limit: 25 });
+
+      expect(result.nextCursor).toBeNull();
+      expect(result.cards).toHaveLength(3);
+    });
+
+    it('empty repository returns nextCursor=null and degraded=false (not a degradation)', async () => {
+      repository.findAll.mockResolvedValue([]);
+
+      const result = await useCase.execute({ empresaId: 'emp-aetos' });
+
+      expect(result.nextCursor).toBeNull();
+      expect(result.degraded).toBe(false);
+      expect(result.cards).toHaveLength(0);
     });
   });
 });

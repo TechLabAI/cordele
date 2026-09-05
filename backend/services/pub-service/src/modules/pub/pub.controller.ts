@@ -1,7 +1,9 @@
 import {
+  Body,
   Controller,
   Get,
   Headers,
+  HttpCode,
   HttpStatus,
   Inject,
   Param,
@@ -33,12 +35,16 @@ import { DownloadUrlDto } from './dto/download-url.dto';
 import { ValidationMessageItemDto } from './dto/validation-message-item.dto';
 import {
   GENERATE_PUBLICATION_USE_CASE,
+  GET_LATEST_BATCH_USE_CASE,
   GET_PUBLICATION_HISTORY_USE_CASE,
   GET_PUBLICATION_STATS_USE_CASE,
   GET_PUBLICATION_STATUS_USE_CASE,
   GET_SIGNED_DOWNLOAD_URL_USE_CASE,
   LIST_VALIDATION_MESSAGES_USE_CASE,
 } from './pub.tokens';
+import { LatestBatchRequestDto } from './dto/latest-batch-request.dto';
+import { LatestBatchResponseItemDto } from './dto/latest-batch-response-item.dto';
+import { type GetLatestBatchUseCase } from './use-cases/get-latest-batch.use-case';
 import { type GeneratePublicationUseCase } from './use-cases/generate-publication.use-case';
 import { type GetPublicationHistoryUseCase } from './use-cases/get-publication-history.use-case';
 import { type GetPublicationStatsUseCase } from './use-cases/get-publication-stats.use-case';
@@ -77,6 +83,8 @@ export class PubController {
     private readonly statsUseCase: GetPublicationStatsUseCase,
     @Inject(LIST_VALIDATION_MESSAGES_USE_CASE)
     private readonly listValidationMessagesUseCase: ListValidationMessagesUseCase,
+    @Inject(GET_LATEST_BATCH_USE_CASE)
+    private readonly latestBatchUseCase: GetLatestBatchUseCase,
   ) {}
 
   // ---------------------------------------------------------------------
@@ -213,6 +221,24 @@ export class PubController {
       location: msg.location ?? null,
       ordem: msg.ordem,
     }));
+  }
+
+  // ---------------------------------------------------------------------
+  // 4.7 POST publications/latest-batch — batch latest status (PROJ integration)
+  // ---------------------------------------------------------------------
+  @Post('publications/latest-batch')
+  @RequiredScopes('pub:read')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Batch latest publication status per project (PROJ integration)' })
+  @ApiOkResponse({
+    type: [LatestBatchResponseItemDto],
+    description: 'Latest publication summary per project. Projects without publications are omitted.',
+  })
+  async latestBatch(
+    @Body() body: LatestBatchRequestDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<LatestBatchResponseItemDto[]> {
+    return this.latestBatchUseCase.execute({ projetoIds: body.projetoIds }, user);
   }
 
   // ---------------------------------------------------------------------

@@ -86,3 +86,13 @@ export const EMPRESA_CONTEXT_RUNNER_PORT = Symbol('EmpresaContextRunnerPort');
  * `publication.failed` domain events **after** the terminal persistence call.
  */
 export { EventPublisherPort as EVENT_PUBLISHER_PORT } from './ports/event-publisher.port';
+
+// --- Batch query use case (api-contract §4.7, PROJ integration) ---
+
+/**
+ * Injection token for GetLatestBatchUseCase.
+ *
+ * Used by PROJ via REST POST /api/v1/pub/publications/latest-batch to resolve
+ * the latest epubcheckStatus per project in a single round-trip.
+ */
+export const GET_LATEST_BATCH_USE_CASE = Symbol('GetLatestBatchUseCase');

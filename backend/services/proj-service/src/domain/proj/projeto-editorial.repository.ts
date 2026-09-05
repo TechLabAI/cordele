@@ -11,10 +11,27 @@
 
 import { ProjetoStatus } from './value-objects/project-status.vo';
 
-/** Filter for findAll (cursored listing — cursor not enforced in POC). */
+/**
+ * Filter for findAll (keyset-paginated listing).
+ *
+ * `limit` is the number of rows to fetch (the use case passes limit+1 to
+ * detect whether a next page exists — the adapter never needs to know this
+ * convention).
+ *
+ * `cursor` is an opaque string produced by the use case from the last row of
+ * the previous page: base64(JSON({atualizadoEm: ISO-8601, id: UUID})).
+ * The adapter decodes it and applies the keyset WHERE clause:
+ *   (atualizadoEm < cursor.atualizadoEm)
+ *   OR (atualizadoEm = cursor.atualizadoEm AND id > cursor.id)
+ * which, combined with ORDER BY atualizadoEm DESC, id ASC, yields the items
+ * that come after the cursor row.
+ */
 export interface ProjetoEditorialFilter {
   readonly status?: ProjetoStatus;
+  /** Number of rows to return. */
   readonly limit?: number;
+  /** Opaque keyset cursor produced from the last row of the previous page. */
+  readonly cursor?: string;
 }
 
 /** Read model returned by all repository operations. */

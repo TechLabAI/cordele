@@ -1,8 +1,14 @@
 /**
  * Unit tests for PubPublicationHistoryAdapter (PROJ-INT-003).
  *
- * Post-fix (2026-09-04) contract:
+ * Contract (post-chunking update):
  *   - latest() empty projetoIds → empty Map (no HTTP call, not a degradation).
+ *   - latest() ≤50 IDs → exactly 1 HTTP call (single chunk, unchanged behaviour).
+ *   - latest() 152 IDs → 4 HTTP calls (chunks 50+50+50+2).
+ *   - latest() all chunks succeed → merged Map, no exception.
+ *   - latest() some chunks fail → throws PartialResultError with partial data.
+ *   - latest() all chunks fail → throws Error (not PartialResultError).
+ *   - history() and signedDownloadUrl() are single-id and not chunked.
  *   - Missing PUB_SERVICE_URL → throws (callPort marks degraded).
  *   - Non-2xx HTTP → throws (callPort marks degraded for latest/history;
  *     propagates for signedDownloadUrl which is always a hard call).
@@ -14,6 +20,7 @@
 
 import { ConfigService } from '@nestjs/config';
 import { PubPublicationHistoryAdapter } from './publication-history.adapter';
+import { PartialResultError } from '../../../domain/shared/partial-result.error';
 
 const mockConfig = {
   get: jest.fn(),
@@ -30,6 +37,10 @@ const PROJETO_ID = 'proj-uuid-1';
 const PUB_ID = 'pub-uuid-1';
 const EMPRESA_ID = 'emp-aetos';
 const BASE_URL = 'http://pub-service:3003';
+
+function makeIds(count: number): string[] {
+  return Array.from({ length: count }, (_, i) => `id-${i + 1}`);
+}
 
 describe('PubPublicationHistoryAdapter', () => {
   let adapter: PubPublicationHistoryAdapter;
@@ -51,7 +62,7 @@ describe('PubPublicationHistoryAdapter', () => {
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it('makes exactly 1 call for any number of project IDs', async () => {
+    it('makes exactly 1 call for up to 50 project IDs', async () => {
       const ids = ['id-1', 'id-2', 'id-3'];
       mockFetch.mockResolvedValue({
         ok: true,
@@ -110,6 +121,103 @@ describe('PubPublicationHistoryAdapter', () => {
       const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
       const headers = options.headers as Record<string, string>;
       expect(headers['Authorization']).toBeUndefined();
+    });
+
+    // -------------------------------------------------------------------------
+    // Chunking: 152 IDs → 4 blocks (50+50+50+2)
+    // -------------------------------------------------------------------------
+
+    describe('chunking (152 IDs → 4 blocks)', () => {
+      it('makes 4 HTTP calls for 152 project IDs', async () => {
+        const ids = makeIds(152);
+        mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+
+        await adapter.latest(ids, EMPRESA_ID);
+
+        expect(mockFetch).toHaveBeenCalledTimes(4);
+      });
+
+      it('sends correct chunk sizes: 50+50+50+2 for 152 IDs', async () => {
+        const ids = makeIds(152);
+        mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+
+        await adapter.latest(ids, EMPRESA_ID);
+
+        const chunkSizes = (mockFetch.mock.calls as [string, RequestInit][]).map((call) => {
+          const body = JSON.parse(call[1].body as string) as { projetoIds: string[] };
+          return body.projetoIds.length;
+        });
+        expect(chunkSizes).toEqual([50, 50, 50, 2]);
+      });
+
+      it('merges results from all chunks into one Map', async () => {
+        const ids = makeIds(152);
+        mockFetch
+          .mockResolvedValueOnce({ ok: true, json: async () => [{ projetoId: 'id-1', publicacaoId: 'p1', epubcheckStatus: 'valido' }] })
+          .mockResolvedValueOnce({ ok: true, json: async () => [{ projetoId: 'id-51', publicacaoId: 'p51', epubcheckStatus: 'avisos' }] })
+          .mockResolvedValueOnce({ ok: true, json: async () => [] })
+          .mockResolvedValueOnce({ ok: true, json: async () => [{ projetoId: 'id-151', publicacaoId: 'p151', epubcheckStatus: 'pendente' }] });
+
+        const result = await adapter.latest(ids, EMPRESA_ID);
+
+        expect(result.get('id-1')?.epubcheckStatus).toBe('valido');
+        expect(result.get('id-51')?.epubcheckStatus).toBe('avisos');
+        expect(result.get('id-151')?.epubcheckStatus).toBe('pendente');
+      });
+
+      it('all chunks succeed → returns complete Map, no exception', async () => {
+        const ids = makeIds(152);
+        mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+
+        await expect(adapter.latest(ids, EMPRESA_ID)).resolves.toBeInstanceOf(Map);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // Partial degradation
+    // -------------------------------------------------------------------------
+
+    describe('partial degradation', () => {
+      it('throws PartialResultError with partial data when middle chunk fails', async () => {
+        const ids = makeIds(152);
+        mockFetch
+          .mockResolvedValueOnce({ ok: true, json: async () => [{ projetoId: 'id-1', publicacaoId: 'p1', epubcheckStatus: 'valido' }] })
+          .mockResolvedValueOnce({ ok: false, status: 400 }) // chunk 1 fails
+          .mockResolvedValueOnce({ ok: true, json: async () => [{ projetoId: 'id-101', publicacaoId: 'p101', epubcheckStatus: 'avisos' }] })
+          .mockResolvedValueOnce({ ok: true, json: async () => [] });
+
+        let caught: unknown;
+        try {
+          await adapter.latest(ids, EMPRESA_ID);
+        } catch (err) {
+          caught = err;
+        }
+
+        expect(caught).toBeInstanceOf(PartialResultError);
+        const partial = (caught as PartialResultError<Map<string, unknown>>).partial;
+        expect(partial.size).toBe(2);
+        expect(partial.has('id-1')).toBe(true);
+        expect(partial.has('id-101')).toBe(true);
+
+        const err = caught as PartialResultError<Map<string, unknown>>;
+        expect(err.failedChunks).toBe(1);
+        expect(err.totalChunks).toBe(4);
+      });
+
+      it('throws plain Error (not PartialResultError) when ALL chunks fail', async () => {
+        const ids = makeIds(152);
+        mockFetch.mockResolvedValue({ ok: false, status: 400 });
+
+        let caught: unknown;
+        try {
+          await adapter.latest(ids, EMPRESA_ID);
+        } catch (err) {
+          caught = err;
+        }
+
+        expect(caught).not.toBeInstanceOf(PartialResultError);
+        expect(caught).toBeInstanceOf(Error);
+      });
     });
   });
 

@@ -1,4 +1,5 @@
 # PROJ-017 -- Health endpoint (@nestjs/terminus) + correlation ID propagation + degraded:true structured logging
+<!-- status: in-review -->
 
 **Status:** REDUCED -- pos-validacao 2026-08-28
 **Maturidade:** 69 -- Consistente

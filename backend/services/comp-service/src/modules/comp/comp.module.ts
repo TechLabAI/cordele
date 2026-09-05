@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { CompController } from './comp.controller';
+import { MetadataBatchController } from './metadata-batch.controller';
 import { CompService } from './comp.service';
 import { CompHealthService } from './comp-health.service';
 import {
@@ -61,7 +62,7 @@ import { CompositionErasureUseCase } from './application/composition-erasure.use
  *          the controller and passed to each use case. ✓
  */
 @Module({
-  controllers: [CompController],
+  controllers: [CompController, MetadataBatchController],
   providers: [
     CompService,
 

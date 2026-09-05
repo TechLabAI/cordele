@@ -7,13 +7,22 @@
  * RULE-05: infrastructure must not import modules/.
  * RULE-06: outbound HTTP clients belong in infrastructure/.
  *
- * Degradation contract:
- *   - Empty projetoIds (latest) → returns empty Map (legitimate, not a degradation).
- *   - Missing PUB_SERVICE_URL → throws Error (callPort in use case marks degraded;
- *     signedDownloadUrl propagates as a real failure since URL minting is critical).
- *   - Non-2xx HTTP response → throws Error (callPort in use case marks degraded;
- *     signedDownloadUrl propagates).
- *   - Network/fetch error → propagates.
+ * Chunking (latest() only):
+ *   projetoIds in latest() is split into blocks of CROSS_SERVICE_BATCH_LIMIT (50)
+ *   because the PUB batch endpoint rejects requests larger than 50 IDs with HTTP 400
+ *   (contractual limit, see PUB api-contract.md). Blocks are fetched in parallel
+ *   via Promise.allSettled to reduce latency — see ImpManuscriptSummaryAdapter
+ *   for rationale.
+ *   history() and signedDownloadUrl() operate on a single projetoId and do not need
+ *   chunking.
+ *
+ * Partial degradation (latest() only):
+ *   - All blocks succeed → returns merged Map, no exception.
+ *   - Some blocks fail   → throws PartialResultError<Map<...>> carrying the data
+ *     from successful blocks; callPort in the use case extracts the partial result
+ *     and marks degraded=true.
+ *   - All blocks fail    → throws Error; callPort marks degraded=true and returns
+ *     the empty-Map fallback.
  *
  * PUB endpoint mapping (real contract as of 2026-09-04):
  *   - latest()           → POST /api/v1/pub/publications/latest-batch
@@ -34,6 +43,8 @@ import type {
   PublicationRecord,
   SignedDownloadUrlResult,
 } from '../../../domain/proj/ports/outbound/publication-history.port';
+import { PartialResultError } from '../../../domain/shared/partial-result.error';
+import { chunkArray, CROSS_SERVICE_BATCH_LIMIT } from './batch-chunk.util';
 
 /** PUB batch-latest response shape. */
 interface PubLatestResponse {
@@ -90,18 +101,39 @@ export class PubPublicationHistoryAdapter implements PublicationHistoryPort {
       throw new Error('PUB_SERVICE_URL not configured — cannot fetch latest publications');
     }
 
+    const chunks = chunkArray(projetoIds, CROSS_SERVICE_BATCH_LIMIT);
+    this.logger.log(
+      `PubPublicationHistoryAdapter: fetching ${projetoIds.length} ids in ${chunks.length} chunks`,
+    );
+
+    const settled = await Promise.allSettled(
+      chunks.map((chunk, index) =>
+        this.fetchLatestChunk(baseUrl, empresaId, chunk, index, bearerToken),
+      ),
+    );
+
+    return this.mergeSettled(settled, chunks.length, empresaId);
+  }
+
+  private async fetchLatestChunk(
+    baseUrl: string,
+    empresaId: string,
+    chunk: string[],
+    chunkIndex: number,
+    bearerToken?: string,
+  ): Promise<Map<string, LatestPublicationSummary>> {
     const response = await fetch(`${baseUrl}/api/v1/pub/publications/latest-batch`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...this.buildHeaders(empresaId, bearerToken),
       },
-      body: JSON.stringify({ projetoIds }),
+      body: JSON.stringify({ projetoIds: chunk }),
     });
 
     if (!response.ok) {
       throw new Error(
-        `PUB publications/latest-batch returned ${response.status} for empresaId=${empresaId}`,
+        `PUB publications/latest-batch chunk ${chunkIndex} returned ${response.status} for empresaId=${empresaId}`,
       );
     }
 
@@ -114,6 +146,38 @@ export class PubPublicationHistoryAdapter implements PublicationHistoryPort {
       });
     }
     return result;
+  }
+
+  private mergeSettled(
+    settled: PromiseSettledResult<Map<string, LatestPublicationSummary>>[],
+    totalChunks: number,
+    empresaId: string,
+  ): Map<string, LatestPublicationSummary> {
+    const merged = new Map<string, LatestPublicationSummary>();
+    let failedChunks = 0;
+    let lastError: Error | undefined;
+
+    for (const result of settled) {
+      if (result.status === 'fulfilled') {
+        for (const [k, v] of result.value) {
+          merged.set(k, v);
+        }
+      } else {
+        failedChunks++;
+        lastError = result.reason as Error;
+        this.logger.warn(
+          `PubPublicationHistoryAdapter: chunk failed for empresaId=${empresaId}: ${lastError.message}`,
+        );
+      }
+    }
+
+    if (failedChunks === 0) {
+      return merged;
+    }
+    if (failedChunks === totalChunks) {
+      throw lastError!;
+    }
+    throw new PartialResultError(merged, failedChunks, totalChunks, lastError);
   }
 
   async history(

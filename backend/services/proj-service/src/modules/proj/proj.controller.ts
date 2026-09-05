@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   ConflictException,
   Controller,
@@ -37,7 +38,7 @@ import { CurrentUser } from './decorators/current-user.decorator';
 import { RequiredScopes } from './decorators/require-scope.decorator';
 import { CreateProjetoDto } from './dto/create-projeto.dto';
 import { ProjetoDetailDto } from './dto/projeto-detail.dto';
-import { ProjetoCardDto } from './dto/projeto-card.dto';
+import { ProjetoLibraryPageDto } from './dto/projeto-library-page.dto';
 import { PublicacaoHistoryItemDto } from './dto/publicacao-history-item.dto';
 import { SignedDownloadUrlDto } from './dto/signed-download-url.dto';
 import {
@@ -51,6 +52,7 @@ import {
   DELETE_PROJETO_USE_CASE,
 } from './proj.tokens';
 import type { GetProjetoLibraryUseCase } from './use-cases/get-projeto-library.use-case';
+import { LIBRARY_MAX_PAGE_SIZE } from './use-cases/get-projeto-library.use-case';
 import type { GetProjetoDetailUseCase } from './use-cases/get-projeto-detail.use-case';
 import type { GetPublicationHistoryUseCase } from './use-cases/get-publication-history.use-case';
 import type { GetSignedDownloadUrlUseCase } from './use-cases/get-signed-download-url.use-case';
@@ -154,10 +156,12 @@ export class ProjController {
 
   @Get('projetos')
   @RequiredScopes('proj:read')
-  @ApiOperation({ summary: 'List editorial projects of the active empresa' })
+  @ApiOperation({ summary: 'List editorial projects of the active empresa (paginated)' })
   @ApiOkResponse({
-    type: [ProjetoCardDto],
-    description: 'Paginated project card list.',
+    type: ProjetoLibraryPageDto,
+    description:
+      'A page of project cards. Pass `nextCursor` as `?cursor=` on the next request ' +
+      'to retrieve the following page. `nextCursor` is null on the last page.',
   })
   @ApiHeader({
     name: 'X-Degraded',
@@ -169,30 +173,78 @@ export class ProjController {
     schema: { type: 'string', enum: ['true'] },
   })
   @ApiQuery({ name: 'status', required: false, description: 'Filter by project status' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Max items (reserved, not enforced in POC)' })
-  @ApiQuery({ name: 'cursor', required: false, description: 'Pagination cursor (reserved, not enforced in POC)' })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    schema: { type: 'integer', minimum: 1, maximum: LIBRARY_MAX_PAGE_SIZE, default: 25 },
+    description: `Max items per page (1–${LIBRARY_MAX_PAGE_SIZE}). Rejected with 400 if above max.`,
+  })
+  @ApiQuery({
+    name: 'cursor',
+    required: false,
+    description:
+      'Opaque pagination cursor from the previous response\'s `nextCursor` field. ' +
+      'Rejected with 400 if the value cannot be decoded.',
+  })
   async findAll(
     @CurrentUser() user: UsuarioContext,
     @Res({ passthrough: true }) res: Response,
     @Headers('authorization') authHeader?: string,
     @Query('status') status?: string,
-    @Query('limit') limit?: number,
+    @Query('limit') rawLimit?: string,
     @Query('cursor') cursor?: string,
-  ): Promise<ProjetoCardDto[]> {
+  ): Promise<ProjetoLibraryPageDto> {
     const empresaId = user.empresaId;
     const bearerToken = authHeader?.replace(/^Bearer\s+/i, '') ?? undefined;
+
+    // Validate and parse limit.
+    let limit: number | undefined;
+    if (rawLimit !== undefined) {
+      const parsed = parseInt(rawLimit, 10);
+      if (isNaN(parsed) || parsed < 1) {
+        throw new BadRequestException('?limit must be a positive integer');
+      }
+      if (parsed > LIBRARY_MAX_PAGE_SIZE) {
+        throw new BadRequestException(
+          `?limit=${parsed} exceeds the maximum page size of ${LIBRARY_MAX_PAGE_SIZE}`,
+        );
+      }
+      limit = parsed;
+    }
+
+    // Validate cursor (opaque base64 JSON — decode to detect corruption).
+    if (cursor) {
+      try {
+        const raw = JSON.parse(Buffer.from(cursor, 'base64').toString('utf-8')) as unknown;
+        if (
+          typeof raw !== 'object' ||
+          raw === null ||
+          typeof (raw as Record<string, unknown>)['atualizadoEm'] !== 'string' ||
+          typeof (raw as Record<string, unknown>)['id'] !== 'string'
+        ) {
+          throw new Error('missing fields');
+        }
+      } catch {
+        throw new BadRequestException(
+          '?cursor value is invalid or corrupted — use the nextCursor from a previous response',
+        );
+      }
+    }
+
     const result = await this.libraryUseCase.execute({
       empresaId,
       bearerToken,
       status: status ? (status as unknown as ProjetoStatus) : undefined,
       limit,
-      cursor
+      cursor,
     });
+
     if (result.degraded) {
       this.logger.warn(`GET /projetos degraded=true empresaId=${empresaId}`);
       res.setHeader('X-Degraded', 'true');
     }
-    return result.cards;
+
+    return { items: result.cards, nextCursor: result.nextCursor };
   }
 
   // ---------------------------------------------------------------------------

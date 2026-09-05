@@ -96,13 +96,15 @@ describe('Proj (e2e)', () => {
       .expect(({ body }) => expect(body.id).toBe(createdId));
   });
 
-  it('lists projects for the empresa', async () => {
+  it('lists projects for the empresa (paginated envelope)', async () => {
     const response = await request(app.getHttpServer())
       .get('/api/v1/proj/projetos')
       .expect(200);
 
-    expect(Array.isArray(response.body)).toBe(true);
-    expect(response.body.some((card: { id: string }) => card.id === createdId)).toBe(true);
+    // Response is now an envelope { items: ProjetoCard[], nextCursor: string | null }
+    expect(Array.isArray(response.body.items)).toBe(true);
+    expect(response.body).toHaveProperty('nextCursor');
+    expect(response.body.items.some((card: { id: string }) => card.id === createdId)).toBe(true);
   });
 
   it('lists an empty publication history for a freshly created project', async () => {

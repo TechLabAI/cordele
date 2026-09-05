@@ -1,11 +1,26 @@
 /**
- * GetProjetoLibraryUseCase — returns the project library (T02) with cross-context
- * fields composed from IMP, COMP and PUB in a single batched round-trip.
+ * GetProjetoLibraryUseCase — returns a paginated project library (T02) with
+ * cross-context fields composed from IMP, COMP and PUB in a single batched
+ * round-trip per page.
  *
- * SPEC-03 clause 1: ordered by ultimaAtividadeEm DESC.
- * SPEC-10 clause 3: exactly ONE call per read-port regardless of project count.
+ * SPEC-03 clause 1: ordered by ultimaAtividadeEm DESC (tiebreak: id ASC for
+ *   deterministic keyset pagination).
+ * SPEC-10 clause 3: exactly ONE call per read-port per page (batch of page IDs).
  * SPEC-07: when any port throws, degraded=true and the corresponding card fields
- *          fall back to safe defaults (zeros / null) — the endpoint never fails.
+ *   fall back to safe defaults (zeros / null) — the endpoint never fails.
+ *
+ * Pagination (keyset / cursor-based):
+ *   Default page size: LIBRARY_DEFAULT_PAGE_SIZE (25).
+ *   Max page size:     LIBRARY_MAX_PAGE_SIZE (50).
+ *   Choosing max=50 is deliberate: 50 = CROSS_SERVICE_BATCH_LIMIT used by the
+ *   three HTTP adapters. A page of ≤ 50 projects fits in exactly ONE batch
+ *   request per downstream service, making chunking the safety net rather than
+ *   the normal path.
+ *
+ *   The use case fetches `limit + 1` rows from the repository; if the count
+ *   exceeds `limit` there is at least one more page, and a `nextCursor` is
+ *   generated from the last row of the current page. The cursor is opaque to
+ *   callers: base64(JSON({atualizadoEm: ISO-8601, id: UUID})).
  *
  * RULE-04: this file is in modules/ and must NOT import from infrastructure/.
  */
@@ -32,15 +47,30 @@ import {
   PROJECT_METADATA_IS_STUB,
   PUBLICATION_HISTORY_IS_STUB,
 } from '../../../domain/proj/ports/outbound/read-port-flags';
+import { PartialResultError } from '../../../domain/shared/partial-result.error';
+
+/**
+ * Default number of items returned when no limit is specified.
+ * Fits comfortably in a single screen without scrolling.
+ */
+export const LIBRARY_DEFAULT_PAGE_SIZE = 25;
+
+/**
+ * Maximum number of items the use case will return in a single page.
+ * Set equal to CROSS_SERVICE_BATCH_LIMIT (50) so that any page fits in
+ * exactly one HTTP chunk per downstream service — chunking becomes a safety
+ * net (for old unbounded callers) rather than the normal path.
+ */
+export const LIBRARY_MAX_PAGE_SIZE = 50;
 
 export interface GetProjetoLibraryInput {
   readonly empresaId: string;
   readonly status?: ProjetoStatus;
   /** JWT bearer from the originating HTTP request, forwarded to cross-context ports. */
   readonly bearerToken?: string;
-  /** Accepted but not enforced in POC (G5 reserve). */
+  /** Number of items per page. Validated and clamped by the controller before reaching here. */
   readonly limit?: number;
-  /** Accepted but not enforced in POC (G5 reserve). */
+  /** Opaque cursor from the previous page's nextCursor field. */
   readonly cursor?: string;
 }
 
@@ -48,6 +78,11 @@ export interface GetProjetoLibraryResult {
   readonly cards: ProjetoCardDto[];
   /** True when one or more cross-context ports were unavailable (SPEC-07). */
   readonly degraded: boolean;
+  /**
+   * Opaque cursor to pass as `cursor` on the next request to retrieve the
+   * following page. Null when this is the last page (or the only page).
+   */
+  readonly nextCursor: string | null;
 }
 
 @Injectable()
@@ -72,18 +107,39 @@ export class GetProjetoLibraryUseCase {
   ) {}
 
   async execute(input: GetProjetoLibraryInput): Promise<GetProjetoLibraryResult> {
-    const filter: ProjetoEditorialFilter = input.status
-      ? { status: input.status }
-      : {};
+    const pageSize = input.limit ?? LIBRARY_DEFAULT_PAGE_SIZE;
 
-    const projects = await this.repository.findAll(input.empresaId, filter);
+    const filter: ProjetoEditorialFilter = {
+      ...(input.status ? { status: input.status } : {}),
+      // Fetch one extra row so we know whether a next page exists.
+      limit: pageSize + 1,
+      ...(input.cursor ? { cursor: input.cursor } : {}),
+    };
+
+    const rawProjects = await this.repository.findAll(input.empresaId, filter);
+
+    // Determine if there is a next page and slice to the requested page size.
+    const hasNextPage = rawProjects.length > pageSize;
+    const projects = hasNextPage ? rawProjects.slice(0, pageSize) : rawProjects;
+
     if (projects.length === 0) {
-      return { cards: [], degraded: false };
+      return { cards: [], degraded: false, nextCursor: null };
     }
+
+    // Generate cursor from the last item on this page.
+    const lastProject = projects[projects.length - 1];
+    const nextCursor = hasNextPage
+      ? Buffer.from(
+          JSON.stringify({
+            atualizadoEm: lastProject.atualizadoEm.toISOString(),
+            id: lastProject.id,
+          }),
+        ).toString('base64')
+      : null;
 
     const ids = projects.map((p) => p.id);
 
-    // --- Batched cross-context reads: exactly 3 port calls per request ---
+    // --- Batched cross-context reads: exactly 3 port calls per page ---
     // Pre-set degraded when any port resolved to its stub adapter at startup
     // (stubs return valid defaults but never throw, so callPort's catch would
     // never fire — SPEC-07 fix, Problem 3a).
@@ -128,12 +184,19 @@ export class GetProjetoLibraryUseCase {
       };
     });
 
-    return { cards, degraded };
+    return { cards, degraded, nextCursor };
   }
 
   /**
    * Calls a port method and catches any exception, setting degraded=true.
    * Guarantees the library endpoint never fails due to a cross-context port.
+   *
+   * Two degradation paths:
+   *  1. PartialResultError<T> — some chunks succeeded and some failed. The
+   *     partial data is returned so the library shows correct data for projects
+   *     whose chunk succeeded. degraded=true so X-Degraded header is emitted.
+   *  2. Any other Error — all chunks failed (or single-shot failure). The
+   *     fallback value is returned (empty Map) and degraded=true.
    */
   private async callPort<T>(
     fn: () => Promise<T>,
@@ -144,6 +207,13 @@ export class GetProjetoLibraryUseCase {
     try {
       return await fn();
     } catch (err) {
+      if (err instanceof PartialResultError) {
+        this.logger.warn(
+          `degraded:true port=${portName} partial=${err.failedChunks}/${err.totalChunks} chunks failed`,
+        );
+        onError();
+        return err.partial as T;
+      }
       this.logger.warn(
         `degraded:true port=${portName} error=${(err as Error).message}`,
       );

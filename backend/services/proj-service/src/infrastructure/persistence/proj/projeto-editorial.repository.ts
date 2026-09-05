@@ -132,17 +132,54 @@ export class PrismaProjetoEditorialRepository
   }
 
   /**
-   * Returns all ProjetoEditorial rows for the empresa, ordered by
-   * atualizado_em DESC.
+   * Returns ProjetoEditorial rows for the empresa ordered by
+   * atualizadoEm DESC, id ASC (stable ordering required for keyset pagination).
+   *
+   * When filter.cursor is present the method decodes the opaque cursor string
+   * (base64 JSON carrying {atualizadoEm: ISO-8601, id: UUID}) and applies the
+   * keyset WHERE clause:
+   *   (atualizadoEm < cursor.atualizadoEm)
+   *   OR (atualizadoEm = cursor.atualizadoEm AND id > cursor.id)
+   * so that the query returns items starting AFTER the cursor row.
+   *
+   * Cursor decoding errors (invalid base64 / bad JSON / missing fields) throw an
+   * Error — the caller (use case or controller) is responsible for catching this
+   * and returning HTTP 400 to the client.
+   *
+   * RULE-08: no $queryRaw — keyset pagination is expressed via Prisma where clauses.
    */
   async findAll(
     empresaId: string,
     filter?: ProjetoEditorialFilter,
   ): Promise<ProjetoEditorialData[]> {
+    // Decode the cursor if present.
+    let cursorWhere: object | undefined;
+    if (filter?.cursor) {
+      const raw = JSON.parse(
+        Buffer.from(filter.cursor, 'base64').toString('utf-8'),
+      ) as { atualizadoEm?: unknown; id?: unknown };
+      if (typeof raw.atualizadoEm !== 'string' || typeof raw.id !== 'string') {
+        throw new Error('Invalid pagination cursor: missing atualizadoEm or id');
+      }
+      const cursorDate = new Date(raw.atualizadoEm);
+      cursorWhere = {
+        OR: [
+          { atualizadoEm: { lt: cursorDate } },
+          { atualizadoEm: { equals: cursorDate }, id: { gt: raw.id } },
+        ],
+      };
+    }
+
+    const statusWhere = filter?.status ? { status: filter.status } : {};
+
     const rows = await this.tenantFactory.withTenant(empresaId, async (tx) => {
       return tx.projetoEditorial.findMany({
-        where: filter?.status ? { status: filter.status } : undefined,
-        orderBy: { atualizadoEm: 'desc' },
+        where: cursorWhere
+          ? { AND: [statusWhere, cursorWhere] }
+          : Object.keys(statusWhere).length > 0
+            ? statusWhere
+            : undefined,
+        orderBy: [{ atualizadoEm: 'desc' }, { id: 'asc' }],
         take: filter?.limit,
       });
     });

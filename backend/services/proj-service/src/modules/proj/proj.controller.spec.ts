@@ -75,7 +75,7 @@ describe('ProjController', () => {
   };
 
   const mockLibraryUseCase = {
-    execute: jest.fn().mockResolvedValue({ cards: [], degraded: false }),
+    execute: jest.fn().mockResolvedValue({ cards: [], degraded: false, nextCursor: null }),
   };
 
   const mockDetailUseCase = {
@@ -166,28 +166,97 @@ describe('ProjController', () => {
     // Mock express Response: findAll calls res.setHeader when degraded.
     const mockRes = { setHeader: jest.fn() } as unknown as import('express').Response;
 
-    it('returns a ProjetoCardDto array from library use case', async () => {
+    it('returns ProjetoLibraryPageDto envelope with items and nextCursor', async () => {
       const result = await controller.findAll(user, mockRes);
 
-      expect(Array.isArray(result)).toBe(true);
+      expect(result).toHaveProperty('items');
+      expect(result).toHaveProperty('nextCursor');
+      expect(Array.isArray(result.items)).toBe(true);
+      expect(result.nextCursor).toBeNull();
       expect(mockLibraryUseCase.execute).toHaveBeenCalledTimes(1);
-    });
-
-    it('accepts optional status, limit and cursor query params without throwing', async () => {
-      // Third arg is authHeader (new), then status, limit, cursor
-      await expect(
-        controller.findAll(user, mockRes, undefined, 'rascunho', 10, 'cursor-abc'),
-      ).resolves.toBeDefined();
     });
 
     it('sets X-Degraded header when library use case returns degraded=true', async () => {
       const setHeaderFn = jest.fn();
       const degradedRes = { setHeader: setHeaderFn } as unknown as import('express').Response;
-      mockLibraryUseCase.execute.mockResolvedValueOnce({ cards: [], degraded: true });
+      mockLibraryUseCase.execute.mockResolvedValueOnce({ cards: [], degraded: true, nextCursor: null });
 
       await controller.findAll(user, degradedRes);
 
       expect(setHeaderFn).toHaveBeenCalledWith('X-Degraded', 'true');
+    });
+
+    it('accepts a valid limit query param and passes it to the use case', async () => {
+      await controller.findAll(user, mockRes, undefined, undefined, '25');
+
+      expect(mockLibraryUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: 25 }),
+      );
+    });
+
+    it('accepts limit=50 (the maximum) without throwing', async () => {
+      await expect(
+        controller.findAll(user, mockRes, undefined, undefined, '50'),
+      ).resolves.toBeDefined();
+    });
+
+    it('throws BadRequestException when limit exceeds maximum (50)', async () => {
+      const { BadRequestException } = await import('@nestjs/common');
+
+      await expect(
+        controller.findAll(user, mockRes, undefined, undefined, '51'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when limit is non-numeric', async () => {
+      const { BadRequestException } = await import('@nestjs/common');
+
+      await expect(
+        controller.findAll(user, mockRes, undefined, undefined, 'abc'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when limit is zero', async () => {
+      const { BadRequestException } = await import('@nestjs/common');
+
+      await expect(
+        controller.findAll(user, mockRes, undefined, undefined, '0'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('accepts a valid base64 cursor and passes it to the use case', async () => {
+      const cursor = Buffer.from(JSON.stringify({ atualizadoEm: '2026-08-25T10:00:00.000Z', id: 'some-uuid' })).toString('base64');
+
+      await controller.findAll(user, mockRes, undefined, undefined, undefined, cursor);
+
+      expect(mockLibraryUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ cursor }),
+      );
+    });
+
+    it('throws BadRequestException when cursor is invalid base64', async () => {
+      const { BadRequestException } = await import('@nestjs/common');
+
+      await expect(
+        controller.findAll(user, mockRes, undefined, undefined, undefined, '!!!not-base64!!!'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when cursor is valid base64 but missing fields', async () => {
+      const { BadRequestException } = await import('@nestjs/common');
+      const badCursor = Buffer.from(JSON.stringify({ foo: 'bar' })).toString('base64');
+
+      await expect(
+        controller.findAll(user, mockRes, undefined, undefined, undefined, badCursor),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('accepts status filter and passes it to the use case', async () => {
+      await controller.findAll(user, mockRes, undefined, 'rascunho');
+
+      expect(mockLibraryUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'rascunho' }),
+      );
     });
   });
 
