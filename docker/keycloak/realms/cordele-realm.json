@@ -314,6 +314,66 @@
         "empresa_id": ["aetos"],
         "effective_scope": ["openid imp:read comp:read pub:read proj:read"]
       }
+    },
+    {
+      "username": "admin-outra",
+      "email": "admin@outra-empresa.dev",
+      "firstName": "Admin",
+      "lastName": "Outra Empresa",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["empresa-admin"],
+      "attributes": {
+        "empresa_id": ["outra-empresa"],
+        "effective_scope": ["openid imp:read imp:write comp:read comp:write pub:read pub:write proj:read proj:write proj:delete"]
+      }
+    },
+    {
+      "username": "coordenadora-outra",
+      "email": "coordenadora@outra-empresa.dev",
+      "firstName": "Marina",
+      "lastName": "Outra Empresa",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "coord123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["coordenadora-editorial"],
+      "attributes": {
+        "empresa_id": ["outra-empresa"],
+        "effective_scope": ["openid imp:read imp:write comp:read comp:write pub:read pub:write proj:read proj:write"]
+      }
+    },
+    {
+      "username": "leitor-outra",
+      "email": "leitor@outra-empresa.dev",
+      "firstName": "Leitor",
+      "lastName": "Outra Empresa",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "leitor123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["leitor-editorial"],
+      "attributes": {
+        "empresa_id": ["outra-empresa"],
+        "effective_scope": ["openid imp:read comp:read pub:read proj:read"]
+      }
     }
   ]
 }

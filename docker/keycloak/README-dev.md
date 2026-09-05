@@ -25,11 +25,21 @@ Login: `admin` / `admin`
 
 ### Papéis e usuários de dev
 
+**Empresa `aetos` (Editora Aetós):**
+
 | Papel | Usuário | Senha | empresa_id | Scopes no token |
 |---|---|---|---|---|
 | `empresa-admin` | `admin-aetos` | `admin123` | `aetos` | todos os 9 |
 | `coordenadora-editorial` | `coordenadora` | `coord123` | `aetos` | read + write (sem `proj:delete`) |
 | `leitor-editorial` | `leitor` | `leitor123` | `aetos` | apenas read |
+
+**Empresa `outra-empresa` (schema `emp_outra-empresa`):**
+
+| Papel | Usuário | Senha | empresa_id | Scopes no token |
+|---|---|---|---|---|
+| `empresa-admin` | `admin-outra` | `admin123` | `outra-empresa` | todos os 9 |
+| `coordenadora-editorial` | `coordenadora-outra` | `coord123` | `outra-empresa` | read + write (sem `proj:delete`) |
+| `leitor-editorial` | `leitor-outra` | `leitor123` | `outra-empresa` | apenas read |
 
 **O claim `empresa_id` carrega o slug da empresa (`aetos`), não o nome do schema.**
 Os serviços que precisam do schema fazem `emp_${slug}` internamente, produzindo `emp_aetos`.
