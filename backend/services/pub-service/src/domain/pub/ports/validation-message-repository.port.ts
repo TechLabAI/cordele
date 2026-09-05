@@ -15,9 +15,9 @@ export interface ValidationMessageRepositoryPort {
    * Returns `ValidationMessage` rows for the given publication, optionally
    * filtered by severity, ordered by `ordem ASC`.
    *
-   * Tenant isolation is enforced at the schema level via `search_path`
-   * (ADR-003); the caller's `EmpresaContext` must be active before calling
-   * (RULE-07 enforced by the application-layer use case).
+   * Tenant isolation is enforced at the schema level via `PrismaEmpresaService`
+   * (one PrismaClient per schema, ADR-003, D-619); the caller's `EmpresaContext`
+   * must be active before calling (RULE-07 enforced by the application-layer use case).
    *
    * @param publicacaoId - id of the owning publication
    * @param severity     - optional filter (`error | warning | info`); when

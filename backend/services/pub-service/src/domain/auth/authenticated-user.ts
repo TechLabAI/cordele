@@ -10,6 +10,6 @@ export interface AuthenticatedUser {
   readonly username: string;
   readonly roles: string[];
   readonly scopes: string[];
-  /** Slug do schema da empresa (ex.: "aetos" → search_path = emp_aetos). */
+  /** Slug da empresa (ex.: "aetos" → schema "emp_aetos" via PrismaEmpresaService). */
   readonly empresaId: string;
 }

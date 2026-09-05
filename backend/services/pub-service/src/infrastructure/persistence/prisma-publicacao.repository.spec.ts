@@ -10,15 +10,16 @@
  * 6. `findById()` retorna null para id inexistente ou projetoId errado.
  * 7. `listByProjeto()` retorna todas as publicacoes em ordem decrescente de sequencia.
  *
+ * Tenant isolation (ADR-003, D-619): todas as operações do repositório são
+ * executadas via `EmpresaContextService.runAs('aetos', ...)`, que define o slug
+ * `aetos` no AsyncLocalStorage. `PrismaEmpresaService` lê o slug do ALS e roteia
+ * para o schema `emp_aetos` via `datasourceUrl` — sem `SET search_path`.
+ *
  * Pré-condição: schema `emp_aetos` provisionado no PostgreSQL de teste com as
  * tabelas `publicacao` e `validation_message` (migration V0001 aplicada).
  *
  * Para rodar localmente:
- *   DATABASE_URL="postgresql://..." pnpm test src/infrastructure/persistence
- *
- * TODO[P3]: integrar com Testcontainers (PostgreSQL 16) quando o ambiente CI
- * estiver configurado. O módulo DatabaseModule e PrismaService são suficientes
- * para rodar em ambiente com DATABASE_URL válido.
+ *   DATABASE_URL="postgresql://...?schema=cordele_global" pnpm test src/infrastructure/persistence
  */
 
 import { randomUUID } from 'node:crypto';
@@ -29,9 +30,13 @@ import { PublicacaoEntity } from '../../domain/pub/publicacao.entity';
 import { EpubcheckStatus } from '../../domain/pub/epubcheck-status.enum';
 import { PublicacaoStatus } from '../../domain/pub/publicacao-status.enum';
 import type { PublicacaoRepositoryPort } from '../../domain/pub/ports/publicacao-repository.port';
-import { DatabaseModule } from './database.module';
+import { EmpresaContextService } from '../auth/empresa-context.service';
 import { PrismaService } from './prisma.service';
+import { PrismaEmpresaService } from './prisma-empresa.service';
 import { PrismaPublicacaoRepository } from './prisma-publicacao.repository';
+
+/** Empresa slug used for all integration tests (schema `emp_aetos`). */
+const TEST_EMPRESA = 'aetos';
 
 /** Constrói uma PublicacaoEntity mínima válida no estado `gerando`. */
 function buildPublicacao(overrides: Partial<Parameters<typeof PublicacaoEntity.iniciar>[0]> = {}): PublicacaoEntity {
@@ -46,40 +51,57 @@ function buildPublicacao(overrides: Partial<Parameters<typeof PublicacaoEntity.i
 
 describe('PrismaPublicacaoRepository (integration)', () => {
   let repo: PublicacaoRepositoryPort;
-  let prisma: PrismaService;
+  let empresaContext: EmpresaContextService;
+  let empresaService: PrismaEmpresaService;
   const createdProjetoIds: string[] = [];
 
   beforeAll(async () => {
+    // Provide all dependencies directly so DatabaseModule's @Global() scope
+    // issues do not interfere with the test module. PrismaService is included
+    // for schema-agnostic raw SQL if needed by future cleanup helpers.
     const moduleRef = await Test.createTestingModule({
-      imports: [DatabaseModule],
-      providers: [PrismaPublicacaoRepository],
+      providers: [
+        PrismaService,
+        EmpresaContextService,
+        PrismaEmpresaService,
+        PrismaPublicacaoRepository,
+      ],
     }).compile();
 
     repo = moduleRef.get(PrismaPublicacaoRepository);
-    prisma = moduleRef.get(PrismaService);
+    empresaContext = moduleRef.get(EmpresaContextService);
+    empresaService = moduleRef.get(PrismaEmpresaService);
   });
 
   afterAll(async () => {
-    // `publicacao.projeto_id` FKs into `projeto_editorial` (PROJ context, same
-    // schema); ON DELETE CASCADE takes the publicacao rows with it.
+    // Clean up test fixtures in the tenant schema.
+    // Uses PrismaEmpresaService.withSlug so the raw SQL targets `emp_aetos`,
+    // consistent with how the repository writes (ADR-003, D-619).
     if (createdProjetoIds.length > 0) {
-      await prisma.$executeRaw`DELETE FROM projeto_editorial WHERE id = ANY(${createdProjetoIds}::uuid[])`;
+      await empresaService.withSlug(TEST_EMPRESA, async (client) => {
+        await client.$executeRaw`DELETE FROM projeto_editorial WHERE id = ANY(${createdProjetoIds}::uuid[])`;
+      });
     }
   });
 
-  /** Cria o projeto_editorial pai exigido por `fk_publicacao_projeto` antes de salvar uma publicacao de teste. */
+  /**
+   * Cria o projeto_editorial pai exigido por `fk_publicacao_projeto` antes de salvar
+   * uma publicacao de teste. Executes in the tenant schema via PrismaEmpresaService.
+   */
   async function seedProjetoEditorial(projetoId: string): Promise<void> {
     createdProjetoIds.push(projetoId);
-    await prisma.$executeRaw`
-      INSERT INTO projeto_editorial (id, editora_id, nome)
-      VALUES (${projetoId}::uuid, ${randomUUID()}::uuid, 'PUB integration test fixture')
-    `;
+    await empresaService.withSlug(TEST_EMPRESA, async (client) => {
+      await client.$executeRaw`
+        INSERT INTO projeto_editorial (id, editora_id, nome)
+        VALUES (${projetoId}::uuid, ${randomUUID()}::uuid, 'PUB integration test fixture')
+      `;
+    });
   }
 
   describe('nextSequencia()', () => {
     it('deve retornar 1 quando nenhuma publicacao existe para o projeto', async () => {
       const projetoId = randomUUID();
-      const seq = await repo.nextSequencia(projetoId);
+      const seq = await empresaContext.runAs(TEST_EMPRESA, () => repo.nextSequencia(projetoId));
       expect(seq).toBe(1);
     });
 
@@ -87,9 +109,9 @@ describe('PrismaPublicacaoRepository (integration)', () => {
       const projetoId = randomUUID();
       await seedProjetoEditorial(projetoId);
       const pub = buildPublicacao({ projetoId, sequencia: 1 });
-      await repo.save(pub);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(pub));
 
-      const seq = await repo.nextSequencia(projetoId);
+      const seq = await empresaContext.runAs(TEST_EMPRESA, () => repo.nextSequencia(projetoId));
       expect(seq).toBe(2);
     });
   });
@@ -98,7 +120,7 @@ describe('PrismaPublicacaoRepository (integration)', () => {
     it('deve criar e retornar a publicacao com o id e status corretos', async () => {
       const pub = buildPublicacao();
       await seedProjetoEditorial(pub.projetoId);
-      const saved = await repo.save(pub);
+      const saved = await empresaContext.runAs(TEST_EMPRESA, () => repo.save(pub));
 
       expect(saved.id).toBe(pub.id);
       expect(saved.projetoId).toBe(pub.projetoId);
@@ -110,10 +132,10 @@ describe('PrismaPublicacaoRepository (integration)', () => {
     it('deve atualizar o status gerando → validando ao salvar novamente', async () => {
       const gerando = buildPublicacao();
       await seedProjetoEditorial(gerando.projetoId);
-      await repo.save(gerando);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(gerando));
 
       const validando = gerando.iniciarValidacao();
-      const saved = await repo.save(validando);
+      const saved = await empresaContext.runAs(TEST_EMPRESA, () => repo.save(validando));
 
       expect(saved.id).toBe(gerando.id);
       expect(saved.status).toBe(PublicacaoStatus.VALIDANDO);
@@ -123,7 +145,7 @@ describe('PrismaPublicacaoRepository (integration)', () => {
   describe('findInFlight()', () => {
     it('deve retornar null quando não há build em voo', async () => {
       const projetoId = randomUUID();
-      const result = await repo.findInFlight(projetoId);
+      const result = await empresaContext.runAs(TEST_EMPRESA, () => repo.findInFlight(projetoId));
       expect(result).toBeNull();
     });
 
@@ -131,9 +153,9 @@ describe('PrismaPublicacaoRepository (integration)', () => {
       const projetoId = randomUUID();
       await seedProjetoEditorial(projetoId);
       const pub = buildPublicacao({ projetoId });
-      await repo.save(pub);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(pub));
 
-      const found = await repo.findInFlight(projetoId);
+      const found = await empresaContext.runAs(TEST_EMPRESA, () => repo.findInFlight(projetoId));
       expect(found).not.toBeNull();
       expect(found?.id).toBe(pub.id);
       expect(found?.status).toBe(PublicacaoStatus.GERANDO);
@@ -143,11 +165,11 @@ describe('PrismaPublicacaoRepository (integration)', () => {
       const projetoId = randomUUID();
       await seedProjetoEditorial(projetoId);
       const gerando = buildPublicacao({ projetoId });
-      await repo.save(gerando);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(gerando));
       const validando = gerando.iniciarValidacao();
-      await repo.save(validando);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(validando));
 
-      const found = await repo.findInFlight(projetoId);
+      const found = await empresaContext.runAs(TEST_EMPRESA, () => repo.findInFlight(projetoId));
       expect(found?.status).toBe(PublicacaoStatus.VALIDANDO);
     });
 
@@ -155,43 +177,49 @@ describe('PrismaPublicacaoRepository (integration)', () => {
       const projetoId = randomUUID();
       await seedProjetoEditorial(projetoId);
       const gerando = buildPublicacao({ projetoId });
-      await repo.save(gerando);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(gerando));
       const validando = gerando.iniciarValidacao();
-      await repo.save(validando);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(validando));
       const comErros = validando.concluirComErros({
         resumoErro: 'Test error',
         totalErros: 1,
         totalAvisos: 0,
         concluidaEm: new Date(),
       });
-      await repo.save(comErros);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(comErros));
 
-      const found = await repo.findInFlight(projetoId);
+      const found = await empresaContext.runAs(TEST_EMPRESA, () => repo.findInFlight(projetoId));
       expect(found).toBeNull();
     });
   });
 
   describe('findById()', () => {
     it('deve retornar null para id inexistente', async () => {
-      const result = await repo.findById(randomUUID(), randomUUID());
+      const result = await empresaContext.runAs(TEST_EMPRESA, () =>
+        repo.findById(randomUUID(), randomUUID()),
+      );
       expect(result).toBeNull();
     });
 
     it('deve retornar null quando o projetoId não corresponde (isolamento)', async () => {
       const pub = buildPublicacao();
       await seedProjetoEditorial(pub.projetoId);
-      await repo.save(pub);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(pub));
 
-      const result = await repo.findById(randomUUID(), pub.id);
+      const result = await empresaContext.runAs(TEST_EMPRESA, () =>
+        repo.findById(randomUUID(), pub.id),
+      );
       expect(result).toBeNull();
     });
 
     it('deve retornar a publicacao pelo id e projetoId corretos', async () => {
       const pub = buildPublicacao();
       await seedProjetoEditorial(pub.projetoId);
-      await repo.save(pub);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(pub));
 
-      const found = await repo.findById(pub.projetoId, pub.id);
+      const found = await empresaContext.runAs(TEST_EMPRESA, () =>
+        repo.findById(pub.projetoId, pub.id),
+      );
       expect(found).not.toBeNull();
       expect(found?.id).toBe(pub.id);
     });
@@ -199,7 +227,9 @@ describe('PrismaPublicacaoRepository (integration)', () => {
 
   describe('listByProjeto()', () => {
     it('deve retornar lista vazia para projeto sem publicacoes', async () => {
-      const result = await repo.listByProjeto(randomUUID());
+      const result = await empresaContext.runAs(TEST_EMPRESA, () =>
+        repo.listByProjeto(randomUUID()),
+      );
       expect(result).toEqual([]);
     });
 
@@ -209,21 +239,21 @@ describe('PrismaPublicacaoRepository (integration)', () => {
       const pub1 = buildPublicacao({ projetoId, sequencia: 1 });
       const pub2 = buildPublicacao({ projetoId, sequencia: 2 });
 
-      await repo.save(pub1);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(pub1));
       // Precisa que pub1 seja terminal para criar pub2 (D-R: só um in-flight).
       const validando1 = pub1.iniciarValidacao();
-      await repo.save(validando1);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(validando1));
       const comErros1 = validando1.concluirComErros({
         resumoErro: 'first attempt failed',
         totalErros: 1,
         totalAvisos: 0,
         concluidaEm: new Date(),
       });
-      await repo.save(comErros1);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(comErros1));
 
-      await repo.save(pub2);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(pub2));
 
-      const list = await repo.listByProjeto(projetoId);
+      const list = await empresaContext.runAs(TEST_EMPRESA, () => repo.listByProjeto(projetoId));
       expect(list.length).toBeGreaterThanOrEqual(2);
       // Newest attempt (sequencia=2) deve vir primeiro.
       expect(list[0].sequencia).toBeGreaterThan(list[1].sequencia);
@@ -240,9 +270,11 @@ describe('PrismaPublicacaoRepository (integration)', () => {
       const projetoId = randomUUID();
       await seedProjetoEditorial(projetoId);
       const pub = buildPublicacao({ projetoId, iniciadaEm: twoHoursAgo });
-      await repo.save(pub);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(pub));
 
-      const result = await repo.findStaleInFlight(60);
+      const result = await empresaContext.runAs(TEST_EMPRESA, () =>
+        repo.findStaleInFlight(60),
+      );
 
       const found = result.find((p) => p.id === pub.id);
       expect(found).toBeDefined();
@@ -253,9 +285,11 @@ describe('PrismaPublicacaoRepository (integration)', () => {
       const projetoId = randomUUID();
       await seedProjetoEditorial(projetoId);
       const pub = buildPublicacao({ projetoId, iniciadaEm: thirtyMinutesAgo });
-      await repo.save(pub);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(pub));
 
-      const result = await repo.findStaleInFlight(60);
+      const result = await empresaContext.runAs(TEST_EMPRESA, () =>
+        repo.findStaleInFlight(60),
+      );
 
       const found = result.find((p) => p.id === pub.id);
       expect(found).toBeUndefined();
@@ -266,18 +300,20 @@ describe('PrismaPublicacaoRepository (integration)', () => {
       await seedProjetoEditorial(projetoId);
       // Cria em gerando com data antiga, avança para terminal.
       const gerando = buildPublicacao({ projetoId, iniciadaEm: twoHoursAgo });
-      await repo.save(gerando);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(gerando));
       const validando = gerando.iniciarValidacao();
-      await repo.save(validando);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(validando));
       const comErros = validando.concluirComErros({
         resumoErro: 'stale-test terminal fixture',
         totalErros: 1,
         totalAvisos: 0,
         concluidaEm: new Date(),
       });
-      await repo.save(comErros);
+      await empresaContext.runAs(TEST_EMPRESA, () => repo.save(comErros));
 
-      const result = await repo.findStaleInFlight(60);
+      const result = await empresaContext.runAs(TEST_EMPRESA, () =>
+        repo.findStaleInFlight(60),
+      );
 
       const found = result.find((p) => p.id === gerando.id);
       expect(found).toBeUndefined();
@@ -288,7 +324,9 @@ describe('PrismaPublicacaoRepository (integration)', () => {
       // o cenario de outros testes que criaram registros acima.
       const projetoId = randomUUID();
       // Nao chamar seedProjetoEditorial nem repo.save — projeto sem publicacoes.
-      const allStale = await repo.findStaleInFlight(60);
+      const allStale = await empresaContext.runAs(TEST_EMPRESA, () =>
+        repo.findStaleInFlight(60),
+      );
       const forThisProject = allStale.filter((p) => p.projetoId === projetoId);
       expect(forThisProject).toEqual([]);
     });
