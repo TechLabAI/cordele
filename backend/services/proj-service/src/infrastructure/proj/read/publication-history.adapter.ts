@@ -217,7 +217,7 @@ export class PubPublicationHistoryAdapter implements PublicationHistoryPort {
   async signedDownloadUrl(
     publicacaoId: string,
     projetoId: string,
-    empresaId: string,
+    _empresaId: string,
     bearerToken?: string,
   ): Promise<SignedDownloadUrlResult> {
     const baseUrl = this.config.get<string>('PUB_SERVICE_URL');

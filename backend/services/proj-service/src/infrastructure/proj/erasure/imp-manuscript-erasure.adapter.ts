@@ -52,7 +52,7 @@ export class ImpManuscriptErasureAdapter implements ManuscriptErasurePort {
     }
 
     if (!response.ok) {
-      const message = `IMP erasure returned ${response.status} for projetoId=${projetoId}`;
+      const message = `IMP erasure returned ${response.status} for projetoId=${projetoId} empresaId=${empresaId}`;
       this.logger.error(message);
       throw new Error(message);
     }

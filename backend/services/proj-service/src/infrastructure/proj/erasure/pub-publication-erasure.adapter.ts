@@ -53,7 +53,7 @@ export class PubPublicationErasureAdapter implements PublicationErasurePort {
     }
 
     if (!response.ok) {
-      const message = `PUB erasure returned ${response.status} for projetoId=${projetoId}`;
+      const message = `PUB erasure returned ${response.status} for projetoId=${projetoId} empresaId=${empresaId}`;
       this.logger.error(message);
       throw new Error(message);
     }

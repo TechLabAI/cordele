@@ -52,7 +52,7 @@ export class CompCompositionErasureAdapter implements CompositionErasurePort {
     }
 
     if (!response.ok) {
-      const message = `COMP erasure returned ${response.status} for projetoId=${projetoId}`;
+      const message = `COMP erasure returned ${response.status} for projetoId=${projetoId} empresaId=${empresaId}`;
       this.logger.error(message);
       throw new Error(message);
     }
