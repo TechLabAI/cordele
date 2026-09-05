@@ -37,7 +37,6 @@ export class PubPublicationErasureAdapter implements PublicationErasurePort {
       const url = `${baseUrl}/api/v1/pub/projetos/${projetoId}/erasure`;
       response = await fetch(url, {
         method: 'DELETE',
-        headers: { 'X-Empresa-Id': empresaId },
       });
     } catch (err) {
       this.logger.error(

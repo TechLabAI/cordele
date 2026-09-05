@@ -78,8 +78,8 @@ export class PubPublicationHistoryAdapter implements PublicationHistoryPort {
   constructor(private readonly config: ConfigService) {}
 
   /** Build auth headers, mounting Authorization only when a token is present. */
-  private buildHeaders(empresaId: string, bearerToken?: string): Record<string, string> {
-    const headers: Record<string, string> = { 'X-Empresa-Id': empresaId };
+  private buildHeaders(bearerToken?: string): Record<string, string> {
+    const headers: Record<string, string> = {};
     if (bearerToken) {
       headers['Authorization'] = `Bearer ${bearerToken}`;
       this.logger.debug('PubPublicationHistoryAdapter: Authorization header mounted');
@@ -126,7 +126,7 @@ export class PubPublicationHistoryAdapter implements PublicationHistoryPort {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...this.buildHeaders(empresaId, bearerToken),
+        ...this.buildHeaders(bearerToken),
       },
       body: JSON.stringify({ projetoIds: chunk }),
     });
@@ -192,7 +192,7 @@ export class PubPublicationHistoryAdapter implements PublicationHistoryPort {
 
     const response = await fetch(
       `${baseUrl}/api/v1/pub/projetos/${projetoId}/publicacoes`,
-      { headers: this.buildHeaders(empresaId, bearerToken) },
+      { headers: this.buildHeaders(bearerToken) },
     );
 
     if (!response.ok) {
@@ -227,7 +227,7 @@ export class PubPublicationHistoryAdapter implements PublicationHistoryPort {
 
     const response = await fetch(
       `${baseUrl}/api/v1/pub/projetos/${projetoId}/publicacoes/${publicacaoId}/download`,
-      { headers: this.buildHeaders(empresaId, bearerToken) },
+      { headers: this.buildHeaders(bearerToken) },
     );
 
     if (!response.ok) {

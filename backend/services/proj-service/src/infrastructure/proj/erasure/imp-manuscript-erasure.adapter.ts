@@ -36,7 +36,6 @@ export class ImpManuscriptErasureAdapter implements ManuscriptErasurePort {
       const url = `${baseUrl}/api/v1/imp/projetos/${projetoId}/erasure`;
       response = await fetch(url, {
         method: 'DELETE',
-        headers: { 'X-Empresa-Id': empresaId },
       });
     } catch (err) {
       this.logger.error(

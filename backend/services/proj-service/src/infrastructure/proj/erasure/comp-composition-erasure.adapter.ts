@@ -36,7 +36,6 @@ export class CompCompositionErasureAdapter implements CompositionErasurePort {
       const url = `${baseUrl}/api/v1/comp/projetos/${projetoId}/erasure`;
       response = await fetch(url, {
         method: 'DELETE',
-        headers: { 'X-Empresa-Id': empresaId },
       });
     } catch (err) {
       this.logger.error(

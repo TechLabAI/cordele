@@ -250,13 +250,13 @@ describe('CompProjectMetadataAdapter', () => {
     expect(headers['Authorization']).toBeUndefined();
   });
 
-  it('always sends X-Empresa-Id regardless of bearerToken', async () => {
+  it('never sends X-Empresa-Id — isolation is enforced via JWT claim, not via request header', async () => {
     mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
 
     await adapter.metadata(['id-1'], 'emp-aetos', 'tok');
 
     const [, options] = mockFetch.mock.calls[0] as [string, RequestInit];
     const headers = options.headers as Record<string, string>;
-    expect(headers['X-Empresa-Id']).toBe('emp-aetos');
+    expect(headers['X-Empresa-Id']).toBeUndefined();
   });
 });

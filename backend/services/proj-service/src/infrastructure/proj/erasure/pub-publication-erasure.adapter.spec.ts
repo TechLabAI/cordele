@@ -73,4 +73,14 @@ describe('PubPublicationErasureAdapter', () => {
 
     await expect(adapter.erase('projeto-1', 'emp-aetos')).rejects.toThrow('ECONNREFUSED');
   });
+
+  it('never sends X-Empresa-Id — isolation is enforced via JWT claim, not via request header', async () => {
+    mockFetch.mockResolvedValue({ ok: true, status: 204 });
+
+    await adapter.erase('projeto-1', 'emp-aetos');
+
+    const [, options] = mockFetch.mock.calls[0] as [string, RequestInit | undefined];
+    const headers = (options?.headers ?? {}) as Record<string, string>;
+    expect(headers['X-Empresa-Id']).toBeUndefined();
+  });
 });

@@ -68,7 +68,6 @@ export class CompProjectMetadataAdapter implements ProjectMetadataPort {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'X-Empresa-Id': empresaId,
     };
     if (bearerToken) {
       headers['Authorization'] = `Bearer ${bearerToken}`;
