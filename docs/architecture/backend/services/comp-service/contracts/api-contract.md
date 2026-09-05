@@ -259,6 +259,44 @@ current tree are returned with `stale:true` and are excluded from what PUB honou
 
 ---
 
+### 4.8 `POST /api/v1/comp/metadata/batch` — batch author metadata query (COMP-017)
+
+**Controller:** `MetadataBatchController` (`src/modules/comp/metadata-batch.controller.ts`).
+**Rationale for separate controller:** `CompController` uses `@Controller({ path: 'comp/projetos/:projetoId', … })`
+which binds `:projetoId` to every route. The batch endpoint accepts a body list and has no single `projetoId`
+in the path, so a dedicated controller at `comp/metadata` is the cleanest solution — it avoids breaking the
+7 existing routes.
+
+**Scope:** `comp:read` · **Success — `200 OK`**
+
+**Request body:**
+```json
+{ "projetoIds": ["<uuid>", "..."] }
+```
+
+**Response body:** array of items — only for projects that have a persisted `Metadados` row:
+```json
+[{ "projetoId": "<uuid>", "autor": "Eliana Moraes" }]
+```
+
+**Omission semantics:** projects with no `Metadados` row are absent from the array. The consumer
+(`proj-service/CompProjectMetadataAdapter`) indexes the array by `projetoId` and treats a missing entry
+as "no metadata" — distinct from a present entry with `autor: null` (row exists, author field blank).
+Empty `projetoIds: []` → `[]` (no DB call). Unknown IDs → omitted.
+
+**Batch guarantee:** one `findMany` query via `ProjectMetadataUseCase` regardless of list size (no N+1).
+**Multi-empresa:** tenant routing via `EmpresaContextInterceptor` (ALS set from JWT `empresaId`).
+**Batch limit:** máximo **50 IDs** por requisição (padrão cross-módulo). Enviar 51+ retorna
+`400 Bad Request` com `type: urn:cordele:comp:validation`. O consumidor deve fatiar listas
+maiores em blocos de até 50.
+
+- `WHEN PROJ requests batch author metadata, THE SYSTEM SHALL return only projects with a persisted Metadados row in a single query.`
+- `WHEN projetoIds is empty, THE SYSTEM SHALL return an empty array without querying the database.`
+- `THE SYSTEM SHALL omit projects with no Metadados row rather than returning null-author entries.`
+- `WHEN the projetoIds list exceeds 50 items, THE SYSTEM SHALL return 400 with type urn:cordele:comp:validation.`
+
+---
+
 ## 5. Errors (RFC 7807 ProblemDetail)
 
 All errors use `application/problem+json`. `type` is a stable URN; `traceId` mirrors `X-Correlation-Id`.
