@@ -81,7 +81,7 @@ export class PublicacaoApiService {
   // ─── §4.6 — Validation messages (INT-FE-PUB-004) ─────────────────────────
 
   /**
-   * GET /api/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/validation-messages
+   * GET /api/v1/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/validation-messages
    * Detailed epubcheck message rows ordered by `ordem ASC` (api-contract §4.6).
    * `severity` is optional; omitted = all severities.
    *
@@ -99,7 +99,7 @@ export class PublicacaoApiService {
   // ─── Cross-context — wired in P4 ─────────────────────────────────────────
 
   /**
-   * GET /api/proj/projetos/{projetoId} — project header (name, status, editora).
+   * GET /api/v1/proj/projetos/{projetoId} — project header (name, status, editora).
    * INT-FE-PUB-002 (P4): provides real cross-context data when an injection token
    * override is registered in app.config.ts (PUB_PROJETO_HEADER_FN token).
    * Default (no override): returns null — HistoryFacade renders gracefully without header.
@@ -116,7 +116,7 @@ export class PublicacaoApiService {
   }
 
   /**
-   * Metadata subtitle (autor) from COMP (GET /api/comp/projetos/{projetoId}/metadados).
+   * Metadata subtitle (autor) from COMP (GET /api/v1/comp/projetos/{projetoId}/metadados).
    * INT-FE-PUB-003 (P4): provides real cross-context data when an injection token
    * override is registered in app.config.ts (PUB_AUTOR_FN token).
    * Default (no override): returns null — HistoryFacade renders gracefully without autor.

@@ -6,10 +6,10 @@
  * P2: replaced HttpClient with ImpHttpClient (INT-FE-IMP-001 resolved).
  *
  * Endpoints (api-contract §4):
- *   POST   /api/imp/manuscripts                          → create (sync parse, D-A)
- *   GET    /api/imp/manuscripts/{id}                    → get
- *   GET    /api/imp/manuscripts/{id}/estrutura          → getEstrutura
- *   GET    /api/imp/projetos/{projetoId}/manuscritos    → listByProjeto
+ *   POST   /api/v1/imp/manuscripts                          → create (sync parse, D-A)
+ *   GET    /api/v1/imp/manuscripts/{id}                    → get
+ *   GET    /api/v1/imp/manuscripts/{id}/estrutura          → getEstrutura
+ *   GET    /api/v1/imp/projetos/{projetoId}/manuscritos    → listByProjeto
  */
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -28,7 +28,7 @@ const BASE = moduleBase('imp');
 
 @Injectable({ providedIn: 'root' })
 export class ManuscritoHttpAdapter implements ManuscritoPort {
-  /** ImpHttpClient (not HttpClient) — X-Empresa-Id header added automatically. */
+  /** ImpHttpClient (not HttpClient) per RULE-NX-05 — empresa context from JWT `empresa_id` claim. */
   private readonly http = inject(ImpHttpClient);
 
   create(params: UploadParams): Observable<ManuscritoDetail> {
@@ -36,8 +36,8 @@ export class ManuscritoHttpAdapter implements ManuscritoPort {
     form.append('file', params.file, params.file.name);
     if (params.projetoTitulo) form.append('projetoTitulo', params.projetoTitulo);
     if (params.projetoId)     form.append('projetoId',     params.projetoId);
-    // X-Empresa-Id is injected by ImpHttpClient → AccessHttpClient automatically.
     // Browser sets Content-Type: multipart/form-data + boundary (Angular detects FormData).
+    // Empresa context resolved server-side from JWT `empresa_id` claim.
     return this.http.post<ManuscritoDetail>(`${BASE}/manuscripts`, form);
   }
 

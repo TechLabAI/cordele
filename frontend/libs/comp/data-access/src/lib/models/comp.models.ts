@@ -98,10 +98,10 @@ export interface PreviewNode {
 
 // ── Metadados mutations ───────────────────────────────────────────────────────
 
-/** PUT /api/comp/projetos/{projetoId}/metadados request body. */
+/** PUT /api/v1/comp/projetos/{projetoId}/metadados request body. */
 export type UpsertMetadadosDto = Partial<Omit<MetadadosDto, 'projetoId' | 'capaUrl' | 'materialized'>>;
 
-/** POST /api/comp/projetos/{projetoId}/capa response (201). */
+/** POST /api/v1/comp/projetos/{projetoId}/capa response (201). */
 export interface CapaUploadResponse {
   capaUrl: string;
 }

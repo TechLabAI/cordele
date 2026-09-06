@@ -116,7 +116,7 @@ export type ValidationMessageSeverity = 'error' | 'warning' | 'info';
 
 /**
  * One epubcheck report line returned by
- * GET /api/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/validation-messages (§4.6).
+ * GET /api/v1/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/validation-messages (§4.6).
  * Ordered by `ordem ASC` — 0-based insertion order from the epubcheck run.
  *
  * `location` is nullable: not every epubcheck message includes a file/line reference.
@@ -160,7 +160,7 @@ export function toAvisoVM(item: ValidationMessageItem): AvisoVM {
 
 /**
  * Minimal project header info consumed by PUB's HistoryFacade (INT-FE-PUB-002).
- * Resolved via cross-context call to proj-service (GET /api/proj/projetos/{id}).
+ * Resolved via cross-context call to proj-service (GET /api/v1/proj/projetos/{id}).
  * Defined here (scope:pub type:domain) to avoid boundary violation from pub-data-access
  * importing scope:proj models directly.
  * Real wiring: app.config.ts provides an injection token that maps to ProjetoApiService.

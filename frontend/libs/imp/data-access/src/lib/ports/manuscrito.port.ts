@@ -3,10 +3,10 @@
  * Track D: created from scratch by fe-architect-promote IMP @ cordele (D-494).
  *
  * Covers:
- *   POST /api/imp/manuscripts                          → create (synchronous parse, D-A)
- *   GET  /api/imp/manuscripts/{id}                    → get (reload / deep-link)
- *   GET  /api/imp/manuscripts/{id}/estrutura          → getEstrutura (content tree only)
- *   GET  /api/imp/projetos/{projetoId}/manuscritos    → listByProjeto (history)
+ *   POST /api/v1/imp/manuscripts                          → create (synchronous parse, D-A)
+ *   GET  /api/v1/imp/manuscripts/{id}                    → get (reload / deep-link)
+ *   GET  /api/v1/imp/manuscripts/{id}/estrutura          → getEstrutura (content tree only)
+ *   GET  /api/v1/imp/projetos/{projetoId}/manuscritos    → listByProjeto (history)
  */
 import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';

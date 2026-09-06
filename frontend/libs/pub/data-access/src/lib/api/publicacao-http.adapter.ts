@@ -3,8 +3,8 @@
  * FE-PUB-009 / FE-PUB-010 — real impl replacing the stub from the flat lib.
  *
  * RULE-NX-05: no raw HttpClient injection — extends AccessHttpClient from
- * @cordele/shared/access-http-base, which automatically adds X-Empresa-Id header
- * on every request via the ACCESS_EMPRESA_ID injection token.
+ * @cordele/shared/access-http-base. Empresa context is resolved server-side from the
+ * JWT `empresa_id` claim; no X-Empresa-Id header is sent.
  *
  * Endpoints follow api-contract §4.1–4.6:
  *   POST /api/v1/pub/projetos/{id}/publicacoes                          — trigger (§4.1)
@@ -59,7 +59,7 @@ export class PublicacaoHttpAdapter extends AccessHttpClient implements Publicaca
 
   /**
    * GET /api/v1/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/status
-   * Single poll tick — X-Empresa-Id header added automatically by AccessHttpClient.
+   * Single poll tick — empresa context resolved server-side from JWT `empresa_id` claim.
    */
   pollStatus(projetoId: string, publicacaoId: string): Observable<PublicacaoStatus> {
     return this.get<PublicacaoStatus>(

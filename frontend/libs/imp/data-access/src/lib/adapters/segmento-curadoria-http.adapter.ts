@@ -6,10 +6,10 @@
  * P2: replaced HttpClient with ImpHttpClient (INT-FE-IMP-001 resolved).
  *
  * Endpoints (api-contract §8 / addendum M4 — confirmed against imp.controller.ts):
- *   POST   /api/imp/manuscripts/{id}/segmentos/{segId}/ignore   → ignore (with motivo body)
- *   DELETE /api/imp/manuscripts/{id}/segmentos/{segId}/ignore   → restoreIgnore (204)
- *   GET    /api/imp/manuscripts/{id}/segmentos/ignored          → getIgnored
- *   POST   /api/imp/manuscripts/{id}/confirm-estrutura          → confirmEstrutura (200)
+ *   POST   /api/v1/imp/manuscripts/{id}/segmentos/{segId}/ignore   → ignore (with motivo body)
+ *   DELETE /api/v1/imp/manuscripts/{id}/segmentos/{segId}/ignore   → restoreIgnore (204)
+ *   GET    /api/v1/imp/manuscripts/{id}/segmentos/ignored          → getIgnored
+ *   POST   /api/v1/imp/manuscripts/{id}/confirm-estrutura          → confirmEstrutura (200)
  */
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
@@ -28,11 +28,11 @@ interface IgnoreBody {
 
 @Injectable({ providedIn: 'root' })
 export class SegmentoCuradoriaHttpAdapter implements SegmentoCuradoriaPort {
-  /** ImpHttpClient (not HttpClient) — X-Empresa-Id header added automatically. */
+  /** ImpHttpClient (not HttpClient) per RULE-NX-05 — empresa context from JWT `empresa_id` claim. */
   private readonly http = inject(ImpHttpClient);
 
   /**
-   * POST /api/imp/manuscripts/{manuscritoId}/segmentos/{segmentoId}/ignore
+   * POST /api/v1/imp/manuscripts/{manuscritoId}/segmentos/{segmentoId}/ignore
    * 201 first ignore; 200 idempotent. Body: { motivo? } per IgnoreSegmentoDto.
    */
   ignore(manuscritoId: string, segmentoId: string, body: IgnoreBody = {}): Observable<SegmentoCuradoriaDto> {
@@ -43,7 +43,7 @@ export class SegmentoCuradoriaHttpAdapter implements SegmentoCuradoriaPort {
   }
 
   /**
-   * DELETE /api/imp/manuscripts/{manuscritoId}/segmentos/{segmentoId}/ignore
+   * DELETE /api/v1/imp/manuscripts/{manuscritoId}/segmentos/{segmentoId}/ignore
    * 204 No Content — body is empty.
    */
   restoreIgnore(manuscritoId: string, segmentoId: string): Observable<void> {
@@ -53,7 +53,7 @@ export class SegmentoCuradoriaHttpAdapter implements SegmentoCuradoriaPort {
   }
 
   /**
-   * GET /api/imp/manuscripts/{manuscritoId}/segmentos/ignored
+   * GET /api/v1/imp/manuscripts/{manuscritoId}/segmentos/ignored
    * Returns the current set of ignored segmentoIds for T04 hydration (deep-link path).
    *
    * NOTE: This endpoint was not found in imp.controller.ts at time of P2 implementation.
@@ -66,7 +66,7 @@ export class SegmentoCuradoriaHttpAdapter implements SegmentoCuradoriaPort {
   }
 
   /**
-   * POST /api/imp/manuscripts/{manuscritoId}/confirm-estrutura
+   * POST /api/v1/imp/manuscripts/{manuscritoId}/confirm-estrutura
    * 200 OK (command, not resource creation). Advances pipeline to Composição.
    */
   confirmEstrutura(manuscritoId: string): Observable<void> {

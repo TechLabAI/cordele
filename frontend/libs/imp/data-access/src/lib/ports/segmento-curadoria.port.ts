@@ -3,10 +3,10 @@
  * Track D: created from scratch by fe-architect-promote IMP @ cordele (D-494).
  *
  * Covers (addendum M4 §8):
- *   POST   /api/imp/manuscripts/{id}/segmentos/{segId}/ignore  → ignore (201|200 idempotent)
- *   DELETE /api/imp/manuscripts/{id}/segmentos/{segId}/ignore  → restore (204|404)
- *   GET    /api/imp/manuscripts/{id}/segmentos/ignored         → getIgnored
- *   POST   /api/imp/manuscripts/{id}/confirm-estrutura         → confirmEstrutura (200)
+ *   POST   /api/v1/imp/manuscripts/{id}/segmentos/{segId}/ignore  → ignore (201|200 idempotent)
+ *   DELETE /api/v1/imp/manuscripts/{id}/segmentos/{segId}/ignore  → restore (204|404)
+ *   GET    /api/v1/imp/manuscripts/{id}/segmentos/ignored         → getIgnored
+ *   POST   /api/v1/imp/manuscripts/{id}/confirm-estrutura         → confirmEstrutura (200)
  */
 import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';

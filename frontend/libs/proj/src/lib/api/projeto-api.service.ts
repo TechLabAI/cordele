@@ -1,6 +1,6 @@
 /**
  * projeto-api.service.ts — standardised HTTP client for the proj-service (7 endpoints).
- * Extends AccessHttpClient so every request carries X-Empresa-Id (multi-empresa contract).
+ * Extends AccessHttpClient per RULE-NX-05 — empresa context from JWT `empresa_id` claim.
  * FE-PROJ-007 / FE-PROJ-008 (P2).
  *
  * Base path: /api/v1/proj/projetos   (api-contract §4)

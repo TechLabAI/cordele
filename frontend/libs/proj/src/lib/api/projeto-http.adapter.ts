@@ -1,6 +1,6 @@
 /**
  * projeto-http.adapter.ts — HTTP adapter stub for ProjetoPort.
- * URLs from api-contract.md §4 (base path /api/proj/projetos).
+ * URLs from api-contract.md §4 (base path /api/v1/proj/projetos).
  * Activate via provideProj({ adapter: 'http' }) in production app.config.ts.
  * Track D: created by fe-architect-promote PROJ @ cordele (D-494).
  */
@@ -17,7 +17,7 @@ import { ProjetoPort } from './projeto.port';
 
 @Injectable({ providedIn: 'root' })
 export class ProjetoHttpAdapter implements ProjetoPort {
-  /** AccessHttpClient (not HttpClient) — X-Empresa-Id header added automatically (RULE-NX-05). */
+  /** AccessHttpClient (not HttpClient) per RULE-NX-05 — empresa context from JWT `empresa_id` claim. */
   private readonly http = inject(AccessHttpClient);
   /** Derives from ACCESS_HTTP_BASE via moduleBase() — /v1 prefix lives in one place. */
   private readonly base = `${moduleBase('proj')}/projetos`;
@@ -36,14 +36,14 @@ export class ProjetoHttpAdapter implements ProjetoPort {
   }
 
   /**
-   * POST /api/proj/projetos/{projetoId}/reopen (api-contract §4.7).
+   * POST /api/v1/proj/projetos/{projetoId}/reopen (api-contract §4.7).
    * Empty body; returns ProjetoDetail (200). 409 if rascunho. Idempotent if already em_composicao.
    */
   reopen(projetoId: string): Observable<ProjetoDetail> {
     return this.http.post<ProjetoDetail>(`${this.base}/${projetoId}/reopen`, {});
   }
 
-  /** DELETE /api/proj/projetos/{projetoId} — LGPD erasure (204 No Content). */
+  /** DELETE /api/v1/proj/projetos/{projetoId} — LGPD erasure (204 No Content). */
   delete(projetoId: string): Observable<void> {
     return this.http.delete(`${this.base}/${projetoId}`).pipe(map(() => undefined));
   }

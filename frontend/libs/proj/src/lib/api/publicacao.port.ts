@@ -1,8 +1,8 @@
 /**
  * publicacao.port.ts — Port interface for the Publicacao resource.
  * Covers api-contract §4.4–4.5:
- *   GET /api/proj/projetos/{projetoId}/publicacoes                               → list (T08 history)
- *   GET /api/proj/projetos/{projetoId}/publicacoes/{publicacaoId}/download       → signed URL (D-F)
+ *   GET /api/v1/proj/projetos/{projetoId}/publicacoes                               → list (T08 history)
+ *   GET /api/v1/proj/projetos/{projetoId}/publicacoes/{publicacaoId}/download       → signed URL (D-F)
  * Track D: created by fe-architect-promote PROJ @ cordele (D-494).
  */
 import { InjectionToken } from '@angular/core';

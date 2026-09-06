@@ -8,7 +8,7 @@
  *             are no publications (no HTTP call needed for this mode).
  *
  * HTTP strategy (export mode):
- *   GET /api/proj/projetos/{projetoId} via AccessHttpClient (carries X-Empresa-Id).
+ *   GET /api/v1/proj/projetos/{projetoId} via AccessHttpClient (RULE-NX-05).
  *   em_composicao → true.
  *   any other status or HTTP error → redirect to /proj/biblioteca-de-projetos.
  *
@@ -16,8 +16,8 @@
  * checks (409/422, api-contract §5). The guard pre-empts the navigation; it is not a
  * security boundary.
  *
- * HTTP: uses AccessHttpClient (not HttpClient directly) — all module HTTP passes via
- * access-http-base so X-Empresa-Id is propagated consistently (RULE-NX-05 / INT-FE-PUB-001).
+ * HTTP: uses AccessHttpClient (not HttpClient directly) per RULE-NX-05 — empresa context
+ * is resolved server-side from the JWT `empresa_id` claim (INT-FE-PUB-001).
  *
  * Track D: FE-PUB-022 (P5) — real implementation replacing P1 stub from @cordele/pub flat lib.
  */
