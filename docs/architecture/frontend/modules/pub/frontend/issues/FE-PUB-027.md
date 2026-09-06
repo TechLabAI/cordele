@@ -1,6 +1,6 @@
 ## [FE-PUB-027] Playwright e2e — T07 exportacao-e-validacao.feature (19 cenários SPEC-08)
 
-**Status:** 🔲 ABERTA
+**Status:** ✅ DONE
 **GitHub:** [#TBD]
 
 **Outcome:**
