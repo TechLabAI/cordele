@@ -50,7 +50,7 @@ import {
 // INT-FE-COMP-006 (P6): import from canonical non-lazy sublib to avoid boundary violation
 import { provideComp } from '@cordele/comp/data-access';
 // P2 (FE-PUB-007): import from canonical sub-lib — real pub-service integration, no mocks
-import { PUB_BREADCRUMB, PUB_EMPRESA_CHANGED, providePub, PUB_UPDATE_BREADCRUMB } from '@cordele/pub-data-access';
+import { PUB_BREADCRUMB, PUB_EMPRESA_CHANGED, providePub, PUB_UPDATE_BREADCRUMB, PUB_PERMISSION_MAP_STATIC, PUB_FEATURE_FLAGS_STATIC } from '@cordele/pub-data-access';
 // PUB P4 (INT-FE-PUB-006): wire empresaChanged signal so ExportFacade cancels poll on empresa switch
 // PUB P6 (FE-PUB-023): wire PUB_UPDATE_BREADCRUMB token to PubShellIntegrationService.updateBreadcrumb
 import { PubShellIntegrationService } from '@cordele/pub-integration';
@@ -101,6 +101,30 @@ function initImpPermissions(): () => void {
   };
 }
 
+/**
+ * initPubPermissions — APP_INITIALIZER factory (P9 E2E hardening).
+ * Registers PUB_PERMISSION_MAP_STATIC and PUB_FEATURE_FLAGS_STATIC in AccessDecisionService
+ * so that accessGuard('pub.export'), accessGuard('pub.view'), and accessGuard('pub.download')
+ * can resolve BE scopes from JWT claims and evaluate correctly.
+ *
+ * Without this, AccessDecisionService.can('pub.export') returns false (fail-closed
+ * on unknown permission) → accessGuard redirects to /acesso-negado even for
+ * authenticated users with the correct JWT scopes (pub:write).
+ *
+ * Mirrors initImpPermissions above — same pattern, PUB module.
+ */
+function initPubPermissions(): () => void {
+  const ads = inject(AccessDecisionService);
+  return () => {
+    ads.registerPermissions(PUB_PERMISSION_MAP_STATIC);
+    ads.registerFlags(
+      Object.fromEntries(
+        Object.entries(PUB_FEATURE_FLAGS_STATIC).map(([k, v]) => [k, { defaultState: v.defaultState }]),
+      ),
+    );
+  };
+}
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
@@ -116,6 +140,13 @@ export const appConfig: ApplicationConfig = {
     {
       provide: APP_INITIALIZER,
       useFactory: initImpPermissions,
+      multi: true,
+    },
+    // P9 (E2E hardening): registers PUB permissions so accessGuard('pub.export') evaluates correctly.
+    // Without this, pub.export → pub:write lookup returns false (unknown perm) → guard redirect.
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initPubPermissions,
       multi: true,
     },
     // P7 (E2E fix C): adapter='http' — IMP e2e tests use page.route() Playwright intercepts

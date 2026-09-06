@@ -169,7 +169,7 @@ function fmtDatetime(iso: string): string {
 
         <!-- Re-fetch notice (FE-PUB-025): signed URL expired, re-fetching in progress -->
         @if (facade.refetchNotice()) {
-          <div class="mb-3 rounded-lg px-4 py-3 text-sm flex items-center gap-2"
+          <div class="mb-3 rounded-lg px-4 py-3 text-sm flex items-center gap-2" data-testid="refetch-notice"
                style="background:oklch(58% 0.19 245 / 0.10);border:1px solid oklch(58% 0.19 245 / 0.3);color:var(--text-primary);"
                role="status" aria-live="polite">
             <div class="size-4 rounded-full border-2 border-t-transparent animate-spin shrink-0"
@@ -181,14 +181,14 @@ function fmtDatetime(iso: string): string {
 
         <!-- Erro de download inline (per-row) -->
         @if (facade.downloadError()) {
-          <div class="mb-3 rounded-lg px-4 py-3 text-sm flex items-center gap-2"
+          <div class="mb-3 rounded-lg px-4 py-3 text-sm flex items-center gap-2" data-testid="download-error"
                style="background:var(--color-error-bg);border:1px solid oklch(52% 0.23 25 / 0.3);color:var(--color-error-ink);"
                role="alert">
             <span class="material-symbols-outlined" style="font-size:16px;">error</span>
             {{ facade.downloadError() }}
             @if (facade.downloadTraceId()) {
               <!-- FE-PUB-024 / SPEC-07 §4: correlation id for support reference -->
-              <span class="ml-auto text-xs font-mono shrink-0" style="color:var(--color-error-ink);opacity:0.7">
+              <span class="ml-auto text-xs font-mono shrink-0" data-testid="download-trace-id" style="color:var(--color-error-ink);opacity:0.7">
                 Trace: {{ facade.downloadTraceId() }}
               </span>
             }
@@ -200,6 +200,7 @@ function fmtDatetime(iso: string): string {
           <div class="rounded-xl overflow-hidden" style="border:1px solid var(--border-subtle);">
             @for (pub of facade.lista(); track pub.publicacaoId; let first = $first) {
               <div class="flex items-center gap-4 px-5 py-4"
+                   [attr.data-testid]="'pub-row-' + pub.publicacaoId"
                    [style]="first
                      ? 'background:var(--bg-surface);border-bottom:1px solid var(--border-subtle)'
                      : 'background:var(--bg-base);border-top:1px solid var(--border-subtle)'">
@@ -242,6 +243,7 @@ function fmtDatetime(iso: string): string {
                   <button
                     (click)="download(pub.publicacaoId)"
                     [disabled]="facade.downloading() === pub.publicacaoId"
+                    [attr.data-testid]="'btn-baixar-' + pub.publicacaoId"
                     class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 shrink-0"
                     style="background:var(--bg-surface-active);color:var(--text-primary);"
                     [attr.aria-label]="'Baixar ePub de ' + fmtDatetime(pub.criadoEm)">
@@ -256,6 +258,7 @@ function fmtDatetime(iso: string): string {
                   </button>
                 } @else {
                   <span class="text-xs shrink-0" style="color:var(--text-tertiary)"
+                        [attr.data-testid]="'label-invalido-' + pub.publicacaoId"
                         aria-label="Download indisponível — publicação inválida">inválido</span>
                 }
 

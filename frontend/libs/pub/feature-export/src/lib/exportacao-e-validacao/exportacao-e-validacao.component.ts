@@ -75,7 +75,7 @@ const STEPS = [
 
       <!-- ESTADO: GERANDO (indeterminate — sem barra de progresso percentual, SPEC-03) -->
       @if (facade.phase() === 'gerando') {
-        <div class="flex flex-col items-center justify-center py-16 text-center">
+        <div class="flex flex-col items-center justify-center py-16 text-center" data-testid="pub-estado-gerando">
           <div class="relative mb-8">
             <div class="size-16 rounded-full border-4 border-t-transparent animate-spin"
                  style="border-color:oklch(58% 0.19 245 / 0.18);border-top-color:oklch(58% 0.19 245);"
@@ -94,7 +94,7 @@ const STEPS = [
       @if (facade.phase() === 'valido') {
         <div>
           <!-- Resultado principal -->
-          <div class="flex items-center gap-4 rounded-xl p-6 mb-6"
+          <div class="flex items-center gap-4 rounded-xl p-6 mb-6" data-testid="banner-valido"
                style="background:oklch(58% 0.18 145 / 0.08);border:1px solid oklch(58% 0.18 145 / 0.3);">
             <span class="material-symbols-outlined text-4xl" style="color:oklch(58% 0.18 145)"
                   aria-hidden="true">
@@ -134,6 +134,7 @@ const STEPS = [
               Ajustar layout
             </a>
             <button
+              data-testid="btn-baixar"
               [disabled]="!facade.podeBaixar()"
               (click)="baixar()"
               class="inline-flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -148,7 +149,7 @@ const STEPS = [
       <!-- ESTADO: ERROS CRÍTICOS (epubcheckStatus = erros_criticos) -->
       @if (facade.phase() === 'erros') {
         <div>
-          <div class="flex items-center gap-4 rounded-xl p-6 mb-6"
+          <div class="flex items-center gap-4 rounded-xl p-6 mb-6" data-testid="banner-erros"
                style="background:oklch(52% 0.23 25 / 0.08);border:1px solid oklch(52% 0.23 25 / 0.3);">
             <span class="material-symbols-outlined text-4xl" style="color:var(--color-error)"
                   aria-hidden="true">error</span>
@@ -188,7 +189,7 @@ const STEPS = [
 
       <!-- ESTADO: ERRO DE REDE / TIMEOUT -->
       @if (facade.phase() === 'error') {
-        <div class="flex flex-col items-center justify-center py-16 text-center gap-4">
+        <div class="flex flex-col items-center justify-center py-16 text-center gap-4" data-testid="pub-estado-error">
           <span class="material-symbols-outlined text-4xl" style="color:var(--color-error)"
                 aria-hidden="true">
             cloud_off
@@ -198,11 +199,12 @@ const STEPS = [
           </p>
           @if (facade.errorTraceId()) {
             <!-- FE-PUB-024 / SPEC-07 §4: correlation id for support reference -->
-            <p class="text-xs font-mono" style="color:var(--text-tertiary)">
+            <p class="text-xs font-mono" data-testid="error-trace-id" style="color:var(--text-tertiary)">
               Trace: {{ facade.errorTraceId() }}
             </p>
           }
           <button
+            data-testid="btn-retry"
             (click)="startExport()"
             class="inline-flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold"
             style="background:var(--color-brand);color:var(--text-on-brand);">
