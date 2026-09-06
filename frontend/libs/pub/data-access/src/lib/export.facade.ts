@@ -41,15 +41,25 @@ const MAX_POLLS       = 60;
 
 /**
  * Extract the X-Correlation-Id from a raw error object (FE-PUB-024).
- * Checks AppError.correlationId first; falls back to HttpErrorResponse.headers.
- * Returns null when neither is available (network errors without a backend response).
+ * Priority (highest first):
+ *   1. AppError.correlationId — top-level (set by a normalising error interceptor).
+ *   2. HttpErrorResponse.error.correlationId — parsed JSON body from the BE.
+ *      Angular's HttpClient wraps the response body in `err.error`; the Cordelê BE
+ *      always includes `correlationId` in error bodies.
+ *   3. HttpErrorResponse.headers.get('x-correlation-id') — response header.
+ * Returns null when none is available (network errors without a backend response).
  */
 function extractTraceId(err: unknown): string | null {
   if (!err || typeof err !== 'object') return null;
   const e = err as Record<string, unknown>;
-  // AppError.correlationId (normalised by an error interceptor)
+  // 1. AppError.correlationId (normalised by an error interceptor)
   if (typeof e['correlationId'] === 'string') return e['correlationId'];
-  // HttpErrorResponse.headers.get('x-correlation-id')
+  // 2. HttpErrorResponse.error.correlationId (parsed JSON body from BE)
+  const errorBody = e['error'] as Record<string, unknown> | null | undefined;
+  if (errorBody && typeof errorBody === 'object' && typeof errorBody['correlationId'] === 'string') {
+    return errorBody['correlationId'];
+  }
+  // 3. HttpErrorResponse.headers.get('x-correlation-id')
   const headers = e['headers'] as { get?: (k: string) => string | null } | undefined;
   if (headers && typeof headers.get === 'function') {
     return headers.get('x-correlation-id');

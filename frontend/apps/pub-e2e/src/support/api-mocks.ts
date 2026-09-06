@@ -183,6 +183,9 @@ export async function mockTriggerInFlight(
 
 /**
  * Mock POST → error status.
+ * Adds x-correlation-id response header so ExportFacade.extractTraceId() can
+ * surface the correlationId via HttpErrorResponse.headers.get('x-correlation-id').
+ * The body also carries correlationId (AppError normalisation pattern).
  */
 export async function mockTriggerError(
   page: Page,
@@ -190,9 +193,15 @@ export async function mockTriggerError(
   code: string,
   projetoId = PROJETO_ID,
 ): Promise<void> {
+  const body = errorBody(code, `Erro: ${code}`);
   await page.route(triggerUrl(projetoId), async (route) => {
     if (route.request().method() === 'POST') {
-      await json(route, errorBody(code, `Erro: ${code}`), httpStatus);
+      await route.fulfill({
+        status: httpStatus,
+        contentType: 'application/json',
+        headers: { 'x-correlation-id': body.correlationId },
+        body: JSON.stringify(body),
+      });
     } else {
       await route.continue();
     }

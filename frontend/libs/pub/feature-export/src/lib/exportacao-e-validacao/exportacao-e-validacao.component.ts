@@ -78,7 +78,7 @@ const STEPS = [
         <div class="flex flex-col items-center justify-center py-16 text-center" data-testid="pub-estado-gerando">
           <div class="relative mb-8">
             <div class="size-16 rounded-full border-4 border-t-transparent animate-spin"
-                 style="border-color:oklch(58% 0.19 245 / 0.18);border-top-color:oklch(58% 0.19 245);"
+                 style="width:4rem;height:4rem;border-color:oklch(58% 0.19 245 / 0.18);border-top-color:oklch(58% 0.19 245);"
                  role="progressbar" aria-label="Gerando ePub"></div>
           </div>
           <h1 class="font-display font-semibold text-xl mb-2" style="color:var(--text-primary)">
