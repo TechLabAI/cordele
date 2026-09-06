@@ -31,12 +31,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
+  effect,
   inject,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { ExportFacade } from '@cordele/pub-data-access';
+import { ExportFacade, PUB_BREADCRUMB, PUB_UPDATE_BREADCRUMB } from '@cordele/pub-data-access';
 import { EpubSummaryGridComponent, WarningsDetailsComponent } from '@cordele/pub-ui';
-import { PUB_UPDATE_BREADCRUMB } from '@cordele/pub-data-access';
 
 const STEPS = [
   { n: 1, label: 'Importar' },
@@ -220,6 +220,24 @@ export class ExportacaoEValidacaoComponent implements OnInit {
   private  readonly  route  = inject(ActivatedRoute);
   /** P6 (FE-PUB-023): breadcrumb update via token — avoids type:feature → type:feature boundary. */
   private  readonly  doUpdateBreadcrumb = inject(PUB_UPDATE_BREADCRUMB);
+  /** P8 (FE-PUB-026): telemetry breadcrumb via token — avoids type:feature → type:feature boundary. */
+  private  readonly  doBreadcrumb = inject(PUB_BREADCRUMB);
+
+  constructor() {
+    // FE-PUB-026 (P8): emit 'verdict-shown' when the phase transitions to a terminal verdict.
+    // Terminal phases: 'valido' (epubcheck passed) or 'erros' (epubcheck critical errors).
+    // 'error' is a network/timeout error — not a verdict from epubcheck; not emitted here.
+    effect(() => {
+      const phase = this.facade.phase();
+      if (phase === 'valido' || phase === 'erros') {
+        this.doBreadcrumb(
+          'verdict-shown',
+          this.projetoId,
+          this.facade.errorTraceId() ?? undefined,
+        );
+      }
+    });
+  }
 
   readonly steps = STEPS;
 

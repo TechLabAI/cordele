@@ -20,10 +20,14 @@
  * NavigationService: shared service does not yet exist (TODO[INT-FE-PUB-NAV]).
  * Registration stored locally until available -- mirrors CompShellIntegrationService.
  *
- * Track D: FE-PUB-006 (P1). Updated: INT-FE-PUB-006 (P4). FE-PUB-023 (P6).
+ * Updated: FE-PUB-026 (P8 — Observability): publishBreadcrumb() added;
+ *   delegates to ObservabilityService.event() (no-op stub, no console.log).
+ *
+ * Track D: FE-PUB-006 (P1). Updated: INT-FE-PUB-006 (P4). FE-PUB-023 (P6). FE-PUB-026 (P8).
  */
 import { Injectable, effect, inject, signal } from '@angular/core';
 import { EmpresaContextService } from '@cordele/shared/empresa-context';
+import { ObservabilityService } from '@cordele/shared/observability';
 
 // -- NavConfig (local -- avoids cross-lib source import that breaks ng-packagr-lite) --
 
@@ -58,7 +62,8 @@ function resolvePubBreadcrumbs(screen: PubNavScreen, nomeProjeto: string): strin
 
 @Injectable({ providedIn: 'root' })
 export class PubShellIntegrationService {
-  private readonly empresaCtx = inject(EmpresaContextService);
+  private readonly empresaCtx    = inject(EmpresaContextService);
+  private readonly observability = inject(ObservabilityService);
 
   // Navigation registration (P6 -- FE-PUB-023)
   private _registeredConfig: NavConfig | null = null;
@@ -120,5 +125,25 @@ export class PubShellIntegrationService {
       'exportar':           resolvePubBreadcrumbs('exportar', nomeProjeto),
       'download-historico': resolvePubBreadcrumbs('download-historico', nomeProjeto),
     });
+  }
+
+  /**
+   * publishBreadcrumb() -- FE-PUB-026 (P8 Observability).
+   * Called via PUB_BREADCRUMB token from ExportFacade, ExportacaoEValidacaoComponent,
+   * and HistoryFacade to emit lifecycle telemetry events.
+   *
+   * Delegates to ObservabilityService.event() — a no-op stub in P8 (real backend wired later).
+   * No console.log: the stub is silent by design; arch-conformance gate enforces this.
+   *
+   * @param event        Telemetry event name (e.g. 'export-requested', 'verdict-shown', 'downloaded').
+   * @param projetoId    The project identifier associated with the event.
+   * @param correlationId Optional X-Correlation-Id from the last backend response (support reference).
+   */
+  publishBreadcrumb(event: string, projetoId: string, correlationId?: string): void {
+    const data: Record<string, string> = { projetoId };
+    if (correlationId) {
+      data['correlationId'] = correlationId;
+    }
+    this.observability.event(event, data);
   }
 }

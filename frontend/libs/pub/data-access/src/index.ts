@@ -54,6 +54,9 @@ export type { PubErrorMapping } from './lib/error-mapping';
 export { PUB_EMPRESA_CHANGED } from './lib/empresa-changed.token';
 export { PUB_UPDATE_BREADCRUMB } from './lib/update-breadcrumb.token';
 export type { PubUpdateBreadcrumbFn } from './lib/update-breadcrumb.token';
+// Breadcrumb telemetry token — override to wire PubShellIntegrationService.publishBreadcrumb (FE-PUB-026)
+export { PUB_BREADCRUMB } from './lib/pub-breadcrumb.token';
+export type { PubBreadcrumbFn } from './lib/pub-breadcrumb.token';
 
 // Module metadata — consumed by cordele-web/module-descriptors.ts (non-lazy import)
 // Avoids static import of lazy @cordele/pub-shell-entry (lint: enforce-module-boundaries).

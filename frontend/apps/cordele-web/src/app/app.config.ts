@@ -50,7 +50,7 @@ import {
 // INT-FE-COMP-006 (P6): import from canonical non-lazy sublib to avoid boundary violation
 import { provideComp } from '@cordele/comp/data-access';
 // P2 (FE-PUB-007): import from canonical sub-lib — real pub-service integration, no mocks
-import { PUB_EMPRESA_CHANGED, providePub, PUB_UPDATE_BREADCRUMB } from '@cordele/pub-data-access';
+import { PUB_BREADCRUMB, PUB_EMPRESA_CHANGED, providePub, PUB_UPDATE_BREADCRUMB } from '@cordele/pub-data-access';
 // PUB P4 (INT-FE-PUB-006): wire empresaChanged signal so ExportFacade cancels poll on empresa switch
 // PUB P6 (FE-PUB-023): wire PUB_UPDATE_BREADCRUMB token to PubShellIntegrationService.updateBreadcrumb
 import { PubShellIntegrationService } from '@cordele/pub-integration';
@@ -143,6 +143,19 @@ export const appConfig: ApplicationConfig = {
       useFactory: () => {
         const svc = inject(PubShellIntegrationService);
         return (nomeProjeto: string) => svc.updateBreadcrumb(nomeProjeto);
+      },
+    },
+    // PUB P8 (FE-PUB-026): wire PUB_BREADCRUMB to PubShellIntegrationService.publishBreadcrumb.
+    // ExportFacade, HistoryFacade (type:data-access) and ExportacaoEValidacaoComponent (type:feature)
+    // inject PUB_BREADCRUMB from @cordele/pub-data-access and call it to emit lifecycle telemetry events.
+    // Token in pub-data-access (not pub-integration) because data-access cannot import feature — same
+    // boundary pattern as PUB_EMPRESA_CHANGED and PUB_UPDATE_BREADCRUMB.
+    {
+      provide: PUB_BREADCRUMB,
+      useFactory: () => {
+        const svc = inject(PubShellIntegrationService);
+        return (event: string, projetoId: string, correlationId?: string) =>
+          svc.publishBreadcrumb(event, projetoId, correlationId);
       },
     },
   ],

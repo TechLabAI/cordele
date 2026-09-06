@@ -25,6 +25,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { Observable, Subject, switchMap, take, timer } from 'rxjs';
 import { PUB_EMPRESA_CHANGED } from './empresa-changed.token';
+import { PUB_BREADCRUMB } from './pub-breadcrumb.token';
 import { PublicacaoApiService } from './publicacao-api.service';
 import {
   AvisoVM,
@@ -74,6 +75,12 @@ export class ExportFacade {
   private readonly destroyRef    = inject(DestroyRef);
   /** Signal<number>: increments on cada empresa switch. Default = signal(0) (no-op). */
   private readonly empresaChanged: Signal<number> = inject(PUB_EMPRESA_CHANGED);
+  /**
+   * Telemetry breadcrumb callback (FE-PUB-026 / P8).
+   * Optional: no-op default factory in token; real impl wired in app.config.ts.
+   * Called with 'export-requested' after a successful POST to trigger the export build.
+   */
+  private readonly breadcrumb = inject(PUB_BREADCRUMB, { optional: true });
 
   // ── Raw state ─────────────────────────────────────────────────────────────
   private readonly _phase        = signal<ExportPhase>('gerando');
@@ -161,6 +168,8 @@ export class ExportFacade {
       .subscribe({
         next: status => {
           this._status.set(status);
+          // FE-PUB-026 (P8): emit telemetry event after successful export trigger.
+          this.breadcrumb?.('export-requested', projetoId);
           if (isTerminal(status)) {
             this._phase.set(toPhase(status));
             this._loadAvisos(projetoId, status.publicacaoId);

@@ -21,6 +21,7 @@ import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { tap } from 'rxjs';
 import { ArtifactDownloadService } from './artifact-download.service';
+import { PUB_BREADCRUMB } from './pub-breadcrumb.token';
 import { PublicacaoApiService } from './publicacao-api.service';
 import { ProjetoHeaderInfo, PublicacaoHistoryItem, PublicationStats } from './models/pub.models';
 
@@ -47,6 +48,12 @@ export class HistoryFacade {
   private readonly api        = inject(PublicacaoApiService);
   private readonly downloader = inject(ArtifactDownloadService);
   private readonly destroyRef = inject(DestroyRef);
+  /**
+   * Telemetry breadcrumb callback (FE-PUB-026 / P8).
+   * Optional: no-op default factory in token; real impl wired in app.config.ts.
+   * Called with 'downloaded' after ArtifactDownloadService emits {status:'success'}.
+   */
+  private readonly breadcrumb = inject(PUB_BREADCRUMB, { optional: true });
 
   // ── Raw state ─────────────────────────────────────────────────────────────
   private readonly _status          = signal<HistoryStatus>('idle');
@@ -176,6 +183,8 @@ export class HistoryFacade {
           if (result.status === 'success') {
             this._downloading.set(null);
             this._refetchNotice.set(null);
+            // FE-PUB-026 (P8): emit telemetry event when signed URL successfully opened.
+            this.breadcrumb?.('downloaded', projetoId);
           }
           // 'refetching' emissions are handled by tap above; nothing to do in next for them.
         },

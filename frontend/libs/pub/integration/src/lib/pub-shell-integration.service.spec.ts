@@ -2,6 +2,7 @@
  * pub-shell-integration.service.spec.ts — Unit tests for PubShellIntegrationService.
  * FE-PUB-006 / P1 Foundation acceptance criteria.
  * FE-PUB-023 / P6 Navigation: nav registration + breadcrumb resolution.
+ * FE-PUB-026 / P8 Observability: publishBreadcrumb() delegates to ObservabilityService.event().
  *
  * Verifies:
  *   P1:
@@ -13,24 +14,36 @@
  *     - stop() clears registeredConfig
  *     - updateBreadcrumb() resolves T07 and T08 breadcrumb segments
  *     - stop() resets resolvedBreadcrumbs to empty arrays
+ *   P8 (FE-PUB-026):
+ *     - publishBreadcrumb('export-requested', projetoId) → ObservabilityService.event('export-requested', {projetoId})
+ *     - publishBreadcrumb('verdict-shown', projetoId) → ObservabilityService.event('verdict-shown', {projetoId})
+ *     - publishBreadcrumb('downloaded', projetoId) → ObservabilityService.event('downloaded', {projetoId})
+ *     - publishBreadcrumb with correlationId → event data includes correlationId
  */
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { PubShellIntegrationService } from './pub-shell-integration.service';
 import { EmpresaContextService } from '@cordele/shared/empresa-context';
+import { ObservabilityService } from '@cordele/shared/observability';
 
 
 describe('PubShellIntegrationService', () => {
   let service: PubShellIntegrationService;
   const mockEmpresaSignal = signal<unknown>(null);
+  const mockObservabilityEvent = vi.fn<(name: string, data?: Record<string, string>) => void>();
 
   beforeEach(() => {
+    mockObservabilityEvent.mockReset();
     TestBed.configureTestingModule({
       providers: [
         PubShellIntegrationService,
         {
           provide: EmpresaContextService,
           useValue: { current: mockEmpresaSignal.asReadonly() },
+        },
+        {
+          provide: ObservabilityService,
+          useValue: { event: mockObservabilityEvent },
         },
       ],
     });
@@ -141,6 +154,56 @@ describe('PubShellIntegrationService', () => {
       service.stop();
       expect(service.resolvedBreadcrumbs()['exportar']).toEqual([]);
       expect(service.resolvedBreadcrumbs()['download-historico']).toEqual([]);
+    });
+  });
+
+  // ── P8: publishBreadcrumb() telemetry (FE-PUB-026) ──────────────────────────
+
+  describe('publishBreadcrumb() (FE-PUB-026)', () => {
+    it('should call ObservabilityService.event with "export-requested" and projetoId', () => {
+      service.publishBreadcrumb('export-requested', 'proj-123');
+
+      expect(mockObservabilityEvent).toHaveBeenCalledOnce();
+      expect(mockObservabilityEvent).toHaveBeenCalledWith(
+        'export-requested',
+        { projetoId: 'proj-123' },
+      );
+    });
+
+    it('should call ObservabilityService.event with "verdict-shown" and projetoId', () => {
+      service.publishBreadcrumb('verdict-shown', 'proj-123');
+
+      expect(mockObservabilityEvent).toHaveBeenCalledOnce();
+      expect(mockObservabilityEvent).toHaveBeenCalledWith(
+        'verdict-shown',
+        { projetoId: 'proj-123' },
+      );
+    });
+
+    it('should call ObservabilityService.event with "downloaded" and projetoId', () => {
+      service.publishBreadcrumb('downloaded', 'proj-123');
+
+      expect(mockObservabilityEvent).toHaveBeenCalledOnce();
+      expect(mockObservabilityEvent).toHaveBeenCalledWith(
+        'downloaded',
+        { projetoId: 'proj-123' },
+      );
+    });
+
+    it('should include correlationId in event data when provided', () => {
+      service.publishBreadcrumb('verdict-shown', 'proj-123', 'trace-abc-456');
+
+      expect(mockObservabilityEvent).toHaveBeenCalledWith(
+        'verdict-shown',
+        { projetoId: 'proj-123', correlationId: 'trace-abc-456' },
+      );
+    });
+
+    it('should NOT include correlationId in event data when not provided', () => {
+      service.publishBreadcrumb('export-requested', 'proj-123');
+
+      const callArgs = mockObservabilityEvent.mock.calls[0];
+      expect(callArgs[1]).not.toHaveProperty('correlationId');
     });
   });
 });
