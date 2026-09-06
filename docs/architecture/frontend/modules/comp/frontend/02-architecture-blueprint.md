@@ -8,8 +8,8 @@ legacy systems** or storage buckets: reading a project's existing metadata/layou
 manuscript structure that feeds the preview, uploading a cover image and persisting metadata/layout
 are all HTTP calls to `comp-service`. Cover-image bytes are uploaded once and thereafter referenced
 by a `capaUrl` returned by the backend — the SPA does not hold the file. The tenant (empresa) is
-resolved **server-side from the JWT `empresa` claim**; the shared interceptor may still emit
-`X-Empresa-Id` for observability, but it is not the scoping authority.
+resolved **server-side from the JWT `empresa_id` claim** (via `EmpresaContextInterceptor`); the FE
+does **not** send `X-Empresa-Id` — no backend reads it, and empresa switching emits a new JWT.
 
 > The `comp-service` `api-contract.md` is **not yet written** (M2). Endpoint shapes below are
 > **draft architectural direction**, firmed in the Specs phase against the real contract.
@@ -103,8 +103,9 @@ Nx tags: `scope:comp` + `type:{feature|data-access|domain|ui}`; a module lib imp
 - **Auth / entitlement:** `authGuard` + `empresaGuard` + `accessGuard('comp.edit')` from
   `@cordele/shared/access-decision`; plus a **status guard** that admits COMP only for a project in
   `em_composicao` (components never test status directly — the guard resolves it).
-- **Tenant isolation:** empresa resolved server-side from the JWT claim; the shared interceptor
-  injects Correlation (and optionally `X-Empresa-Id` for observability).
+- **Tenant isolation:** empresa resolved server-side from the JWT `empresa_id` claim
+  (EmpresaContextInterceptor). The FE does not send `X-Empresa-Id`; no backend reads it.
+  The shared `AccessHttpClient` injects the correlation header only.
 - **Observability:** correlation header from the shared interceptor; COMP emits navigation
   breadcrumbs (metadata opened, layout opened, exported) for the pipeline event stream.
 - **Design tokens:** the custom dark design system via `theme.css` tokens (`--color-brand`,

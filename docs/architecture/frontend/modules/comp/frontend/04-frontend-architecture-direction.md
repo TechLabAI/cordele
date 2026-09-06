@@ -41,9 +41,9 @@ A module lib may import only `scope:comp` and `scope:shared` (enforced by
 | Dependency | Used for |
 |---|---|
 | `@cordele/shared/auth-session` | session claims / roles |
-| `@cordele/shared/empresa-context` | active empresa (observability header; scoping is server-side via JWT claim) |
+| `@cordele/shared/empresa-context` | active empresa (from JWT `empresa_id` claim; empresa switching emits a new JWT) |
 | `@cordele/shared/access-decision` | `PermissionService`, `AccessDecisionService`, `NavigationService` |
-| `@cordele/shared/access-http-base` | `HttpClient` wrapper + Correlation / X-Empresa-Id / ErrorNormalize interceptors + file upload |
+| `@cordele/shared/access-http-base` | `HttpClient` wrapper + typed HTTP methods; empresa context is JWT-only, no X-Empresa-Id header |
 | `@cordele/shared/ui-*` (as available) | feedback, tokens, shared form primitives (input, select, slider, drop zone) |
 
 ## 5. Routing Strategy
