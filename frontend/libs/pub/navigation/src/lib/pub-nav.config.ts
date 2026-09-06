@@ -1,6 +1,7 @@
 /**
  * pub-nav.config.ts — navigation config for the PUB module.
  * FE-PUB-005 / SPEC-06 §navigation
+ * FE-PUB-023 — breadcrumb screen resolution (P6).
  *
  * Defines how PUB integrates with the shell step-bar:
  * pipeline steps (Importar › Compor › Exportar) and breadcrumb label.
@@ -15,7 +16,7 @@
  *   - PubShellIntegrationService (to register with NavigationService — P6)
  *   - Shell step-bar component (to highlight active step)
  *
- * Track D: FE-PUB-005 (P1 Foundation).
+ * Track D: FE-PUB-005 (P1 Foundation). Updated: FE-PUB-023 (P6 Navigation).
  */
 
 // ── NavConfig type (local until @cordele/shared/navigation defines it) ────────
@@ -52,3 +53,36 @@ export const PUB_NAV_CONFIG: NavConfig = {
   stageLabel: 'Exportar',
   breadcrumbLabel: 'Publicação',
 };
+
+// ── Breadcrumb resolution (P6 — FE-PUB-023) ───────────────────────────────────
+
+/**
+ * PubNavScreen — identifies a PUB screen for breadcrumb resolution.
+ *
+ * T07: exportar          → "Projetos › {nomeProjeto} › Exportar"
+ * T08: download-historico → "Projetos › {nomeProjeto} › Download e Histórico"
+ */
+export type PubNavScreen = 'exportar' | 'download-historico';
+
+/**
+ * BREADCRUMB_TEMPLATES — label segments per PUB screen.
+ * `{nomeProjeto}` is replaced at runtime with the project name or projetoId.
+ */
+const BREADCRUMB_TEMPLATES: Record<PubNavScreen, string[]> = {
+  'exportar':            ['Projetos', '{nomeProjeto}', 'Exportar'],
+  'download-historico':  ['Projetos', '{nomeProjeto}', 'Download e Histórico'],
+};
+
+/**
+ * resolvePubBreadcrumbs — resolves breadcrumb segments for a given PUB screen.
+ *
+ * Replaces `{nomeProjeto}` with the provided project name (or projetoId when the
+ * name is not yet available — mirrors the COMP pattern, SPEC-06 §navigation).
+ *
+ * @param screen      - The active PUB screen.
+ * @param nomeProjeto - Project display name or projetoId fallback.
+ * @returns           Resolved breadcrumb label array (e.g. ['Projetos', 'Meu Livro', 'Exportar']).
+ */
+export function resolvePubBreadcrumbs(screen: PubNavScreen, nomeProjeto: string): string[] {
+  return BREADCRUMB_TEMPLATES[screen].map(s => s.replace('{nomeProjeto}', nomeProjeto));
+}

@@ -50,12 +50,10 @@ import {
 // INT-FE-COMP-006 (P6): import from canonical non-lazy sublib to avoid boundary violation
 import { provideComp } from '@cordele/comp/data-access';
 // P2 (FE-PUB-007): import from canonical sub-lib — real pub-service integration, no mocks
-import { PUB_EMPRESA_CHANGED, providePub } from '@cordele/pub-data-access';
+import { PUB_EMPRESA_CHANGED, providePub, PUB_UPDATE_BREADCRUMB } from '@cordele/pub-data-access';
 // PUB P4 (INT-FE-PUB-006): wire empresaChanged signal so ExportFacade cancels poll on empresa switch
 // PUB P6 (FE-PUB-023): wire PUB_UPDATE_BREADCRUMB token to PubShellIntegrationService.updateBreadcrumb
 import { PubShellIntegrationService } from '@cordele/pub-integration';
-// PUB P6 (FE-PUB-023): PUB_UPDATE_BREADCRUMB token (type:domain — pub-navigation)
-import { PUB_UPDATE_BREADCRUMB } from '@cordele/pub-navigation';
 import { AuthSessionService } from '@cordele/shared/auth-session';
 import { AccessDecisionService } from '@cordele/shared/access-decision';
 
@@ -137,7 +135,7 @@ export const appConfig: ApplicationConfig = {
       useFactory: () => inject(PubShellIntegrationService).empresaChanged,
     },
     // PUB P6 (FE-PUB-023): wire PUB_UPDATE_BREADCRUMB to PubShellIntegrationService.updateBreadcrumb.
-    // Feature components (T07/T08) inject PUB_UPDATE_BREADCRUMB (type:domain — pub-navigation) and call
+    // Feature components (T07/T08) inject PUB_UPDATE_BREADCRUMB from @cordele/pub-data-access and call
     // it with the projetoId/nomeProjeto to resolve breadcrumb segments for the active screen.
     // This avoids the Nx boundary violation: type:feature (pub-feature-*) cannot import type:feature (pub-integration).
     {

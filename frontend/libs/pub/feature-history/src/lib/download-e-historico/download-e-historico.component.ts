@@ -21,7 +21,7 @@
  * Multi-empresa: HistoryFacade is providedIn:'root' and inherits empresa context
  * via @cordele/shared/access-http-base interceptor (INT-FE-PUB-001).
  *
- * Track D: FE-PUB-018 — P3 Feature Libs.
+ * Track D: FE-PUB-018 — P3 Feature Libs. Updated: FE-PUB-023 (P6 — breadcrumb wiring).
  */
 import {
   ChangeDetectionStrategy,
@@ -35,6 +35,7 @@ import {
   PublicacaoHistoryItem,
   EpubcheckStatus,
 } from '@cordele/pub-data-access';
+import { PUB_UPDATE_BREADCRUMB } from '@cordele/pub-data-access';
 import { EpubSummaryGridComponent } from '@cordele/pub-ui';
 
 function fmtDatetime(iso: string): string {
@@ -257,6 +258,8 @@ function fmtDatetime(iso: string): string {
 export class DownloadEHistoricoComponent implements OnInit {
   protected readonly facade = inject(HistoryFacade);
   private  readonly  route  = inject(ActivatedRoute);
+  /** P6 (FE-PUB-023): breadcrumb update via token — avoids type:feature → type:feature boundary. */
+  private  readonly  doUpdateBreadcrumb = inject(PUB_UPDATE_BREADCRUMB);
 
   fmtDatetime = fmtDatetime;
 
@@ -266,6 +269,9 @@ export class DownloadEHistoricoComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+    // P6 (FE-PUB-023): resolve T08 breadcrumb — "Projetos › {projetoId} › Download e Histórico"
+    // projetoId used as display label until ProjFacade exposes the project name.
+    this.doUpdateBreadcrumb(this.projetoId);
   }
 
   load(): void {

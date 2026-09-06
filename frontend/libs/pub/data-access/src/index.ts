@@ -52,6 +52,8 @@ export type { PubErrorMapping } from './lib/error-mapping';
 
 // Empresa changed token — override to wire PubShellIntegrationService.empresaChanged (INT-FE-PUB-006)
 export { PUB_EMPRESA_CHANGED } from './lib/empresa-changed.token';
+export { PUB_UPDATE_BREADCRUMB } from './lib/update-breadcrumb.token';
+export type { PubUpdateBreadcrumbFn } from './lib/update-breadcrumb.token';
 
 // Module metadata — consumed by cordele-web/module-descriptors.ts (non-lazy import)
 // Avoids static import of lazy @cordele/pub-shell-entry (lint: enforce-module-boundaries).

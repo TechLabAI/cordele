@@ -4,11 +4,16 @@
   "sourceRoot": "libs/pub/integration/src",
   "prefix": "lib",
   "projectType": "library",
-  "tags": ["scope:pub", "type:feature"],
+  "tags": [
+    "scope:pub",
+    "type:feature"
+  ],
   "targets": {
     "build": {
       "executor": "@nx/angular:ng-packagr-lite",
-      "outputs": ["{workspaceRoot}/dist/{projectRoot}"],
+      "outputs": [
+        "{workspaceRoot}/dist/{projectRoot}"
+      ],
       "options": {
         "project": "libs/pub/integration/ng-lib.json",
         "tsConfig": "libs/pub/integration/tsconfig.lib.json"

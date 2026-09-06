@@ -1,6 +1,7 @@
 /**
  * exportacao-e-validacao.component.ts — T07 — Exportação e Validação.
  * Migrated from libs/pub (flat lib) to libs/pub/feature-export (P3 — FE-PUB-012).
+ * Updated: FE-PUB-023 (P6 — breadcrumb resolution via PUB_UPDATE_BREADCRUMB token).
  *
  * Removals vs prototype (FE-PUB-012):
  *   ✗ setInterval timer                — replaced by ExportFacade bounded poll (ADR-PUB-001)
@@ -16,13 +17,15 @@
  *
  * Warnings / Errors: delegated to <pub-warnings-details> (FE-PUB-016, pub-ui).
  *
- * Boundary: type:feature → imports type:data-access (@cordele/pub-data-access)
- *           and type:ui (@cordele/pub-ui). No mock adapters in production path.
+ * Boundary: type:feature → imports type:data-access (@cordele/pub-data-access),
+ *           type:ui (@cordele/pub-ui), and type:domain (@cordele/pub-navigation).
+ *           PUB_UPDATE_BREADCRUMB is type:domain — no boundary violation.
+ *           Cannot import PubShellIntegrationService (type:feature) directly.
  *
  * Multi-empresa: ExportFacade injects PUB_EMPRESA_CHANGED token; cancels poll on
  * empresa switch (INT-FE-PUB-006, P2). No additional wiring needed here.
  *
- * Track D: FE-PUB-012 — P3 Feature Libs.
+ * Track D: FE-PUB-012 — P3 Feature Libs. Updated: FE-PUB-023 (P6).
  */
 import {
   ChangeDetectionStrategy,
@@ -33,6 +36,7 @@ import {
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ExportFacade } from '@cordele/pub-data-access';
 import { EpubSummaryGridComponent, WarningsDetailsComponent } from '@cordele/pub-ui';
+import { PUB_UPDATE_BREADCRUMB } from '@cordele/pub-data-access';
 
 const STEPS = [
   { n: 1, label: 'Importar' },
@@ -208,6 +212,8 @@ const STEPS = [
 export class ExportacaoEValidacaoComponent implements OnInit {
   protected readonly facade = inject(ExportFacade);
   private  readonly  route  = inject(ActivatedRoute);
+  /** P6 (FE-PUB-023): breadcrumb update via token — avoids type:feature → type:feature boundary. */
+  private  readonly  doUpdateBreadcrumb = inject(PUB_UPDATE_BREADCRUMB);
 
   readonly steps = STEPS;
 
@@ -217,6 +223,9 @@ export class ExportacaoEValidacaoComponent implements OnInit {
 
   ngOnInit(): void {
     this.startExport();
+    // P6 (FE-PUB-023): resolve T07 breadcrumb — "Projetos › {projetoId} › Exportar"
+    // projetoId used as display label until ProjFacade exposes the project name.
+    this.doUpdateBreadcrumb(this.projetoId);
   }
 
   startExport(): void {

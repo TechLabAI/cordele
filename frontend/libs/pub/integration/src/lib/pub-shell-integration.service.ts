@@ -1,117 +1,124 @@
 /**
- * pub-shell-integration.service.ts — PUB shell bridge (FE-PUB-006, INT-FE-PUB-006).
+ * pub-shell-integration.service.ts -- PUB shell bridge (FE-PUB-006, INT-FE-PUB-006).
+ * Updated: FE-PUB-023 (P6 -- Navigation / Breadcrumbs).
  *
  * Responsibilities:
- *   - start(): tracks empresa changes; exposes `empresaChanged` signal (increments on each switch).
- *   - stop(): called when navigating away from PUB; flushes breadcrumbs, resets state,
- *             and signals any in-flight poll to cancel (INT-FE-PUB-006).
- *   - Callers (ExportFacade via effect()) react to `empresaChanged` to cancel in-flight polls.
+ *   - start(): registers PUB_NAV_CONFIG locally (stores _registeredConfig); tracks empresa changes.
+ *   - stop(): deregisters nav config; resets breadcrumbs; cancels polls (INT-FE-PUB-006).
+ *   - updateBreadcrumb(nomeProjeto): resolves T07/T08 breadcrumbs; called via token.
+ *   - Callers (ExportFacade) react to empresaChanged to cancel polls.
  *
- * INT-FE-PUB-006 (P4): empresaChanged is wired to ExportFacade via the PUB_EMPRESA_CHANGED
- * injection token in app.config.ts:
- *   { provide: PUB_EMPRESA_CHANGED, useFactory: () => inject(PubShellIntegrationService).empresaChanged }
- * This decouples ExportFacade (type:data-access) from this service (type:feature) via DI.
+ * INT-FE-PUB-006 (P4): PUB_EMPRESA_CHANGED token wired in app.config.ts.
+ * FE-PUB-023 (P6): PUB_UPDATE_BREADCRUMB token wired in app.config.ts.
  *
  * Boundaries (RULE-NX-01 / RULE-NX-05):
- *   - scope:pub, type:feature — may import scope:shared type:domain libs only.
- *   - No HttpClient.
- *   - No imports from pub-data-access, pub-shell-entry, or pub-navigation.
+ *   - scope:pub, type:feature -- imports scope:shared type:domain libs only.
+ *   - No HttpClient. No imports from pub-data-access, pub-shell-entry, or pub-navigation.
+ *     (ng-packagr-lite fails when tsconfig path aliases resolve to another lib source.)
+ *   - NavConfig + PUB_NAV_CONFIG inlined to avoid cross-lib source import.
  *
- * Multi-empresa (multi-empresa.md §3):
- *   EmpresaContextService is the single source of truth. When the empresa switches,
- *   `empresaChanged` increments and callers cancel in-flight polls / requests.
+ * NavigationService: shared service does not yet exist (TODO[INT-FE-PUB-NAV]).
+ * Registration stored locally until available -- mirrors CompShellIntegrationService.
  *
- * Bootstrap: call `start()` once when PUB module is activated (e.g. in APP_INITIALIZER
- * or from the PUB route canActivate chain).
- *
- * Track D: FE-PUB-006 (P1 Foundation). Updated: INT-FE-PUB-006 (P4 — poll cancel wiring).
+ * Track D: FE-PUB-006 (P1). Updated: INT-FE-PUB-006 (P4). FE-PUB-023 (P6).
  */
 import { Injectable, effect, inject, signal } from '@angular/core';
 import { EmpresaContextService } from '@cordele/shared/empresa-context';
 
-/**
- * PubShellIntegrationService — bridge between PUB module and shell infrastructure.
- *
- * Provided in root (singleton). Call `start()` once at module activation.
- */
+// -- NavConfig (local -- avoids cross-lib source import that breaks ng-packagr-lite) --
+
+interface NavConfig {
+  moduleKey: string;
+  stageIndex: number;
+  stageLabel: string;
+  breadcrumbLabel: string;
+}
+
+const PUB_NAV_CONFIG_LOCAL: NavConfig = {
+  moduleKey: 'pub',
+  stageIndex: 3,
+  stageLabel: 'Exportar',
+  breadcrumbLabel: 'Publicação',
+};
+
+// -- Breadcrumb resolution (P6 -- FE-PUB-023) --
+
+type PubNavScreen = 'exportar' | 'download-historico';
+
+const BREADCRUMB_TEMPLATES: Record<PubNavScreen, string[]> = {
+  'exportar':            ['Projetos', '{nomeProjeto}', 'Exportar'],
+  'download-historico':  ['Projetos', '{nomeProjeto}', 'Download e Histórico'],
+};
+
+function resolvePubBreadcrumbs(screen: PubNavScreen, nomeProjeto: string): string[] {
+  return BREADCRUMB_TEMPLATES[screen].map(s => s.replace('{nomeProjeto}', nomeProjeto));
+}
+
+// -- Service --
+
 @Injectable({ providedIn: 'root' })
 export class PubShellIntegrationService {
   private readonly empresaCtx = inject(EmpresaContextService);
 
-  /**
-   * Counter incremented on each empresa switch (skips the initial boot execution).
-   * ExportFacade (P2) uses effect(() => { if (svc.empresaChanged()) { this.cancelPoll(); } })
-   * to cancel any in-flight export poll when the empresa changes.
-   */
+  // Navigation registration (P6 -- FE-PUB-023)
+  private _registeredConfig: NavConfig | null = null;
+
+  get registeredConfig(): NavConfig | null {
+    return this._registeredConfig;
+  }
+
+  private readonly _resolvedBreadcrumbs = signal<Record<PubNavScreen, string[]>>({
+    'exportar':           [],
+    'download-historico': [],
+  });
+
+  readonly resolvedBreadcrumbs = this._resolvedBreadcrumbs.asReadonly();
+
+  // Empresa-changed counter (P1 / P4 -- INT-FE-PUB-006)
   private readonly _empresaChangedCount = signal(0);
 
-  /** Public read-only signal: increments each time the active empresa changes (>0 = changed). */
   readonly empresaChanged = this._empresaChangedCount.asReadonly();
 
-  /**
-   * Flag to skip the first (boot-time) execution of the reactive effect.
-   * The effect runs synchronously on construction — that is NOT a "change".
-   */
   private _bootstrapped = false;
-
-  /**
-   * Flag indicating that `start()` has been called and the service is active.
-   * Prevents double-start and allows `stop()` to be safely idempotent.
-   */
   private _active = false;
 
   constructor() {
-    // Signal-first approach: use effect() to track EmpresaContext.current.
-    // The effect runs synchronously on construction (boot) — skip that first run.
-    // On each subsequent run (empresa switch), increment the counter.
     effect(() => {
-      // Register reactive dependency on the empresa signal
       this.empresaCtx.current();
-
       if (this._bootstrapped) {
-        // Empresa changed after boot — notify callers
         this._empresaChangedCount.update(n => n + 1);
       } else {
-        // First run = boot-time setup; skip counting
         this._bootstrapped = true;
       }
     });
   }
 
-  /**
-   * start() — activate PUB module integration.
-   *
-   * Called once when the PUB module is first activated (e.g. from an APP_INITIALIZER
-   * or a canActivate guard that bootstraps the module).
-   * Idempotent: calling start() more than once has no effect.
-   */
   start(): void {
     if (this._active) return;
     this._active = true;
-    // The effect in the constructor already tracks empresa changes.
-    // Additional module-specific startup logic can be added here in P2.
+    // FE-PUB-023: register nav config locally until shared NavigationService is available.
+    this._registeredConfig = PUB_NAV_CONFIG_LOCAL;
   }
 
-  /**
-   * stop() — deactivate PUB module integration.
-   *
-   * Called when navigating away from PUB (e.g. from a canDeactivate guard).
-   * Flushes breadcrumbs and signals all callers to cancel in-flight operations.
-   *
-   * INT-FE-PUB-006 (P4): increments _empresaChangedCount to cancel any in-flight
-   * export poll via ExportFacade's effect. The ExportFacade listens on the
-   * PUB_EMPRESA_CHANGED token (wired in app.config.ts to this.empresaChanged signal).
-   * Any count increment, including from stop(), triggers _cancelPoll() in ExportFacade.
-   *
-   * Note: the cancellation message in ExportFacade refers to "empresa alterada" which is
-   * technically incorrect when stop() is the trigger; this message will be refined in P7.
-   */
   stop(): void {
     if (!this._active) return;
     this._active = false;
-    // INT-FE-PUB-006: signal poll cancellation to all callers (e.g. ExportFacade).
-    // Incrementing empresaChanged causes ExportFacade to cancel any in-flight poll.
+    // FE-PUB-023: clear nav registration and breadcrumbs.
+    this._registeredConfig = null;
+    this._resolvedBreadcrumbs.set({ 'exportar': [], 'download-historico': [] });
+    // INT-FE-PUB-006: signal poll cancellation.
     this._empresaChangedCount.update(n => n + 1);
-    // Breadcrumb flush will be added in P6 (FE-PUB-023) when NavigationService is wired.
+  }
+
+  /**
+   * updateBreadcrumb() -- FE-PUB-023 (P6).
+   * Called via PUB_UPDATE_BREADCRUMB token (pub-data-access) from feature components.
+   * Token pattern decouples type:feature -> type:feature (Nx boundary rule).
+   */
+  updateBreadcrumb(nomeProjeto: string): void {
+    this._resolvedBreadcrumbs.set({
+      'exportar':           resolvePubBreadcrumbs('exportar', nomeProjeto),
+      'download-historico': resolvePubBreadcrumbs('download-historico', nomeProjeto),
+    });
   }
 }
