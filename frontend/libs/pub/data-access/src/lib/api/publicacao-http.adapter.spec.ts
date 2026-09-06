@@ -111,10 +111,12 @@ describe('PublicacaoHttpAdapter — base path regression guard', () => {
     req.flush([]);
   });
 
-  it('sends X-Empresa-Id header on every request', () => {
+  it('does NOT send X-Empresa-Id header — empresa context resolved from JWT claim, not header', () => {
+    // Even when ACCESS_EMPRESA_ID token is provided, the header must be absent.
+    // Server resolves empresa from JWT `empresa_id` claim (EmpresaContextInterceptor).
     adapter.triggerExport(PROJETO_ID).subscribe();
     const req = http.expectOne(r => r.url.includes('publicacoes'));
-    expect(req.request.headers.get('X-Empresa-Id')).toBe('emp-aetos');
+    expect(req.request.headers.get('X-Empresa-Id')).toBeNull();
     req.flush({});
   });
 });

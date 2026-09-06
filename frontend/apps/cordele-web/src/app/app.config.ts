@@ -5,8 +5,9 @@
  * - provideHttpClient: required by all HTTP adapters.
  * - COMP: adapter='http' — comp-service is available; real API, no mocks.
  *
- * Updated: INT-FE-COMP-001/006 (P4) — wires ACCESS_EMPRESA_ID token from
- * EmpresaContextService so that AccessHttpClient propagates X-Empresa-Id on every request.
+ * Updated: INT-FE-COMP-001/006 (P4) — empresa context is resolved server-side from the
+ * JWT `empresa_id` claim via EmpresaContextInterceptor. The FE does NOT send X-Empresa-Id;
+ * ACCESS_EMPRESA_ID provider removed (token no longer wired to HTTP headers).
  *
  * Updated: P7 (E2E fix A) — adds APP_INITIALIZER that reads localStorage['cordele_access_token']
  * at bootstrap so AuthSessionService.isAuthenticated is true when authGuard runs.
@@ -22,10 +23,14 @@
  *
  * Updated: PUB P4 (INT-FE-PUB-001/006):
  * - INT-FE-PUB-001: provider order verified — provideHttpClient + interceptors declared before
- *   all module providers (provideImp, provideComp, providePub). ACCESS_EMPRESA_ID provided after
- *   module factories (value providers are order-agnostic for DI, but placed last for readability).
+ *   all module providers (provideImp, provideComp, providePub).
  * - INT-FE-PUB-006: PUB_EMPRESA_CHANGED token wired to PubShellIntegrationService.empresaChanged
  *   so that ExportFacade cancels in-flight polls on empresa switch.
+ *
+ * Updated: PUB P6 (FE-PUB-023 — Navigation / Breadcrumbs):
+ * - PUB_UPDATE_BREADCRUMB token wired to PubShellIntegrationService.updateBreadcrumb.
+ *   Feature components (T07/T08) inject this token (type:domain) to call updateBreadcrumb
+ *   without violating Nx boundary (type:feature cannot import type:feature).
  */
 import {
   ApplicationConfig,
@@ -47,9 +52,10 @@ import { provideComp } from '@cordele/comp/data-access';
 // P2 (FE-PUB-007): import from canonical sub-lib — real pub-service integration, no mocks
 import { PUB_EMPRESA_CHANGED, providePub } from '@cordele/pub-data-access';
 // PUB P4 (INT-FE-PUB-006): wire empresaChanged signal so ExportFacade cancels poll on empresa switch
+// PUB P6 (FE-PUB-023): wire PUB_UPDATE_BREADCRUMB token to PubShellIntegrationService.updateBreadcrumb
 import { PubShellIntegrationService } from '@cordele/pub-integration';
-import { ACCESS_EMPRESA_ID } from '@cordele/shared/access-http-base';
-import { EmpresaContextService } from '@cordele/shared/empresa-context';
+// PUB P6 (FE-PUB-023): PUB_UPDATE_BREADCRUMB token (type:domain — pub-navigation)
+import { PUB_UPDATE_BREADCRUMB } from '@cordele/pub-navigation';
 import { AuthSessionService } from '@cordele/shared/auth-session';
 import { AccessDecisionService } from '@cordele/shared/access-decision';
 
@@ -130,12 +136,16 @@ export const appConfig: ApplicationConfig = {
       provide: PUB_EMPRESA_CHANGED,
       useFactory: () => inject(PubShellIntegrationService).empresaChanged,
     },
-    // INT-FE-COMP-001/006: Wire empresa context into AccessHttpClient's X-Empresa-Id header.
-    // The empresa_id is derived from the JWT claim via EmpresaContextService.current().
-    // This is observability-only — the server resolves empresa from the JWT, not this header.
+    // PUB P6 (FE-PUB-023): wire PUB_UPDATE_BREADCRUMB to PubShellIntegrationService.updateBreadcrumb.
+    // Feature components (T07/T08) inject PUB_UPDATE_BREADCRUMB (type:domain — pub-navigation) and call
+    // it with the projetoId/nomeProjeto to resolve breadcrumb segments for the active screen.
+    // This avoids the Nx boundary violation: type:feature (pub-feature-*) cannot import type:feature (pub-integration).
     {
-      provide: ACCESS_EMPRESA_ID,
-      useFactory: () => inject(EmpresaContextService).currentId(),
+      provide: PUB_UPDATE_BREADCRUMB,
+      useFactory: () => {
+        const svc = inject(PubShellIntegrationService);
+        return (nomeProjeto: string) => svc.updateBreadcrumb(nomeProjeto);
+      },
     },
   ],
 };

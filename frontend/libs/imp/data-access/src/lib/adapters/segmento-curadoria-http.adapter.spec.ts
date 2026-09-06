@@ -70,10 +70,12 @@ describe('SegmentoCuradoriaHttpAdapter — base path regression guard', () => {
     req.flush(null, { status: 200, statusText: 'OK' });
   });
 
-  it('sends X-Empresa-Id header on every request', () => {
+  it('does NOT send X-Empresa-Id header — empresa context resolved from JWT claim, not header', () => {
+    // Even when ACCESS_EMPRESA_ID token is provided, the header must be absent.
+    // Server resolves empresa from JWT `empresa_id` claim (EmpresaContextInterceptor).
     adapter.getIgnored(MS_ID).subscribe();
     const req = http.expectOne(`${MANUSCRIPTS_BASE}/${MS_ID}/segmentos/ignored`);
-    expect(req.request.headers.get('X-Empresa-Id')).toBe('emp-aetos');
+    expect(req.request.headers.get('X-Empresa-Id')).toBeNull();
     req.flush({ manuscritoId: MS_ID, ignoredSegmentoIds: [] });
   });
 });

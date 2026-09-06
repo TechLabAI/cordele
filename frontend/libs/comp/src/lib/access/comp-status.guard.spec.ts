@@ -71,7 +71,8 @@ describe('compStatusGuard', () => {
     });
 
     const req = httpMock.expectOne(`/api/v1/proj/projetos/${PROJECT_ID}`);
-    expect(req.request.headers.get('X-Empresa-Id')).toBe('emp_aetos');
+    // X-Empresa-Id must be absent — empresa resolved from JWT claim server-side.
+    expect(req.request.headers.get('X-Empresa-Id')).toBeNull();
     req.flush({ id: PROJECT_ID, status: 'em_composicao' });
 
     const val = await resultPromise;

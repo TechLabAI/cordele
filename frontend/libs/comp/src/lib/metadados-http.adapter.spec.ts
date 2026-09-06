@@ -1,7 +1,7 @@
 /**
  * metadados-http.adapter.spec.ts — HttpTestingController tests for MetadadosHttpAdapter.
  * FE-COMP-006: GET/PUT metadados, POST/DELETE capa — URL, method and body verification.
- * INT-FE-COMP-001 (P4): verifies X-Empresa-Id header is propagated via AccessHttpClient.
+ * INT-FE-COMP-001 (P4): verifies X-Empresa-Id header is NOT sent — empresa context comes from JWT claim.
  */
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
@@ -59,11 +59,13 @@ describe('MetadadosHttpAdapter', () => {
     expect(received?.titulo).toBe('Livro Teste');
   });
 
-  it('GET /metadados — sends X-Empresa-Id header (INT-FE-COMP-001)', () => {
+  it('GET /metadados — does NOT send X-Empresa-Id header (INT-FE-COMP-001 — empresa from JWT)', () => {
+    // Even when ACCESS_EMPRESA_ID token is provided, the header must be absent.
+    // Server resolves empresa from JWT `empresa_id` claim (EmpresaContextInterceptor).
     adapter.get(PROJECT_ID).subscribe();
 
     const req = httpMock.expectOne(`${BASE}/metadados`);
-    expect(req.request.headers.get('X-Empresa-Id')).toBe('emp_aetos');
+    expect(req.request.headers.get('X-Empresa-Id')).toBeNull();
     req.flush({
       projetoId: PROJECT_ID,
       titulo: 'T',
@@ -76,7 +78,9 @@ describe('MetadadosHttpAdapter', () => {
     });
   });
 
-  it('PUT /metadados — sends correct URL, method, body and X-Empresa-Id header', () => {
+  it('PUT /metadados — sends correct URL, method, body and does NOT send X-Empresa-Id header', () => {
+    // Even when ACCESS_EMPRESA_ID token is provided, the header must be absent.
+    // Server resolves empresa from JWT `empresa_id` claim (EmpresaContextInterceptor).
     const putBody: MetadadosDto = {
       projetoId: PROJECT_ID,
       titulo: 'Título Atualizado',
@@ -93,7 +97,7 @@ describe('MetadadosHttpAdapter', () => {
     const req = httpMock.expectOne(`${BASE}/metadados`);
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual(putBody);
-    expect(req.request.headers.get('X-Empresa-Id')).toBe('emp_aetos');
+    expect(req.request.headers.get('X-Empresa-Id')).toBeNull();
     req.flush({ ...putBody, materialized: true });
   });
 

@@ -100,8 +100,8 @@ export class PublicacaoHttpAdapter extends AccessHttpClient implements Publicaca
    * Returns 404 (urn:cordele:pub:publicacao-not-found) when the publicacao does not belong
    * to the given projeto or the active empresa — cross-tenant guard via search_path.
    *
-   * X-Empresa-Id added via empresaHeaders() from AccessHttpClient; params appended to URL
-   * manually because the base `get()` overload does not support HttpParams.
+   * Params appended to URL manually because the base `get()` overload does not support HttpParams.
+   * Empresa context is resolved server-side from the JWT `empresa_id` claim — no header needed.
    */
   getValidationMessages(
     projetoId: string,
@@ -110,6 +110,6 @@ export class PublicacaoHttpAdapter extends AccessHttpClient implements Publicaca
   ): Observable<ValidationMessageItem[]> {
     const base = `${this.projectBase(projetoId)}/${publicacaoId}/validation-messages`;
     const url   = severity ? `${base}?severity=${severity}` : base;
-    return this.http.get<ValidationMessageItem[]>(url, { headers: this.empresaHeaders() });
+    return this.http.get<ValidationMessageItem[]>(url);
   }
 }
