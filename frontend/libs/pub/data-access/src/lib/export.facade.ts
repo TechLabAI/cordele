@@ -38,6 +38,24 @@ import {
 const DEFAULT_RETRY_MS = 2_000;
 const MAX_POLLS       = 60;
 
+/**
+ * Extract the X-Correlation-Id from a raw error object (FE-PUB-024).
+ * Checks AppError.correlationId first; falls back to HttpErrorResponse.headers.
+ * Returns null when neither is available (network errors without a backend response).
+ */
+function extractTraceId(err: unknown): string | null {
+  if (!err || typeof err !== 'object') return null;
+  const e = err as Record<string, unknown>;
+  // AppError.correlationId (normalised by an error interceptor)
+  if (typeof e['correlationId'] === 'string') return e['correlationId'];
+  // HttpErrorResponse.headers.get('x-correlation-id')
+  const headers = e['headers'] as { get?: (k: string) => string | null } | undefined;
+  if (headers && typeof headers.get === 'function') {
+    return headers.get('x-correlation-id');
+  }
+  return null;
+}
+
 function toPhase(s: PublicacaoStatus): ExportPhase {
   if (s.status === 'gerando' || s.status === 'validando') return 'gerando';
   if (s.status === 'publicado')  return 'valido';
@@ -58,17 +76,23 @@ export class ExportFacade {
   private readonly empresaChanged: Signal<number> = inject(PUB_EMPRESA_CHANGED);
 
   // ── Raw state ─────────────────────────────────────────────────────────────
-  private readonly _phase     = signal<ExportPhase>('gerando');
-  private readonly _status    = signal<PublicacaoStatus | null>(null);
-  private readonly _error     = signal<string | null>(null);
-  private readonly _projetoId = signal<string | null>(null);
+  private readonly _phase        = signal<ExportPhase>('gerando');
+  private readonly _status       = signal<PublicacaoStatus | null>(null);
+  private readonly _error        = signal<string | null>(null);
+  private readonly _errorTraceId = signal<string | null>(null);
+  private readonly _projetoId    = signal<string | null>(null);
   /** Detailed epubcheck messages (§4.6 / INT-FE-PUB-004). Populated after terminal state. */
-  private readonly _avisos    = signal<AvisoVM[]>([]);
+  private readonly _avisos       = signal<AvisoVM[]>([]);
 
   // ── Public readonly signals ───────────────────────────────────────────────
   readonly phase     = this._phase.asReadonly();
   readonly status    = this._status.asReadonly();
   readonly error     = this._error.asReadonly();
+  /**
+   * X-Correlation-Id from the last failed request (FE-PUB-024 / SPEC-07 §4).
+   * Displayed to the user as a support reference. Null when no error is active.
+   */
+  readonly errorTraceId = this._errorTraceId.asReadonly();
   readonly projetoId = this._projetoId.asReadonly();
   /**
    * Detailed epubcheck validation messages from §4.6 (INT-FE-PUB-004).
@@ -146,6 +170,7 @@ export class ExportFacade {
         },
         error: err => {
           this._phase.set('error');
+          this._errorTraceId.set(extractTraceId(err));
           this._error.set(this._toMessage(err));
         },
       });
@@ -195,6 +220,7 @@ export class ExportFacade {
         },
         error: err => {
           this._phase.set('error');
+          this._errorTraceId.set(extractTraceId(err));
           this._error.set(this._toMessage(err));
         },
       });
@@ -210,6 +236,7 @@ export class ExportFacade {
     this._phase.set('gerando');
     this._status.set(null);
     this._error.set(null);
+    this._errorTraceId.set(null);
     this._projetoId.set(null);
     this._avisos.set([]);
   }
@@ -220,7 +247,10 @@ export class ExportFacade {
     this._stop$.next();
     if (this._phase() === 'gerando') {
       this._phase.set('error');
-      this._error.set('A exportação foi cancelada porque a empresa foi alterada. Tente novamente.');
+      this._errorTraceId.set(null);
+      // FE-PUB-024: "empresa alterada" replaced by neutral message — cancel can be triggered
+      // by navigation or empresa switch (INT-FE-PUB-006); neither warrants empresa-specific copy.
+      this._error.set('A exportação foi cancelada. Tente novamente.');
     }
   }
 
@@ -255,6 +285,7 @@ export class ExportFacade {
           },
           error: err => {
             this._phase.set('error');
+            this._errorTraceId.set(extractTraceId(err));
             this._error.set(this._toMessage(err));
           },
         });

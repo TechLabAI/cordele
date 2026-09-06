@@ -1,5 +1,5 @@
 /**
- * export.facade.spec.ts — Unit tests for ExportFacade (FE-PUB-007 / INT-FE-PUB-004).
+ * export.facade.spec.ts — Unit tests for ExportFacade (FE-PUB-007 / INT-FE-PUB-004 / FE-PUB-024).
  *
  * Verifies:
  *   - startExport triggers the API and transitions phase to correct terminal state.
@@ -9,6 +9,9 @@
  *   - No setInterval usage (all async via timer/Observable).
  *   - avisos signal populated after terminal state (INT-FE-PUB-004).
  *   - avisos signal cleared on reset().
+ *   - FE-PUB-024: errorTraceId populated from X-Correlation-Id header on startExport failure.
+ *   - FE-PUB-024: errorTraceId populated from AppError.correlationId.
+ *   - FE-PUB-024: errorTraceId cleared on reset().
  */
 import { TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
@@ -330,6 +333,59 @@ describe('ExportFacade', () => {
 
       expect(() => facade.startExport('proj-test-001')).not.toThrow();
       expect(facade.avisos()).toEqual([]);
+    });
+  });
+
+  describe('FE-PUB-024 — errorTraceId', () => {
+    it('populates errorTraceId from X-Correlation-Id header when startExport fails', () => {
+      const mockHeaderErr = {
+        message: 'Server error',
+        status: 500,
+        headers: {
+          get: (key: string) => key === 'x-correlation-id' ? 'trace-export-001' : null,
+        },
+      };
+      apiMock.triggerExport = (_p: string) =>
+        throwError(() => mockHeaderErr);
+
+      facade.startExport('proj-test-001');
+
+      expect(facade.phase()).toBe('error');
+      expect(facade.errorTraceId()).toBe('trace-export-001');
+    });
+
+    it('populates errorTraceId from AppError.correlationId when startExport fails', () => {
+      const appErr = { code: 'SERVER_ERROR', message: 'fail', correlationId: 'corr-export-999' };
+      apiMock.triggerExport = (_p: string) =>
+        throwError(() => appErr);
+
+      facade.startExport('proj-test-001');
+
+      expect(facade.phase()).toBe('error');
+      expect(facade.errorTraceId()).toBe('corr-export-999');
+    });
+
+    it('errorTraceId is null when error has no trace header', () => {
+      apiMock.triggerExport = (_p: string) =>
+        throwError(() => new Error('network error'));
+
+      facade.startExport('proj-test-001');
+
+      expect(facade.phase()).toBe('error');
+      expect(facade.errorTraceId()).toBeNull();
+    });
+
+    it('errorTraceId cleared on reset()', () => {
+      const mockHeaderErr = {
+        message: 'fail', status: 500,
+        headers: { get: (key: string) => key === 'x-correlation-id' ? 'trace-123' : null },
+      };
+      apiMock.triggerExport = (_p: string) => throwError(() => mockHeaderErr);
+      facade.startExport('proj-test-001');
+      expect(facade.errorTraceId()).toBe('trace-123');
+
+      facade.reset();
+      expect(facade.errorTraceId()).toBeNull();
     });
   });
 });

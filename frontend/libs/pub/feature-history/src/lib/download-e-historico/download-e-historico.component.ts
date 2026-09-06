@@ -75,6 +75,12 @@ function fmtDatetime(iso: string): string {
           <p class="text-sm" style="color:var(--text-secondary)">
             {{ facade.error() ?? 'Erro ao carregar histórico.' }}
           </p>
+          @if (facade.errorTraceId()) {
+            <!-- FE-PUB-024 / SPEC-07 §4: correlation id for support reference -->
+            <p class="text-xs font-mono" style="color:var(--text-tertiary)">
+              Trace: {{ facade.errorTraceId() }}
+            </p>
+          }
           <button (click)="load()"
                   class="text-sm px-4 py-2 rounded-lg"
                   style="background:var(--color-brand);color:var(--text-on-brand);">
@@ -161,6 +167,18 @@ function fmtDatetime(iso: string): string {
           </div>
         }
 
+        <!-- Re-fetch notice (FE-PUB-025): signed URL expired, re-fetching in progress -->
+        @if (facade.refetchNotice()) {
+          <div class="mb-3 rounded-lg px-4 py-3 text-sm flex items-center gap-2"
+               style="background:oklch(58% 0.19 245 / 0.10);border:1px solid oklch(58% 0.19 245 / 0.3);color:var(--text-primary);"
+               role="status" aria-live="polite">
+            <div class="size-4 rounded-full border-2 border-t-transparent animate-spin shrink-0"
+                 style="border-color:oklch(58% 0.19 245 / 0.4);border-top-color:oklch(58% 0.19 245);"
+                 aria-hidden="true"></div>
+            {{ facade.refetchNotice() }}
+          </div>
+        }
+
         <!-- Erro de download inline (per-row) -->
         @if (facade.downloadError()) {
           <div class="mb-3 rounded-lg px-4 py-3 text-sm flex items-center gap-2"
@@ -168,6 +186,12 @@ function fmtDatetime(iso: string): string {
                role="alert">
             <span class="material-symbols-outlined" style="font-size:16px;">error</span>
             {{ facade.downloadError() }}
+            @if (facade.downloadTraceId()) {
+              <!-- FE-PUB-024 / SPEC-07 §4: correlation id for support reference -->
+              <span class="ml-auto text-xs font-mono shrink-0" style="color:var(--color-error-ink);opacity:0.7">
+                Trace: {{ facade.downloadTraceId() }}
+              </span>
+            }
           </div>
         }
 

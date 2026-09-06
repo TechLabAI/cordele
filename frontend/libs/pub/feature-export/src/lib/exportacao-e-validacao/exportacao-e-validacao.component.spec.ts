@@ -1,5 +1,5 @@
 /**
- * exportacao-e-validacao.component.spec.ts — FE-PUB-012.
+ * exportacao-e-validacao.component.spec.ts — FE-PUB-012 / FE-PUB-024.
  *
  * Verifies:
  *   - Component renders without errors.
@@ -8,6 +8,7 @@
  *   - No AVISOS_MOCK, mock-data, or "Simular estado" references in production path.
  *   - podeBaixar=false disables the download button; podeBaixar=true enables it.
  *   - WarningsDetailsComponent receives correct inputs from facade signals.
+ *   - FE-PUB-024: error block shows Trace id when facade.errorTraceId() is set.
  */
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute } from '@angular/router';
@@ -17,17 +18,19 @@ import { ExportFacade } from '@cordele/pub-data-access';
 
 function makeFacade(overrides: Partial<Record<keyof ExportFacade, unknown>> = {}): Partial<ExportFacade> {
   return {
-    phase:       signal<'gerando' | 'valido' | 'erros' | 'error'>('gerando').asReadonly(),
-    podeBaixar:  signal(false).asReadonly(),
-    totalAvisos: signal(0).asReadonly(),
-    totalErros:  signal(0).asReadonly(),
-    resumoErro:  signal<string | null>(null).asReadonly(),
-    error:       signal<string | null>(null).asReadonly(),
-    status:      signal(null).asReadonly(),
-    projetoId:   signal<string | null>(null).asReadonly(),
-    summary:     signal<{ tamanho: string | null; paginas: null; capitulos: number | null; imagens: number | null } | null>(null).asReadonly(),
+    phase:        signal<'gerando' | 'valido' | 'erros' | 'error'>('gerando').asReadonly(),
+    podeBaixar:   signal(false).asReadonly(),
+    totalAvisos:  signal(0).asReadonly(),
+    totalErros:   signal(0).asReadonly(),
+    resumoErro:   signal<string | null>(null).asReadonly(),
+    error:        signal<string | null>(null).asReadonly(),
+    // FE-PUB-024: errorTraceId signal for correlation id in error block
+    errorTraceId: signal<string | null>(null).asReadonly(),
+    status:       signal(null).asReadonly(),
+    projetoId:    signal<string | null>(null).asReadonly(),
+    summary:      signal<{ tamanho: string | null; paginas: null; capitulos: number | null; imagens: number | null } | null>(null).asReadonly(),
     // INT-FE-PUB-004: avisos signal required by ExportacaoEValidacaoComponent template
-    avisos:      signal([]).asReadonly(),
+    avisos:       signal([]).asReadonly(),
     startExport:        vi.fn<(projetoId: string) => void>(),
     baixar:             vi.fn<(projetoId: string) => void>(),
     reset:              vi.fn<() => void>(),
@@ -109,6 +112,49 @@ describe('ExportacaoEValidacaoComponent', () => {
     fixture.detectChanges();
     const btn = fixture.nativeElement.querySelector('button[disabled]');
     expect(btn).toBeFalsy();
+  });
+
+  it('FE-PUB-024: error block shows Trace id when errorTraceId is set', async () => {
+    const facade = makeFacade({
+      phase:        signal<'gerando' | 'valido' | 'erros' | 'error'>('error').asReadonly(),
+      error:        signal<string | null>('Erro de exportação').asReadonly(),
+      errorTraceId: signal<string | null>('trace-export-abc').asReadonly(),
+    });
+    await TestBed.configureTestingModule({
+      imports: [ExportacaoEValidacaoComponent],
+      providers: [
+        { provide: ExportFacade,   useValue: facade },
+        { provide: ActivatedRoute, useValue: makeRoute() },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ExportacaoEValidacaoComponent);
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).toContain('Trace:');
+    expect(el.textContent).toContain('trace-export-abc');
+  });
+
+  it('FE-PUB-024: error block does NOT show Trace section when errorTraceId is null', async () => {
+    const facade = makeFacade({
+      phase:        signal<'gerando' | 'valido' | 'erros' | 'error'>('error').asReadonly(),
+      error:        signal<string | null>('Erro de exportação').asReadonly(),
+      errorTraceId: signal<string | null>(null).asReadonly(),
+    });
+    await TestBed.configureTestingModule({
+      imports: [ExportacaoEValidacaoComponent],
+      providers: [
+        { provide: ExportFacade,   useValue: facade },
+        { provide: ActivatedRoute, useValue: makeRoute() },
+      ],
+    }).compileComponents();
+
+    const fixture = TestBed.createComponent(ExportacaoEValidacaoComponent);
+    fixture.detectChanges();
+
+    const el: HTMLElement = fixture.nativeElement;
+    expect(el.textContent).not.toContain('Trace:');
   });
 
 });

@@ -196,6 +196,12 @@ const STEPS = [
           <p class="text-sm" style="color:var(--text-secondary)">
             {{ facade.error() ?? 'Erro ao exportar. Tente novamente.' }}
           </p>
+          @if (facade.errorTraceId()) {
+            <!-- FE-PUB-024 / SPEC-07 §4: correlation id for support reference -->
+            <p class="text-xs font-mono" style="color:var(--text-tertiary)">
+              Trace: {{ facade.errorTraceId() }}
+            </p>
+          }
           <button
             (click)="startExport()"
             class="inline-flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold"
