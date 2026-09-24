@@ -31,7 +31,7 @@ python scripts/pipeline-context.py decision-context \
 
 ```bash
 python scripts/pipeline-context.py spec-context \
-  --module <MODULE> --pack --semantic --budget 4000
+  --module <MODULE> --pack --semantic --budget 4000 --layer <LAYER>
 ```
 
 Se `--semantic` falhar (Ollama/ES indisponível): repetir sem `--semantic` (BM25 puro).

@@ -247,7 +247,7 @@ sozinho ler (hit) ou popular (miss/expirado):
 python scripts/pipeline-context.py decision-context --tags backend,implementer,pipeline \
   --cache-read tmp/pipeline-cycle/<MODULO>/handoff.json --cache-write tmp/pipeline-cycle/<MODULO>/handoff.json
 # D-434: specs do modulo via RAG (corpus D-432) — preferir a reler os .md crus; use --query "<tema>" para focar
-python scripts/pipeline-context.py spec-context --module <MODULE> --pack --semantic \
+python scripts/pipeline-context.py spec-context --module <MODULE> --layer be --pack --semantic \
   --cache-read tmp/pipeline-cycle/<MODULO>/handoff.json --cache-write tmp/pipeline-cycle/<MODULO>/handoff.json
 # D-460: issues relacionadas (cross-modulo, implementacoes semelhantes) — opcional (fora do escopo do cache D-552)
 python scripts/pipeline-context.py issue-context --module <MODULE> --query "<tema da issue>" --semantic

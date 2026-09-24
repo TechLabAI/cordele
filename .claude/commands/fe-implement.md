@@ -195,7 +195,7 @@ Se a falha exigir mudanca alem do plano: retornar ao Planner via Modo de bloquei
 ```bash
 python scripts/pipeline-context.py decision-context --tags frontend,implementer,pipeline
 # D-434: specs do modulo via RAG (corpus D-432) — preferir a reler os .md crus; use --query "<tema>" para focar
-python scripts/pipeline-context.py spec-context --module <MODULE> --pack --semantic
+python scripts/pipeline-context.py spec-context --module <MODULE> --layer fe --pack --semantic
 # D-460: issues relacionadas (cross-modulo, implementacoes semelhantes) — opcional
 python scripts/pipeline-context.py issue-context --module <MODULE> --query "<tema da issue>" --semantic
 # D-611: known pitfalls (rework_pattern) desta camada — consulte ANTES de codar e NAO os reproduza
