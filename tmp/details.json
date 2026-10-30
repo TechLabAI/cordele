@@ -1,1 +1,0 @@
-﻿{"score": 80, "maturity": "Maduro", "checklist": {"done": 10, "total": 10, "gaps": []}, "gates": {"test": "pass", "build": "pass", "lint": "pass", "e2e": "pending"}, "next_action": "VALIDACAO"}

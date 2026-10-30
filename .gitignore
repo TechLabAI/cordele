@@ -15,7 +15,11 @@ Thumbs.db
 
 # Secrets
 .env
-.env.local
+.env.*
+!.env.example
+!.env.test.example
+*.pem
+*.key
 
 # Python (for scripts/)
 __pycache__/
@@ -88,3 +92,25 @@ tmp/*.py
 .techlab/trace-context.json
 .techlab/learning/
 .techlab/token-usage/
+
+# Ephemeral pipeline output and local config — regenerated or machine-specific,
+# not part of the source under review.
+tmp/*
+!tmp/README.md
+backend/services/comp-service/storage/
+.mcp.json
+.techlab/*.json
+
+# Derived issue state — recomputed from the code on each validation run.
+docs/architecture/**/*.state.json
+docs/architecture/**/*.checklist.json
+docs/architecture/**/*.soft.json
+
+# Pipeline progress journals and architecture lock (local state)
+project-journal.md
+project-checklist.md
+architecture.lock
+arch/decisions/
+
+# Prototype reference material (not the product)
+frontend/design-reference/

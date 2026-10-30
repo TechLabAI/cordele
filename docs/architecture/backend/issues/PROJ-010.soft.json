@@ -1,8 +1,0 @@
-{
-  "issue": "PROJ-010",
-  "layer": "be",
-  "softValue": 6,
-  "rationale": "REVISADO apos auditoria de codigo (2026-09-03); o veredito anterior de 8/10 dava multi-empresa 5/5 sem verificar o estado dos schemas em runtime. Observabilidade 3/5: CorrelationIdInterceptor global, JsonLoggerService com log estruturado newline-delimited e health readiness+liveness; MAS o correlationId nao entra nas linhas de log (o proprio codigo marca como deferred), nao ha filtro RFC 7807 e nao ha instrumentacao de metricas. Multi-empresa RULE-07 3/5: o mecanismo e real (TenantPrismaFactory abre um PrismaClient por schema emp_<slug>, cacheado; fail-fast quando o contexto esta ausente; ha spec de integracao provando isolamento), porem (a) resolveSchema interpola o slug sem whitelist nem validacao de formato, e um portador de empresa-admin pode enviar X-Tenant-Id arbitrario; (b) nao existe registro de empresas validas (create-projeto-editorial.use-case.ts:68 admite o TODO); (c) decisivo: os schemas de tenant estao VAZIOS em toda configuracao executavel -- docker/initdb/01-schemas.sql so faz CREATE SCHEMA e o Dockerfile roda prisma migrate deploy contra ?schema=public, entao em runtime a factory aponta para emp_aetos, onde nao ha tabela alguma, e todo endpoint de negocio falha com 'relation does not exist'. Isolamento correto no desenho, inoperante na pratica.",
-  "evaluatedAt": "2026-09-03T03:54:18Z",
-  "evaluatedBy": "code-audit-2026-09-03"
-}

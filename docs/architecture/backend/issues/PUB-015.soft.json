@@ -1,8 +1,0 @@
-{
-  "issue": "PUB-015",
-  "layer": "be",
-  "softValue": 3,
-  "rationale": "REVISADO apos auditoria de codigo (2026-09-03); o veredito anterior de 6/10 afirmava 'isolamento por schema (schema-per-empresa)' com base em comentarios. Observabilidade 3/5: correlationId gerado, ecoado E propagado ao logging via ALS (PubLoggerService inclui correlationId em todos os eventos) e health readiness+liveness com db/storage/epubcheck; MAS nao ha filtro RFC 7807 (usa o formato padrao do NestJS) nem qualquer metrica. Multi-empresa RULE-07 0/5: NAO EXISTE isolamento. PrismaService e um unico PrismaClient com DATABASE_URL estatica em ?schema=public (.env:8 e docker-compose.dev.yml:79); nao ha SET search_path, datasourceUrl por tenant nem $extends em lugar nenhum -- as unicas ocorrencias de 'search_path' no src/ sao comentarios e docstrings afirmando um isolamento inexistente. Todas as empresas gravam na mesma tabela. findByPublicacaoId e findStaleInFlight leem por id sem filtro de projeto ou empresa, justificando-se no search_path que nao existe; a chave de storage (publicacoes/<id>/output.epub) nao tem prefixo de tenant. O repositorio in-memory do BDD admite no proprio cabecalho que o isolamento nao e aplicado.",
-  "evaluatedAt": "2026-09-03T03:54:14Z",
-  "evaluatedBy": "code-audit-2026-09-03"
-}
