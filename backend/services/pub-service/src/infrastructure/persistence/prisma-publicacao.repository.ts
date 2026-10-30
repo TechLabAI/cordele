@@ -3,29 +3,29 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PublicacaoEntity } from '../../domain/pub/publicacao.entity';
 import { PublicacaoStatus } from '../../domain/pub/publicacao-status.enum';
 import type { PublicacaoRepositoryPort } from '../../domain/pub/ports/publicacao-repository.port';
-import { PrismaService } from './prisma.service';
+import { PrismaEmpresaService } from './prisma-empresa.service';
 import { PublicacaoMapper } from './publicacao.mapper';
 
 /**
  * Prisma-backed adapter for `PublicacaoRepositoryPort` (PUB-008, D-545).
  *
- * All tables live in the tenant schema resolved from `EmpresaContext` before
- * this adapter is called (RULE-07 — the application service enforces the
- * context guard). The adapter receives an already-tenant-scoped `PrismaService`
- * connection and never embeds `empresaId` as a column discriminator (the
- * schema-per-tenant strategy handles isolation at the schema level,
- * ADR-003-multi-tenancy.md).
+ * Tenant isolation follows ADR-003 (D-619): each query runs through a
+ * `PrismaClient` whose `datasourceUrl` targets `emp_<slug>` — the empresa schema
+ * resolved from `EmpresaContextService` (AsyncLocalStorage). `SET search_path` at
+ * query level is silently ignored by the Prisma Client and was NEVER a valid
+ * isolation mechanism here; `PrismaEmpresaService` is the correct adapter.
  *
  * RULE-01/02: zero `@nestjs/*` decorators on domain types, zero `@prisma/client`
  * imports in domain/. This file lives in infrastructure/ — it is the bridge.
- * RULE-05: infrastructure/ does not import modules/ (only modules/ ports, which
+ * RULE-05: infrastructure/ does not import modules/ (only domain/ ports, which
  * are interface definitions, are imported).
+ * RULE-07: all data access is scoped by empresa via `PrismaEmpresaService`.
  */
 @Injectable()
 export class PrismaPublicacaoRepository implements PublicacaoRepositoryPort {
   private readonly logger = new Logger(PrismaPublicacaoRepository.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly empresaService: PrismaEmpresaService) {}
 
   /**
    * Returns the project's in-flight (`gerando`|`validando`) Publicacao, if
@@ -34,13 +34,15 @@ export class PrismaPublicacaoRepository implements PublicacaoRepositoryPort {
    * here.
    */
   async findInFlight(projetoId: string): Promise<PublicacaoEntity | null> {
-    const model = await this.prisma.publicacao.findFirst({
-      where: {
-        projetoId,
-        status: { in: [PublicacaoStatus.GERANDO, PublicacaoStatus.VALIDANDO] },
-      },
+    return this.empresaService.withCurrentTenant(async (client) => {
+      const model = await client.publicacao.findFirst({
+        where: {
+          projetoId,
+          status: { in: [PublicacaoStatus.GERANDO, PublicacaoStatus.VALIDANDO] },
+        },
+      });
+      return model ? PublicacaoMapper.toDomain(model) : null;
     });
-    return model ? PublicacaoMapper.toDomain(model) : null;
   }
 
   /**
@@ -53,11 +55,13 @@ export class PrismaPublicacaoRepository implements PublicacaoRepositoryPort {
    * that race practically impossible in the normal path.
    */
   async nextSequencia(projetoId: string): Promise<number> {
-    const result = await this.prisma.publicacao.aggregate({
-      where: { projetoId },
-      _max: { sequencia: true },
+    return this.empresaService.withCurrentTenant(async (client) => {
+      const result = await client.publicacao.aggregate({
+        where: { projetoId },
+        _max: { sequencia: true },
+      });
+      return (result._max.sequencia ?? 0) + 1;
     });
-    return (result._max.sequencia ?? 0) + 1;
   }
 
   /**
@@ -69,13 +73,15 @@ export class PrismaPublicacaoRepository implements PublicacaoRepositoryPort {
    * (data-model.md §2.1, invariant); the upsert is therefore safe in practice.
    */
   async save(publicacao: PublicacaoEntity): Promise<PublicacaoEntity> {
-    const model = await this.prisma.publicacao.upsert({
-      where: { id: publicacao.id },
-      create: PublicacaoMapper.toCreateInput(publicacao),
-      update: PublicacaoMapper.toUpdateInput(publicacao),
+    return this.empresaService.withCurrentTenant(async (client) => {
+      const model = await client.publicacao.upsert({
+        where: { id: publicacao.id },
+        create: PublicacaoMapper.toCreateInput(publicacao),
+        update: PublicacaoMapper.toUpdateInput(publicacao),
+      });
+      this.logger.debug(`publicacao saved: id=${model.id} status=${model.status}`);
+      return PublicacaoMapper.toDomain(model);
     });
-    this.logger.debug(`publicacao saved: id=${model.id} status=${model.status}`);
-    return PublicacaoMapper.toDomain(model);
   }
 
   /**
@@ -85,10 +91,12 @@ export class PrismaPublicacaoRepository implements PublicacaoRepositoryPort {
    * specified `projetoId` (prevents cross-project reads).
    */
   async findById(projetoId: string, publicacaoId: string): Promise<PublicacaoEntity | null> {
-    const model = await this.prisma.publicacao.findFirst({
-      where: { id: publicacaoId, projetoId },
+    return this.empresaService.withCurrentTenant(async (client) => {
+      const model = await client.publicacao.findFirst({
+        where: { id: publicacaoId, projetoId },
+      });
+      return model ? PublicacaoMapper.toDomain(model) : null;
     });
-    return model ? PublicacaoMapper.toDomain(model) : null;
   }
 
   /**
@@ -97,11 +105,13 @@ export class PrismaPublicacaoRepository implements PublicacaoRepositoryPort {
    * Ordered by `sequencia DESC` so the most recent attempt is first.
    */
   async listByProjeto(projetoId: string): Promise<PublicacaoEntity[]> {
-    const models = await this.prisma.publicacao.findMany({
-      where: { projetoId },
-      orderBy: { sequencia: 'desc' },
+    return this.empresaService.withCurrentTenant(async (client) => {
+      const models = await client.publicacao.findMany({
+        where: { projetoId },
+        orderBy: { sequencia: 'desc' },
+      });
+      return PublicacaoMapper.toDomainList(models);
     });
-    return PublicacaoMapper.toDomainList(models);
   }
 
   /**
@@ -123,32 +133,37 @@ export class PrismaPublicacaoRepository implements PublicacaoRepositoryPort {
       return new Map();
     }
 
-    const models = await this.prisma.publicacao.findMany({
-      where: { projetoId: { in: projetoIds } },
-      orderBy: { sequencia: 'desc' },
-    });
+    return this.empresaService.withCurrentTenant(async (client) => {
+      const models = await client.publicacao.findMany({
+        where: { projetoId: { in: projetoIds } },
+        orderBy: { sequencia: 'desc' },
+      });
 
-    const result = new Map<string, PublicacaoEntity>();
-    for (const model of models) {
-      if (!result.has(model.projetoId)) {
-        result.set(model.projetoId, PublicacaoMapper.toDomain(model));
+      const result = new Map<string, PublicacaoEntity>();
+      for (const model of models) {
+        if (!result.has(model.projetoId)) {
+          result.set(model.projetoId, PublicacaoMapper.toDomain(model));
+        }
       }
-    }
-    return result;
+      return result;
+    });
   }
 
   /**
    * Finds a single Publicacao by its own id without a projetoId guard.
    *
-   * Tenant isolation is enforced at the schema level (search_path), so
-   * `findUnique` is already scoped to the active tenant schema.
+   * Tenant isolation is provided by `PrismaEmpresaService`: the PrismaClient
+   * targets `emp_<slug>` (resolved from `EmpresaContextService`), so the query
+   * is already scoped to the active tenant schema (ADR-003, D-619).
    * Returns null when the id does not exist.
    */
   async findByPublicacaoId(publicacaoId: string): Promise<PublicacaoEntity | null> {
-    const model = await this.prisma.publicacao.findUnique({
-      where: { id: publicacaoId },
+    return this.empresaService.withCurrentTenant(async (client) => {
+      const model = await client.publicacao.findUnique({
+        where: { id: publicacaoId },
+      });
+      return model ? PublicacaoMapper.toDomain(model) : null;
     });
-    return model ? PublicacaoMapper.toDomain(model) : null;
   }
 
   /**
@@ -159,8 +174,10 @@ export class PrismaPublicacaoRepository implements PublicacaoRepositoryPort {
    * are deleted from storage.
    */
   async deleteAllByProjeto(projetoId: string): Promise<void> {
-    await this.prisma.publicacao.deleteMany({ where: { projetoId } });
-    this.logger.debug(`deleteAllByProjeto: cleared publications for projetoId=${projetoId}`);
+    await this.empresaService.withCurrentTenant(async (client) => {
+      await client.publicacao.deleteMany({ where: { projetoId } });
+      this.logger.debug(`deleteAllByProjeto: cleared publications for projetoId=${projetoId}`);
+    });
   }
 
   /**
@@ -168,18 +185,21 @@ export class PrismaPublicacaoRepository implements PublicacaoRepositoryPort {
    * `olderThanMinutes` minutes (PUB-020).
    *
    * Operational diagnostic method — used by the reconciliation script only;
-   * never exposed via REST. Tenant isolation is enforced at the schema level
-   * (search_path), consistent with all other repository methods (ADR-003).
+   * never exposed via REST. Tenant isolation is provided by `PrismaEmpresaService`
+   * (per-schema PrismaClient, ADR-003, D-619): the query targets only the active
+   * tenant schema, consistent with all other repository methods.
    */
   async findStaleInFlight(olderThanMinutes: number): Promise<PublicacaoEntity[]> {
-    const cutoff = new Date(Date.now() - olderThanMinutes * 60_000);
-    const models = await this.prisma.publicacao.findMany({
-      where: {
-        status: { in: [PublicacaoStatus.GERANDO, PublicacaoStatus.VALIDANDO] },
-        iniciadaEm: { lt: cutoff },
-      },
-      orderBy: { iniciadaEm: 'asc' },
+    return this.empresaService.withCurrentTenant(async (client) => {
+      const cutoff = new Date(Date.now() - olderThanMinutes * 60_000);
+      const models = await client.publicacao.findMany({
+        where: {
+          status: { in: [PublicacaoStatus.GERANDO, PublicacaoStatus.VALIDANDO] },
+          iniciadaEm: { lt: cutoff },
+        },
+        orderBy: { iniciadaEm: 'asc' },
+      });
+      return PublicacaoMapper.toDomainList(models);
     });
-    return PublicacaoMapper.toDomainList(models);
   }
 }

@@ -9,8 +9,26 @@
  * RULE-05: infrastructure must not import modules/.
  * RULE-06: this is the correct place for outbound HTTP clients.
  *
- * Error handling: when IMP is unreachable, the adapter returns empty Map
- * and logs WARN. Callers (GetProjetoLibraryUseCase) degrade gracefully.
+ * Chunking:
+ *   projetoIds is split into blocks of CROSS_SERVICE_BATCH_LIMIT (50) because
+ *   the IMP batch endpoint rejects requests larger than 50 IDs with HTTP 400
+ *   (contractual limit, see IMP api-contract.md). Blocks are fetched in parallel
+ *   via Promise.allSettled to reduce latency — the use case already sequences
+ *   the three adapters, so parallelism within an adapter avoids quadrupling the
+ *   end-to-end time for large libraries (152 IDs = 4 blocks; 4 parallel fetches
+ *   cost one network round-trip, not four).
+ *
+ * Partial degradation:
+ *   - All blocks succeed → returns merged Map, no exception.
+ *   - Some blocks fail   → throws PartialResultError<Map<...>> carrying the data
+ *     from successful blocks; callPort in the use case extracts the partial result
+ *     and marks degraded=true.
+ *   - All blocks fail    → throws Error; callPort marks degraded=true and returns
+ *     the empty-Map fallback.
+ *
+ * Bearer token is forwarded from the originating request so the IMP service
+ * validates the same JWT principal and scope (imp:read). The header is mounted
+ * only when a token is present; its value is never logged (security gate).
  */
 
 import { Injectable, Logger } from '@nestjs/common';
@@ -20,10 +38,11 @@ import type {
   ManuscriptSummary,
   ManuscriptSummaryPort,
 } from '../../../domain/proj/ports/outbound/manuscript-summary.port';
+import { PartialResultError } from '../../../domain/shared/partial-result.error';
+import { chunkArray, CROSS_SERVICE_BATCH_LIMIT } from './batch-chunk.util';
 
 /**
  * Shape of the response from IMP's batch-query endpoint.
- * Adjust to match IMP's actual contract when IMP is scaffolded.
  */
 interface ImpManuscriptResponse {
   projetoId: string;
@@ -40,6 +59,7 @@ export class ImpManuscriptSummaryAdapter implements ManuscriptSummaryPort {
   async summaries(
     projetoIds: string[],
     empresaId: string,
+    bearerToken?: string,
   ): Promise<Map<string, ManuscriptSummary>> {
     if (projetoIds.length === 0) {
       return new Map();
@@ -47,42 +67,91 @@ export class ImpManuscriptSummaryAdapter implements ManuscriptSummaryPort {
 
     const baseUrl = this.config.get<string>('IMP_SERVICE_URL');
     if (!baseUrl) {
-      this.logger.warn('IMP_SERVICE_URL not configured — returning empty summaries');
-      return new Map();
+      throw new Error('IMP_SERVICE_URL not configured — cannot fetch manuscript summaries');
     }
 
-    try {
-      const url = `${baseUrl}/api/v1/imp/manuscripts/summaries`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Empresa-Id': empresaId,
-        },
-        body: JSON.stringify({ projetoIds }),
-      });
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (bearerToken) {
+      headers['Authorization'] = `Bearer ${bearerToken}`;
+      this.logger.debug('ImpManuscriptSummaryAdapter: Authorization header mounted');
+    }
 
-      if (!response.ok) {
-        this.logger.warn(
-          `IMP manuscript summaries returned ${response.status} — degrading`,
-        );
-        return new Map();
-      }
+    const chunks = chunkArray(projetoIds, CROSS_SERVICE_BATCH_LIMIT);
+    this.logger.log(
+      `ImpManuscriptSummaryAdapter: fetching ${projetoIds.length} ids in ${chunks.length} chunks`,
+    );
 
-      const data = (await response.json()) as ImpManuscriptResponse[];
-      const result = new Map<string, ManuscriptSummary>();
-      for (const item of data) {
-        result.set(item.projetoId, {
-          totalCapitulos: item.totalCapitulos,
-          totalImagens: item.totalImagens,
-        });
-      }
-      return result;
-    } catch (err) {
-      this.logger.warn(
-        `ImpManuscriptSummaryAdapter error — degrading: ${(err as Error).message}`,
+    const settled = await Promise.allSettled(
+      chunks.map((chunk, index) =>
+        this.fetchChunk(baseUrl, headers, empresaId, chunk, index),
+      ),
+    );
+
+    return this.mergeSettled(settled, chunks.length, empresaId);
+  }
+
+  private async fetchChunk(
+    baseUrl: string,
+    headers: Record<string, string>,
+    empresaId: string,
+    chunk: string[],
+    chunkIndex: number,
+  ): Promise<Map<string, ManuscriptSummary>> {
+    const url = `${baseUrl}/api/v1/imp/manuscripts/summaries`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ projetoIds: chunk }),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `IMP manuscripts/summaries chunk ${chunkIndex} returned ${response.status} for empresaId=${empresaId}`,
       );
-      return new Map();
     }
+
+    const data = (await response.json()) as ImpManuscriptResponse[];
+    const result = new Map<string, ManuscriptSummary>();
+    for (const item of data) {
+      result.set(item.projetoId, {
+        totalCapitulos: item.totalCapitulos,
+        totalImagens: item.totalImagens,
+      });
+    }
+    return result;
+  }
+
+  private mergeSettled(
+    settled: PromiseSettledResult<Map<string, ManuscriptSummary>>[],
+    totalChunks: number,
+    empresaId: string,
+  ): Map<string, ManuscriptSummary> {
+    const merged = new Map<string, ManuscriptSummary>();
+    let failedChunks = 0;
+    let lastError: Error | undefined;
+
+    for (const result of settled) {
+      if (result.status === 'fulfilled') {
+        for (const [k, v] of result.value) {
+          merged.set(k, v);
+        }
+      } else {
+        failedChunks++;
+        lastError = result.reason as Error;
+        this.logger.warn(
+          `ImpManuscriptSummaryAdapter: chunk failed for empresaId=${empresaId}: ${lastError.message}`,
+        );
+      }
+    }
+
+    if (failedChunks === 0) {
+      return merged;
+    }
+    if (failedChunks === totalChunks) {
+      throw lastError!;
+    }
+    throw new PartialResultError(merged, failedChunks, totalChunks, lastError);
   }
 }

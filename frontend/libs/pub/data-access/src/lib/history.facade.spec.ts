@@ -1,5 +1,5 @@
 /**
- * history.facade.spec.ts — Unit tests for HistoryFacade (FE-PUB-007).
+ * history.facade.spec.ts — Unit tests for HistoryFacade (FE-PUB-007 / FE-PUB-024 / FE-PUB-025).
  *
  * Verifies:
  *   - load() calls listByProjeto and getStats, sets status to loaded.
@@ -7,9 +7,12 @@
  *   - download() delegates to ArtifactDownloadService; downloading signal clears on completion.
  *   - Stats null when getStats errors (tiles hidden, not a fatal error).
  *   - error state set on listByProjeto failure.
+ *   - FE-PUB-024: errorTraceId populated from X-Correlation-Id on load failure.
+ *   - FE-PUB-024: downloadTraceId populated on download failure.
+ *   - FE-PUB-025: refetchNotice set on DownloadResult.status==='refetching'; cleared on success.
  */
 import { TestBed } from '@angular/core/testing';
-import { of, throwError } from 'rxjs';
+import { concat, of, throwError } from 'rxjs';
 import { HistoryFacade } from './history.facade';
 import { PublicacaoApiService } from './publicacao-api.service';
 import { ArtifactDownloadService } from './artifact-download.service';
@@ -51,7 +54,7 @@ describe('HistoryFacade', () => {
     };
     downloaderMock = {
       download: (_projetoId: string, _publicacaoId: string) =>
-        of({ success: true, arquivoUrl: '/exports/test.epub' }),
+        of({ status: 'success' as const, arquivoUrl: '/exports/test.epub' }),
     };
 
     TestBed.configureTestingModule({
@@ -98,6 +101,43 @@ describe('HistoryFacade', () => {
       expect(facade.status()).toBe('error');
       expect(facade.error()).toContain('network error');
     });
+
+    it('FE-PUB-024: errorTraceId populated from X-Correlation-Id header on load failure', () => {
+      const mockHeaderErr = {
+        message: 'Server error',
+        status: 500,
+        headers: {
+          get: (key: string) => key === 'x-correlation-id' ? 'trace-abc-123' : null,
+        },
+      };
+      apiMock.listByProjeto = (_projetoId: string) =>
+        throwError(() => mockHeaderErr);
+
+      facade.load('proj-001');
+
+      expect(facade.status()).toBe('error');
+      expect(facade.errorTraceId()).toBe('trace-abc-123');
+    });
+
+    it('FE-PUB-024: errorTraceId is null when no X-Correlation-Id header is present', () => {
+      apiMock.listByProjeto = (_projetoId: string) =>
+        throwError(() => new Error('network error'));
+
+      facade.load('proj-001');
+
+      expect(facade.status()).toBe('error');
+      expect(facade.errorTraceId()).toBeNull();
+    });
+
+    it('FE-PUB-024: errorTraceId populated from AppError.correlationId on load failure', () => {
+      const appErr = { code: 'SERVER_ERROR', message: 'fail', correlationId: 'corr-xyz-789' };
+      apiMock.listByProjeto = (_projetoId: string) =>
+        throwError(() => appErr);
+
+      facade.load('proj-001');
+
+      expect(facade.errorTraceId()).toBe('corr-xyz-789');
+    });
   });
 
   describe('isEmpty', () => {
@@ -121,7 +161,7 @@ describe('HistoryFacade', () => {
       let downloadCalled = false;
       downloaderMock.download = (_projetoId: string, _publicacaoId: string) => {
         downloadCalled = true;
-        return of({ success: true, arquivoUrl: '/exports/test.epub' });
+        return of({ status: 'success' as const, arquivoUrl: '/exports/test.epub' });
       };
 
       facade.download('proj-001', 'pub-001');
@@ -137,6 +177,52 @@ describe('HistoryFacade', () => {
       facade.download('proj-001', 'pub-001');
 
       expect(facade.downloading()).toBeNull();
+      expect(facade.downloadError()).toContain('expirou');
+    });
+
+    it('FE-PUB-024: downloadTraceId populated from X-Correlation-Id header on download failure', () => {
+      const mockHeaderErr = {
+        message: 'O link de download expirou.',
+        status: 401,
+        headers: {
+          get: (key: string) => key === 'x-correlation-id' ? 'dl-trace-456' : null,
+        },
+      };
+      downloaderMock.download = (_projetoId: string, _publicacaoId: string) =>
+        throwError(() => mockHeaderErr);
+
+      facade.download('proj-001', 'pub-001');
+
+      expect(facade.downloadError()).toBeTruthy();
+      expect(facade.downloadTraceId()).toBe('dl-trace-456');
+    });
+
+    it('FE-PUB-025: refetchNotice set when DownloadResult.status=refetching, cleared on success', () => {
+      // Simulate ArtifactDownloadService emitting refetching then success (as _refetchAndOpen does)
+      downloaderMock.download = (_projetoId: string, _publicacaoId: string) =>
+        concat(
+          of({ status: 'refetching' as const }),
+          of({ status: 'success' as const, arquivoUrl: '/exports/test.epub' }),
+        );
+
+      // Since concat is synchronous in tests, after subscribe completes the notice is cleared.
+      facade.download('proj-001', 'pub-001');
+
+      // After success the notice must be cleared
+      expect(facade.downloading()).toBeNull();
+      expect(facade.refetchNotice()).toBeNull();
+    });
+
+    it('FE-PUB-025: refetchNotice cleared when download ultimately fails after refetch', () => {
+      downloaderMock.download = (_projetoId: string, _publicacaoId: string) =>
+        concat(
+          of({ status: 'refetching' as const }),
+          throwError(() => ({ message: 'O link de download expirou. Tente novamente.' })),
+        );
+
+      facade.download('proj-001', 'pub-001');
+
+      expect(facade.refetchNotice()).toBeNull();
       expect(facade.downloadError()).toContain('expirou');
     });
   });

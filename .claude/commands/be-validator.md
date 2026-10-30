@@ -94,7 +94,7 @@ sem nova consulta ao ES enquanto o TTL (60 min) valer. Sempre passar **os dois**
 python scripts/pipeline-context.py decision-context --tags backend,validator,pipeline \
   --cache-read tmp/pipeline-cycle/<MODULO>/handoff.json --cache-write tmp/pipeline-cycle/<MODULO>/handoff.json
 # D-434: specs do modulo via RAG (corpus D-432) — preferir a reler os .md crus; use --query "<tema>" para focar
-python scripts/pipeline-context.py spec-context --module <MODULE> --pack --semantic \
+python scripts/pipeline-context.py spec-context --module <MODULE> --layer be --pack --semantic \
   --cache-read tmp/pipeline-cycle/<MODULO>/handoff.json --cache-write tmp/pipeline-cycle/<MODULO>/handoff.json
 # D-460: issues relacionadas (cross-modulo, implementacoes semelhantes) — opcional (fora do escopo do cache D-552)
 python scripts/pipeline-context.py issue-context --module <MODULE> --query "<tema da issue>" --semantic

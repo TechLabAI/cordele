@@ -22,6 +22,10 @@ const IMP_URL = 'http://imp-test:3001';
 function makeConfig(url = IMP_URL): ConfigService {
   return {
     get: (key: string) => (key === 'IMP_SERVICE_URL' ? url : undefined),
+    getOrThrow: (key: string) => {
+      if (key === 'IMP_SERVICE_URL') return url;
+      throw new Error(`[test] ConfigService key not found: ${key}`);
+    },
   } as unknown as ConfigService;
 }
 
@@ -163,5 +167,17 @@ describe('ImpManuscriptContentAdapter', () => {
     await customAdapter.getContentTree(PROJETO_ID, BEARER);
 
     expect(fetchSpy.mock.calls[0]![0]).toContain(customUrl);
+  });
+
+  it('throws during construction when IMP_SERVICE_URL env var is absent (SD-01 guard)', () => {
+    // Validates that the adapter fails loudly at boot time instead of silently
+    // falling back to a wrong default. This test would break if getOrThrow()
+    // were reverted to config.get() ?? 'default'.
+    const configWithoutUrl: ConfigService = {
+      get: () => undefined,
+      getOrThrow: (key: string) => { throw new Error(`[test] Missing env var: ${key}`); },
+    } as unknown as ConfigService;
+
+    expect(() => new ImpManuscriptContentAdapter(configWithoutUrl)).toThrow(/Missing env var: IMP_SERVICE_URL/);
   });
 });

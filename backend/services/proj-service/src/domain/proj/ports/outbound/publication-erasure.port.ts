@@ -21,11 +21,13 @@ export interface PublicationErasurePort {
    * again for an already-erased project must succeed without error (required
    * for retry-after-partial-failure per PROJ-016 acceptance criteria).
    *
-   * @param projetoId - project UUID whose publications must be purged
-   * @param empresaId - active tenant
+   * @param projetoId    - project UUID whose publications must be purged
+   * @param empresaId    - active tenant (used for logging; not sent as header)
+   * @param bearerToken  - JWT from the originating request; forwarded so the
+   *                       PUB endpoint can validate the principal and scope
    * @throws when PUB is unreachable or reports the purge failed
    */
-  erase(projetoId: string, empresaId: string): Promise<void>;
+  erase(projetoId: string, empresaId: string, bearerToken?: string): Promise<void>;
 }
 
 /** DI injection token for PublicationErasurePort. Re-exported by proj.tokens.ts */

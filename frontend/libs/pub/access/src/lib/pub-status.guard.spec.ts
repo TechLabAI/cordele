@@ -5,7 +5,7 @@
  *   history mode:
  *     - Always returns true (no HTTP call)
  *   export mode:
- *     - em_composicao → returns true (HTTP GET /api/proj/projetos/:id)
+ *     - em_composicao → returns true (HTTP GET /api/v1/proj/projetos/:id)
  *     - rascunho → redirects to /proj/biblioteca-de-projetos
  *     - publicado → redirects to /proj/biblioteca-de-projetos
  *     - com_erros → redirects to /proj/biblioteca-de-projetos
@@ -69,7 +69,7 @@ describe('pubStatusGuard', () => {
         pubStatusGuard('history')(route, {} as never),
       );
 
-      httpMock.expectNone(`/api/proj/projetos/${PROJECT_ID}`);
+      httpMock.expectNone(`/api/v1/proj/projetos/${PROJECT_ID}`);
       expect(result).toBe(true);
     });
 
@@ -79,7 +79,7 @@ describe('pubStatusGuard', () => {
         pubStatusGuard('history')(route, {} as never),
       );
 
-      httpMock.expectNone(`/api/proj/projetos/`);
+      httpMock.expectNone(`/api/v1/proj/projetos/`);
       expect(result).toBe(true);
     });
   });
@@ -96,8 +96,9 @@ describe('pubStatusGuard', () => {
         obs.subscribe(r => { capturedResult = r; });
       });
 
-      const req = httpMock.expectOne(`/api/proj/projetos/${PROJECT_ID}`);
-      expect(req.request.headers.get('X-Empresa-Id')).toBe('emp_aetos');
+      const req = httpMock.expectOne(`/api/v1/proj/projetos/${PROJECT_ID}`);
+      // X-Empresa-Id must be absent — empresa resolved from JWT claim server-side.
+      expect(req.request.headers.get('X-Empresa-Id')).toBeNull();
       req.flush({ id: PROJECT_ID, status: 'em_composicao' });
 
       expect(capturedResult).toBe(true);
@@ -112,7 +113,7 @@ describe('pubStatusGuard', () => {
         obs.subscribe();
       });
 
-      httpMock.expectOne(`/api/proj/projetos/${PROJECT_ID}`).flush({ id: PROJECT_ID, status: 'rascunho' });
+      httpMock.expectOne(`/api/v1/proj/projetos/${PROJECT_ID}`).flush({ id: PROJECT_ID, status: 'rascunho' });
 
       expect(createUrlTreeSpy).toHaveBeenCalledWith(['/proj/biblioteca-de-projetos']);
     });
@@ -125,7 +126,7 @@ describe('pubStatusGuard', () => {
         obs.subscribe();
       });
 
-      httpMock.expectOne(`/api/proj/projetos/${PROJECT_ID}`).flush({ id: PROJECT_ID, status: 'publicado' });
+      httpMock.expectOne(`/api/v1/proj/projetos/${PROJECT_ID}`).flush({ id: PROJECT_ID, status: 'publicado' });
 
       expect(createUrlTreeSpy).toHaveBeenCalledWith(['/proj/biblioteca-de-projetos']);
     });
@@ -138,7 +139,7 @@ describe('pubStatusGuard', () => {
         obs.subscribe();
       });
 
-      httpMock.expectOne(`/api/proj/projetos/${PROJECT_ID}`).flush({ id: PROJECT_ID, status: 'com_erros' });
+      httpMock.expectOne(`/api/v1/proj/projetos/${PROJECT_ID}`).flush({ id: PROJECT_ID, status: 'com_erros' });
 
       expect(createUrlTreeSpy).toHaveBeenCalledWith(['/proj/biblioteca-de-projetos']);
     });
@@ -151,7 +152,7 @@ describe('pubStatusGuard', () => {
         obs.subscribe();
       });
 
-      httpMock.expectOne(`/api/proj/projetos/${PROJECT_ID}`).flush(
+      httpMock.expectOne(`/api/v1/proj/projetos/${PROJECT_ID}`).flush(
         { message: 'Not Found' },
         { status: 404, statusText: 'Not Found' },
       );
@@ -167,7 +168,7 @@ describe('pubStatusGuard', () => {
         obs.subscribe();
       });
 
-      httpMock.expectOne(`/api/proj/projetos/${PROJECT_ID}`).flush(
+      httpMock.expectOne(`/api/v1/proj/projetos/${PROJECT_ID}`).flush(
         { message: 'Internal Server Error' },
         { status: 500, statusText: 'Internal Server Error' },
       );
@@ -182,7 +183,7 @@ describe('pubStatusGuard', () => {
         pubStatusGuard('export')(route, {} as never);
       });
 
-      httpMock.expectNone(`/api/proj/projetos/`);
+      httpMock.expectNone(`/api/v1/proj/projetos/`);
       expect(createUrlTreeSpy).toHaveBeenCalledWith(['/proj/biblioteca-de-projetos']);
     });
   });

@@ -19,7 +19,7 @@ import type { CompositionErasurePort } from '../../../domain/proj/ports/outbound
 export class CompositionErasureStub implements CompositionErasurePort {
   private readonly logger = new Logger(CompositionErasureStub.name);
 
-  async erase(projetoId: string, empresaId: string): Promise<void> {
+  async erase(projetoId: string, empresaId: string, _bearerToken?: string): Promise<void> {
     this.logger.warn(
       `degraded:true port=CompositionErasurePort empresaId=${empresaId} projetoId=${projetoId}`,
     );

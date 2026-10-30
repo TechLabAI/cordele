@@ -19,11 +19,13 @@ export interface ManuscriptErasurePort {
    * Erases all manuscript data for the project. Idempotent — safe to call
    * again for an already-erased project (retry-after-partial-failure).
    *
-   * @param projetoId - project UUID whose manuscript data must be purged
-   * @param empresaId - active tenant
+   * @param projetoId    - project UUID whose manuscript data must be purged
+   * @param empresaId    - active tenant (used for logging; not sent as header)
+   * @param bearerToken  - JWT from the originating request; forwarded so the
+   *                       IMP endpoint can validate the principal and scope
    * @throws when IMP is unreachable or reports the purge failed
    */
-  erase(projetoId: string, empresaId: string): Promise<void>;
+  erase(projetoId: string, empresaId: string, bearerToken?: string): Promise<void>;
 }
 
 /** DI injection token for ManuscriptErasurePort. Re-exported by proj.tokens.ts */

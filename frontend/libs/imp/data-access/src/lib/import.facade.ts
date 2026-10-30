@@ -1,7 +1,7 @@
 /**
  * import.facade.ts — drives the T03 Upload flow (signals-based, ADR-007).
  * Contracts honoured:
- *   - POST /api/imp/manuscripts is SYNCHRONOUS (D-A): no polling, no parseJobId.
+ *   - POST /api/v1/imp/manuscripts is SYNCHRONOUS (D-A): no polling, no parseJobId.
  *   - T03 sends file + EXACTLY ONE of {projetoTitulo | projetoId} (D-C).
  *   - UI shows indeterminate "analisando estrutura…" while POST is in flight (ADR-IMP-001 revised).
  * P5: reacts to empresaChanged from ImpShellIntegrationService (INT-FE-IMP-005).

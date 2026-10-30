@@ -173,6 +173,7 @@ export class HistoryFacade {
         this.projetoApi.resolveDownloadUrl(this._currentProjetoId, row.publicacaoId),
       );
       window.open(signed.arquivoUrl, '_blank', 'noopener,noreferrer');
+    // eslint-disable-next-line no-restricted-syntax -- download failure is intentionally non-blocking; the row's disabled state (arquivoUrl=null) already signals the failure to the user. A toast would require product decision about message text and is tracked separately.
     } catch {
       // Non-blocking — surfaced by the row's disabled state when arquivoUrl=null
     }

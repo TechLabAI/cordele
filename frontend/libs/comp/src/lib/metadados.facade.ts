@@ -153,6 +153,7 @@ export class MetadadosFacade {
     let objectUrl: string | null = null;
     try {
       objectUrl = URL.createObjectURL(file);
+    // eslint-disable-next-line no-restricted-syntax -- URL.createObjectURL is unavailable in some environments (SSR, JSDOM without blob support); failure degrades gracefully to null preview
     } catch {
       // URL.createObjectURL may not be available in all environments (e.g. some test runners)
     }
@@ -170,6 +171,7 @@ export class MetadadosFacade {
         next: res => {
           // Swap transient objectUrl for durable capaUrl; revoke objectUrl to avoid memory leak
           if (objectUrl) {
+            // eslint-disable-next-line no-restricted-syntax -- URL.revokeObjectURL cleanup is best-effort; failure (e.g. invalid URL, SSR) is harmless and should not surface to the user
             try { URL.revokeObjectURL(objectUrl); } catch { /* ignore */ }
           }
           this._cover.set({
@@ -205,6 +207,7 @@ export class MetadadosFacade {
           // Revoke any lingering objectUrl
           const obj = this._cover().objectUrl;
           if (obj) {
+            // eslint-disable-next-line no-restricted-syntax -- URL.revokeObjectURL cleanup is best-effort; failure is harmless and should not surface to the user
             try { URL.revokeObjectURL(obj); } catch { /* ignore */ }
           }
           this._cover.set({ ...DEFAULT_COVER });

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """pipeline-context.py — ES context query for pipeline agents (D-417).
 
-Queries `techlab-pipeline-events-v1` and returns a compact JSON summary of
+Queries `techlab-pipeline-events-v2` and returns a compact JSON summary of
 the recent pipeline history for a module.  Agents (validator, planner) call
 this at startup to pre-populate context without reading the full README.
 
@@ -34,13 +34,17 @@ import sys
 import urllib.error
 import urllib.request
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
+
+# artifact_taxonomy lives next to this script; importing by path keeps `learning-context`
+# working when the script is invoked from any cwd.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 INDEX = "techlab-pipeline-events-v2"            # D-499 — ECS-aligned (pipeline_events.py writes v2)
 DECISIONS_INDEX = "techlab-framework-decisions-v2"  # D-499 — ECS-aligned (decisions-index.py writes v2)
 LEARNING_INDEX = "techlab-learning-current"     # D-497/D-498 — alias of techlab-learning-events-v2 (rework_pattern)
-SPECS_INDEX = "techlab-architecture-specs-v2"    # D-486 — hybrid corpus (BM25 + dense_vector)
+SPECS_INDEX = "techlab-architecture-specs-v3"    # ADR-007 — one doc per spec record (BM25 + dense_vector)
 VECTORS_INDEX = SPECS_INDEX                       # D-486 — vectors folded into SPECS_INDEX (was techlab-knowledge-chunks-v1, D-476)
 TIMEOUT_S = 3.0
 
@@ -264,6 +268,168 @@ def _cmd_decision_context_inner(args: argparse.Namespace) -> int:
     return 0
 
 
+LEARNING_RANKING = ("module_specific,artifact_specific,client_specific,"
+                    "evidence_count,last_seen")
+LEDGER_PATH = Path(".techlab/learning/signals.jsonl")
+
+
+def _learning_rank_key(p: dict) -> tuple:
+    """Specificity BEFORE recurrence. A pitfall recorded against the very module being
+    worked on is the one the agent must not miss, even at a single occurrence; generic
+    cross-module pitfalls are useful but never at the cost of truncating that one.
+
+    Artifact class sits just below module (report.md rec. #3): a pitfall from ANOTHER
+    module but the same artifact kind is the one that actually recurs, so it has to
+    outrank the generic mass -- without ever displacing a module-specific pitfall."""
+    return (0 if p.get("module_specific") else 1,
+            0 if p.get("artifact_specific") else 1,
+            0 if p.get("client_specific") else 1,
+            -p.get("evidence_count", 0),
+            p.get("last_seen") or "")
+
+
+def _diversify_by_artifact(pitfalls: list[dict], limit: int, per_artifact: int) -> list[dict]:
+    """Breadth before depth: take at most `per_artifact` pitfalls of each artifact class
+    before spending the rest of the window on depth.
+
+    Why this exists: `_learning_rank_key` is lexicographic and the window is global, so
+    nothing guarantees COVERAGE across artifact classes -- the slots go to whatever ranks
+    high, which clusters. Measured on 2026-09-17: a planner query for COMM
+    (`--module COMM --layer be`, no --target-files, which is what be-planner.md actually
+    runs) returned 50 pitfalls spanning 12 of the 30 artifact classes present in the `be`
+    layer, leaving 66 of 252 signals unreachable -- messaging, jpa-adapter, rbac,
+    migration, domain and http-client among them. Declaring the classes with --artifact
+    made it WORSE (11 of 30), because boosting only adds ties that the recurrence
+    tie-break then clusters again.
+
+    The planner needs one alert per class to sequence priorities; the implementer needs
+    depth on the file it is about to edit. Same call served both, so the planner lost.
+
+    Order inside each class is preserved (the list arrives already ranked), and the
+    leftover budget is filled in rank order, so a module-specific pitfall is never
+    dropped in favour of breadth.
+    """
+    if per_artifact <= 0 or not pitfalls:
+        return pitfalls[:limit]
+    chosen: list[dict] = []
+    seen_ids: set[int] = set()
+    per_class: dict = {}
+    for p in pitfalls:
+        if len(chosen) >= limit:
+            break
+        cls = p.get("artifact") or "(sem artifact)"
+        if per_class.get(cls, 0) >= per_artifact:
+            continue
+        per_class[cls] = per_class.get(cls, 0) + 1
+        chosen.append(p)
+        seen_ids.add(id(p))
+    # leftover budget -> depth, still in rank order
+    for p in pitfalls:
+        if len(chosen) >= limit:
+            break
+        if id(p) not in seen_ids:
+            chosen.append(p)
+            seen_ids.add(id(p))
+    return chosen
+
+
+def _resolve_artifacts(args: argparse.Namespace) -> list[str]:
+    """Canonical artifact categories for this query: explicit --artifact plus whatever
+    --target-files imply. Empty list = axis inert (exactly like --client today)."""
+    cats: list[str] = []
+    for a in (getattr(args, "artifact", None) or []):
+        c = str(a).strip().lower()
+        if c and c not in cats:
+            cats.append(c)
+    try:
+        from artifact_taxonomy import canonical_from_path
+    except ImportError:
+        return cats
+    for path in (getattr(args, "target_files", None) or []):
+        for c in canonical_from_path(path):
+            if c not in cats:
+                cats.append(c)
+    return cats
+
+
+def _learning_from_ledger(args: argparse.Namespace, artifacts: list[str],
+                          reason: str) -> int:
+    """Local fallback when ES is out: read `.techlab/learning/signals.jsonl` directly.
+
+    CLAUDE.md already instructs agents to read the ledger by hand in this situation;
+    doing it in code makes the retrieval work offline and makes the ranking testable
+    without an ES instance. Same filters and same ordering as the indexed path."""
+    if not LEDGER_PATH.is_file():
+        _out({"available": False, "reason": reason,
+              "detail": f"local ledger not found at {LEDGER_PATH}"})
+        return 0
+
+    by_sig: dict[str, dict] = {}
+    try:
+        for line in LEDGER_PATH.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if row.get("sensitive"):
+                continue
+            if args.layer and not str(row.get("layer") or "").startswith(args.layer):
+                continue
+            sig = row.get("defect_signature")
+            if not sig:
+                continue
+            cur = by_sig.get(sig)
+            seen = row.get("updated_at") or row.get("created_at") or ""
+            if cur is None:
+                by_sig[sig] = {
+                    "defect_signature": sig,
+                    "artifact": row.get("artifact"),
+                    "evidence_count": 1,
+                    "module_specific": row.get("module") == args.module,
+                    "artifact_specific": row.get("artifact") in artifacts if artifacts else False,
+                    "client_specific": bool(args.client) and row.get("project_id") == args.client,
+                    "recommended_generator_fix": row.get("recommended_generator_fix"),
+                    "generator_target": row.get("generator_target"),
+                    "root_cause": row.get("root_cause"),
+                    "fix_ref": row.get("fix_ref"),
+                    "last_seen": seen,
+                }
+            else:
+                cur["evidence_count"] += 1
+                cur["module_specific"] |= row.get("module") == args.module
+                if artifacts:
+                    cur["artifact_specific"] |= row.get("artifact") in artifacts
+                if seen > (cur["last_seen"] or ""):
+                    cur.update({
+                        "recommended_generator_fix": row.get("recommended_generator_fix"),
+                        "generator_target": row.get("generator_target"),
+                        "root_cause": row.get("root_cause"),
+                        "fix_ref": row.get("fix_ref"),
+                        "last_seen": seen,
+                    })
+    except OSError as exc:
+        _out({"available": False, "reason": reason, "detail": f"ledger unreadable: {exc}"})
+        return 0
+
+    pitfalls = sorted(by_sig.values(), key=_learning_rank_key)
+    truncated = len(pitfalls) > args.limit
+    pitfalls = _diversify_by_artifact(pitfalls, args.limit,
+                                      getattr(args, "per_artifact", 0) or 0)
+    out: dict = {"available": True, "retrieval": "learning-local",
+                 "source": str(LEDGER_PATH), "es_reason": reason,
+                 "module": args.module, "layer": args.layer, "artifacts": artifacts,
+                 "ranking": LEARNING_RANKING,
+                 "pitfalls": pitfalls}
+    if truncated:
+        out["truncated"] = True
+        out["message"] = (f"more than {args.limit} distinct pitfalls matched; "
+                          "module-specific ones are ranked first and kept")
+    _out(out)
+    return 0
+
+
 def cmd_learning_context(args: argparse.Namespace) -> int:
     """Known-pitfalls retrieval (D-497/D-498). Queries the Learning Layer index
     (`techlab-learning-current`) for `rework_pattern` / `template_adjustment` events,
@@ -279,15 +445,26 @@ def cmd_learning_context(args: argparse.Namespace) -> int:
     `.keyword` subfield, so term/prefix queries target `.keyword` (else hyphenated/uppercase
     values like `candeeiro-so`/`ASST`/`be/web` silently miss). The explicitly-mapped
     `techlab.learning.*` keyword fields (e.g. `defect_signature`) are aggregated directly."""
+    artifacts = _resolve_artifacts(args)
+
     base = _es_url()
     if not base:
-        _out({"available": False, "reason": "ES disabled (TECHLAB_ES_DISABLE=1)"})
-        return 0
+        return _learning_from_ledger(args, artifacts, "ES disabled (TECHLAB_ES_DISABLE=1)")
 
     # event_type term targets the .keyword subfield (D-499 lesson). Surface promotion
     # docs (`template_adjustment`) alongside raw `rework_pattern` signals.
+    #
+    # `architecture_signal` entrou aqui em 2026-09-17 (ARCH-008): sete sinais de
+    # arquitetura -- formato de codigo de permissao RBAC, resolucao de schema de tenant,
+    # guards permissivos, realm Keycloak nao versionado -- estavam gravados no ledger,
+    # contados pelo backfill e invisiveis a TODA consulta, porque o tipo deles nao
+    # constava desta lista. Um filtro de tipo com vocabulario fechado silencia o que nao
+    # reconhece: qualquer tipo novo de sinal precisa ser acrescentado aqui no mesmo
+    # commit que o cria, senao ele e escrito e nunca lido.
     must: list[dict] = [
-        {"terms": {"labels.event_type.keyword": ["rework_pattern", "template_adjustment"]}},
+        {"terms": {"labels.event_type.keyword": [
+            "rework_pattern", "template_adjustment", "architecture_signal",
+        ]}},
     ]
     # Sensitive rows are indexed for audit but must never surface here.
     must_not: list[dict] = [{"term": {"labels.sensitive": True}}]
@@ -297,13 +474,23 @@ def cmd_learning_context(args: argparse.Namespace) -> int:
         # AND `be/test-config`; `be/web` → `be/web`. Exact slugs are a prefix of themselves.
         filt.append({"prefix": {"labels.layer.keyword": args.layer}})
 
-    # should-boosts — module-specific pitfalls rank first, but cross-module/cross-client
-    # recurrences for the same layer are still returned (never must-filtered).
+    # should-boosts — kept for the (unaggregated) relevance score, but NOTE: a terms agg
+    # ignores _score entirely, so these alone do NOT rank module pitfalls first. The real
+    # ranking happens below via the `module_hits`/`client_hits` sub-aggs (see _rank_key).
     should: list[dict] = []
     if args.module:
-        should.append({"term": {"labels.module.keyword": args.module}})
+        # `ALL` is the cross-cutting module: a signal written for every module applies
+        # to THIS one too. Matching only the exact module made those signals rank with
+        # module_hits=0, so they fell outside the returned window and were, in practice,
+        # unreachable -- the transversal pitfalls are exactly the ones worth surfacing.
+        should.append({"terms": {"labels.module.keyword": [args.module, "ALL"]}})
     if args.client:
         should.append({"term": {"labels.client.keyword": args.client}})
+    if artifacts:
+        # Third axis (report.md rec. #3): the KIND of artifact being touched. A pitfall
+        # of another module but the same artifact class is exactly what recurs -- the
+        # WRKS @Version/isNew signals recurred in SALE P8 because nothing surfaced them.
+        should.append({"terms": {"labels.artifact.keyword": artifacts}})
 
     bool_q: dict = {"must": must, "must_not": must_not}
     if filt:
@@ -312,9 +499,41 @@ def cmd_learning_context(args: argparse.Namespace) -> int:
         bool_q["should"] = should   # pure boost: minimum_should_match stays 0 (must present)
 
     rep_source = ["@timestamp", "labels.module", "labels.layer", "labels.client",
+                  "labels.artifact",
                   "techlab.learning.recommended_generator_fix",
                   "techlab.learning.generator_target",
                   "techlab.learning.root_cause", "techlab.learning.fix_ref"]
+
+    # Fetch a WIDER bucket set than we return, then rank in Python (see _rank_key).
+    # Asking ES for exactly `limit` buckets ordered by `_count` truncates on recurrence
+    # alone, which silently drops a single-occurrence pitfall of THIS module below dozens
+    # of generic ones — the exact failure that let three agents re-solve the same JRNY
+    # MessagingIT defect while its signal sat in the index (D-497 retrieval gap).
+    # Piso de 500, nao 200: a agregacao pede `size` buckets ordenados por _count desc, e a
+    # camada `be` ja tem 270 assinaturas distintas no indice -- com 200 as 70 de menor
+    # recorrencia nunca saiam do ES, e eram justamente as de classes raras. Medido em
+    # 2026-09-17: com 200 a cota por artefato cobria 26 das 30 classes (faltando plan, rbac,
+    # spec e sql, todas com evidence_count=1); ampliando a janela, 30/30. O custo e do lado do
+    # ES: o tamanho da RESPOSTA continua limitado por --limit, o ranking segue em Python.
+    fetch_size = max(args.limit * 4, 500)
+
+    sub_aggs: dict = {
+        # Representative doc: newest evidence carries the canonical fix text.
+        "rep": {"top_hits": {"size": 1,
+                             "sort": [{"@timestamp": {"order": "desc"}}],
+                             "_source": rep_source}},
+    }
+    if args.module:
+        # Same reason as the should-boost above: `ALL` counts as a hit for this module,
+        # otherwise module_specific stays false and _rank_key buries the signal.
+        sub_aggs["module_hits"] = {
+            "filter": {"terms": {"labels.module.keyword": [args.module, "ALL"]}}}
+    if args.client:
+        sub_aggs["client_hits"] = {
+            "filter": {"term": {"labels.client.keyword": args.client}}}
+    if artifacts:
+        sub_aggs["artifact_hits"] = {
+            "filter": {"terms": {"labels.artifact.keyword": artifacts}}}
 
     result = _post(f"{base}/{LEARNING_INDEX}/_search", {
         "size": 0,
@@ -323,25 +542,19 @@ def cmd_learning_context(args: argparse.Namespace) -> int:
             "pitfalls": {
                 # Aggregate on the explicitly-mapped keyword (no .keyword suffix, D-499).
                 "terms": {"field": "techlab.learning.defect_signature",
-                          "size": args.limit, "order": {"_count": "desc"}},
-                "aggs": {
-                    # Representative doc: newest evidence carries the canonical fix text.
-                    "rep": {"top_hits": {"size": 1,
-                                         "sort": [{"@timestamp": {"order": "desc"}}],
-                                         "_source": rep_source}},
-                },
+                          "size": fetch_size, "order": {"_count": "desc"}},
+                "aggs": sub_aggs,
             },
         },
     })
 
     if result is None:
-        _out({"available": False, "reason": "ES unreachable"})
-        return 0
+        return _learning_from_ledger(args, artifacts, "ES unreachable")
 
     buckets = (result.get("aggregations", {}) or {}).get("pitfalls", {}).get("buckets", [])
     if not buckets:
         _out({"available": True, "retrieval": "learning", "module": args.module,
-              "layer": args.layer, "pitfalls": [],
+              "layer": args.layer, "artifacts": artifacts, "pitfalls": [],
               "message": "no known pitfalls for this module/layer (index empty or no match)"})
         return 0
 
@@ -352,17 +565,32 @@ def cmd_learning_context(args: argparse.Namespace) -> int:
         learning = (s.get("techlab", {}) or {}).get("learning", {}) or {}
         pitfalls.append({
             "defect_signature": b.get("key"),
+            "artifact": (s.get("labels", {}) or {}).get("artifact"),
             "evidence_count": b.get("doc_count", 0),
+            "module_specific": (b.get("module_hits", {}) or {}).get("doc_count", 0) > 0,
+            "artifact_specific": (b.get("artifact_hits", {}) or {}).get("doc_count", 0) > 0,
+            "client_specific": (b.get("client_hits", {}) or {}).get("doc_count", 0) > 0,
             "recommended_generator_fix": learning.get("recommended_generator_fix"),
             "generator_target": learning.get("generator_target"),
             "root_cause": learning.get("root_cause"),
             "fix_ref": learning.get("fix_ref"),
             "last_seen": s.get("@timestamp"),
         })
-    pitfalls.sort(key=lambda p: p["evidence_count"], reverse=True)
 
-    _out({"available": True, "retrieval": "learning", "module": args.module,
-          "layer": args.layer, "pitfalls": pitfalls})
+    pitfalls.sort(key=_learning_rank_key)
+    truncated = len(pitfalls) > args.limit
+    pitfalls = _diversify_by_artifact(pitfalls, args.limit,
+                                      getattr(args, "per_artifact", 0) or 0)
+
+    out: dict = {"available": True, "retrieval": "learning", "module": args.module,
+                 "layer": args.layer, "artifacts": artifacts,
+                 "ranking": LEARNING_RANKING,
+                 "pitfalls": pitfalls}
+    if truncated:
+        out["truncated"] = True
+        out["message"] = (f"more than {args.limit} distinct pitfalls matched; "
+                          "module-specific ones are ranked first and kept")
+    _out(out)
     return 0
 
 
@@ -548,19 +776,140 @@ def _in_scope(source_path: str, tokens: set[str]) -> bool:
     return bool(tokens & segs)
 
 
+_RECORD_SRC = ["doc_id", "artifact_type", "artifact_name", "title", "section", "source_path", "content", "tags",
+               "record_id", "record_kind", "declared", "line", "line_end", "parent", "layer",
+               "module", "method", "http_path", "done"]
+
+
+def _record_filters(client: str, required_tag: str | None, layer: str | None,
+                    include: tuple[str, ...]) -> tuple[list[dict], list[dict]]:
+    """ES filters for ADR-007 records: (must, must_not). `layer` keeps that layer plus
+    `shared` (constitution, standards, shared/ apply to both). Rationale records stay out
+    unless asked for (ADR-007 R4)."""
+    must: list[dict] = [{"term": {"client": client}}, {"term": {"kind": "record"}}]
+    if required_tag:
+        must.append({"term": {"tags": required_tag}})
+    if layer:
+        must.append({"terms": {"layer": [layer, "shared"]}})
+    must_not = [] if "rationale" in include else [{"term": {"record_kind": "rationale"}}]
+    return must, must_not
+
+
+def _rank_records(hits_by_list: list[list[dict]], client: str, terms: str, limit: int,
+                  module: str | None, per_path: int) -> list[dict]:
+    """RRF over the given ranked lists, then the D-508 priors and the D-509 module scope.
+    D-508 deduped to ONE hit per document so a boilerplate doc could not fill the top-k;
+    with one record per normative element that would keep a single EARS per contract, so
+    the cap is per_path records per document instead."""
+    rrf_k = 60
+    fused: dict[str, dict] = {}
+    for ranked in hits_by_list:
+        for rank, h in enumerate(ranked):
+            s = h.get("_source", {})
+            key = s.get("doc_id") or h.get("_id")
+            entry = fused.setdefault(key, {"src": s, "rrf": 0.0})
+            entry["rrf"] += 1.0 / (rrf_k + rank + 1)
+    scope = _module_scope_tokens(client, module)
+    for e in fused.values():
+        e["rrf"] *= _artifact_prior(e["src"].get("source_path", "")) \
+            * _topic_boost(terms, e["src"], scope)
+    ranked_all = sorted(fused.values(), key=lambda e: e["rrf"], reverse=True)
+    if module:
+        mod = module.strip().upper()
+        in_scope = [e for e in ranked_all if e["src"].get("module") == mod
+                    or _in_scope(e["src"].get("source_path", ""), scope)]
+        if in_scope:   # safe fallback (D-509): never zero-out a genuinely cross-cutting answer
+            ranked_all = in_scope
+    per_doc: dict[str, int] = {}
+    out: list[dict] = []
+    for e in ranked_all:
+        sp = e["src"].get("source_path", "")
+        if per_doc.get(sp, 0) >= per_path:
+            continue
+        per_doc[sp] = per_doc.get(sp, 0) + 1
+        out.append({**e["src"], "score": round(e["rrf"], 6)})
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _lexical_records(client: str, terms: str, limit: int, required_tag: str | None = None,
+                     module: str | None = None, layer: str | None = None,
+                     include: tuple[str, ...] = (), per_path: int = 3):
+    """BM25-only records (no embedder / no --semantic). None when ES is unreachable."""
+    base = _es_url()
+    if not base:
+        return None
+    must, must_not = _record_filters(client, required_tag, layer, include)
+    q: dict = {"bool": {"must": must, "must_not": must_not}}
+    if terms:
+        q["bool"]["should"] = [{"multi_match": {
+            "query": terms, "fields": ["title^2", "section^1.5", "content", "source_path^2",
+                                       "tags^2", "record_id^2"]}}]
+        q["bool"]["minimum_should_match"] = 1
+    res = _post(f"{base}/{SPECS_INDEX}/_search",
+                {"query": q, "_source": _RECORD_SRC, "size": max(limit * 5, 50)})
+    if res is None:
+        return None
+    return _rank_records([res.get("hits", {}).get("hits", [])], client, terms, limit,
+                         module, per_path)
+
+
+_EXACT_MAX = 500
+
+
+def _csv(values: list[str] | None) -> list[str]:
+    """`--ids a,b --ids c` -> [a, b, c], blanks dropped, order kept, no duplicates."""
+    out: list[str] = []
+    for v in values or ():
+        for x in v.split(","):
+            x = x.strip()
+            if x and x not in out:
+                out.append(x)
+    return out
+
+
+def _exact_records(client: str, issues: list[str], ids: list[str], layer: str | None,
+                   include: tuple[str, ...]):
+    """ARCH-023 C4: records by issue code and/or record id, `term` exact, no ranking. The
+    agent that already knows the code should not depend on a broad query ranking the right
+    records into the top-k (ARCH-022 item 8: INTL-008's criteria came back in neither index).
+    Document order (path, line). None when ES is unreachable."""
+    base = _es_url()
+    if not base:
+        return None
+    must, must_not = _record_filters(client, None, layer, include)
+    should = []
+    if issues:
+        should.append({"bool": {"must": [{"term": {"artifact_type": "issue"}},
+                                         {"terms": {"artifact_name": issues}}]}})
+    if ids:
+        should.append({"terms": {"record_id": ids}})
+    q = {"bool": {"must": must, "must_not": must_not, "should": should,
+                  "minimum_should_match": 1}}
+    res = _post(f"{base}/{SPECS_INDEX}/_search",
+                {"query": q, "_source": _RECORD_SRC, "size": _EXACT_MAX,
+                 "sort": [{"source_path": "asc"}, {"line": "asc"}]})
+    if res is None:
+        return None
+    return [h.get("_source", {}) for h in res.get("hits", {}).get("hits", [])]
+
+
 def _hybrid_search(client: str, terms: str, limit: int,
-                   required_tag: str | None = None, module: str | None = None):
-    """D-486: hybrid retrieval over the ES specs index (techlab-architecture-specs-v2):
-    BM25 (lexical) + dense_vector kNN (semantic), fused client-side via Reciprocal Rank
-    Fusion (RRF). Fusion is client-side because the ES `rrf` retriever needs a platinum
-    licence and this cluster is basic. Returns RRF-ranked raw hits (full content), or
-    None when the SEMANTIC half is unavailable/empty (no terms / embedder down / kNN 0
-    rows / ES absent) → caller falls back to its honest lexical path. The `None` contract
-    keeps the caller's `retrieval` label truthful ("semantic" only when vectors ran).
+                   required_tag: str | None = None, module: str | None = None,
+                   layer: str | None = None, include: tuple[str, ...] = (),
+                   per_path: int = 3):
+    """D-486: hybrid retrieval over the ES specs index (techlab-architecture-specs-v3,
+    one doc per ADR-007 record): BM25 (lexical) + dense_vector kNN (semantic), fused
+    client-side via Reciprocal Rank Fusion (RRF). Fusion is client-side because the ES
+    `rrf` retriever needs a platinum licence and this cluster is basic. Returns RRF-ranked
+    records, or None when the SEMANTIC half is unavailable/empty (no terms / embedder down /
+    kNN 0 rows / ES absent) → caller falls back to its honest lexical path. The `None`
+    contract keeps the caller's `retrieval` label truthful ("semantic" only when vectors ran).
     Best-effort: warns on genuine degradation, never raises.
     required_tag narrows to one artifact type (e.g. "issue" for issue-context, D-460).
-    module (D-509) scopes results to one domain (drops cross-service docs of the right type
-    but wrong service) — resolved to path segments via the client's modules.registry."""
+    layer (ARCH-022) filters in ES on the record's layer (+ shared); module (D-509) scopes to
+    one domain via the record's module field or the registry path segments."""
     if not terms:
         return None  # no query — not a degradation, no warning
     base = _es_url()
@@ -568,10 +917,9 @@ def _hybrid_search(client: str, terms: str, limit: int,
         _warn("semantic OFF — ES disabled (TECHLAB_ES_DISABLE=1). Using lexical.")
         return None
 
-    filters: list[dict] = [{"term": {"client": client}}, {"term": {"kind": "chunk"}}]
-    if required_tag:
-        filters.append({"term": {"tags": required_tag}})
-    src = ["doc_id", "artifact_type", "title", "section", "source_path", "content", "tags"]
+    must, must_not = _record_filters(client, required_tag, layer, include)
+    filters = {"bool": {"must": must, "must_not": must_not}}
+    src = _RECORD_SRC
     cand = max(limit * 5, 50)
 
     # --- semantic half (dense_vector kNN) — gates whether we return hybrid at all ---
@@ -593,12 +941,12 @@ def _hybrid_search(client: str, terms: str, limit: int,
         return None
     knn = _post(f"{base}/{SPECS_INDEX}/_search", {
         "knn": {"field": "embedding", "query_vector": vec, "k": cand,
-                "num_candidates": cand, "filter": {"bool": {"must": filters}}},
+                "num_candidates": cand, "filter": filters},
         "_source": src, "size": cand,
     })
     if knn is None:
         _warn(f"semantic OFF — ES kNN failed (no response from {base}/{SPECS_INDEX}); "
-              f"is the v2 hybrid index migrated? run architecture-specs-index.py index. "
+              f"is the v3 record index built? run architecture-specs-index.py index. "
               f"Using lexical.")
         return None
     knn_hits = knn.get("hits", {}).get("hits", [])
@@ -607,242 +955,270 @@ def _hybrid_search(client: str, terms: str, limit: int,
               f"embeddings (run architecture-specs-index.py index). Using lexical.")
         return None
 
-    # --- lexical half (BM25) ---
     lex = _post(f"{base}/{SPECS_INDEX}/_search", {
-        "query": {"bool": {"must": filters,
+        "query": {"bool": {**filters["bool"],
                            "should": [{"multi_match": {
                                "query": terms,
                                "fields": ["title^2", "section^1.5", "content",
-                                          "source_path^2", "tags^2"]}}],
+                                          "source_path^2", "tags^2", "record_id^2"]}}],
                            "minimum_should_match": 1}},
         "_source": src, "size": cand,
     })
     lex_hits = (lex or {}).get("hits", {}).get("hits", [])
-
-    # --- Reciprocal Rank Fusion (k=60, the canonical constant) ---
-    rrf_k = 60
-    fused: dict[str, dict] = {}
-    for ranked in (knn_hits, lex_hits):
-        for rank, h in enumerate(ranked):
-            s = h.get("_source", {})
-            key = s.get("doc_id") or h.get("_id")
-            entry = fused.setdefault(key, {"src": s, "rrf": 0.0})
-            entry["rrf"] += 1.0 / (rrf_k + rank + 1)
-
-    # --- L1 dedup por documento (D-508): o corpus tem vários chunks por doc; sem dedup
-    # um doc boilerplate ocupa 2-4 vagas do top-k e afoga o doc canônico. Colapsa por
-    # source_path mantendo o MELHOR chunk (max rrf), não a soma (não premiar doc com mais
-    # chunks). ---
-    by_path: dict[str, dict] = {}
-    for e in sorted(fused.values(), key=lambda e: e["rrf"], reverse=True):
-        sp = e["src"].get("source_path", "") or (e["src"].get("doc_id") or "")
-        if sp not in by_path:
-            by_path[sp] = e
-
-    # --- L3 prior de artifact_type/path (D-508): docs genéricos (ADR *-single-service,
-    # plans/, standards/catalog) têm cosine alto para quase toda pergunta. Penaliza o
-    # boilerplate para o doc específico (spec/contract/adr-de-tópico) subir. Modesto
-    # (×0.75) para não enterrar um boilerplate genuinamente relevante. ---
-    # Scope tokens (service/module) drive BOTH the topic boost (drop the non-discriminative
-    # service name from the query terms) and the post-fusion domain filter below (D-509).
-    scope = _module_scope_tokens(client, module)
-    for e in by_path.values():
-        e["rrf"] *= _artifact_prior(e["src"].get("source_path", "")) \
-            * _topic_boost(terms, e["src"], scope)
-    ranked = sorted(by_path.values(), key=lambda e: e["rrf"], reverse=True)
-
-    # --- L5 module/service SCOPE (D-509): when the caller names a --module, drop docs of
-    # other domains — the residual D-508 miss is right TYPE + wrong SERVICE. HARD filter with
-    # SAFE FALLBACK: if nothing in the named scope is present in the pool (unknown token, or a
-    # genuinely cross-cutting answer), keep the unscoped ranking. Monotonic — never zero-out. ---
-    if scope:
-        in_scope = [e for e in ranked if _in_scope(e["src"].get("source_path", ""), scope)]
-        if in_scope:
-            ranked = in_scope
-    ordered = ranked[:limit]
-    return [{
-        "doc_id": e["src"].get("doc_id"),
-        "artifact_type": e["src"].get("artifact_type"),
-        "section": e["src"].get("section") or e["src"].get("title", ""),
-        "source_path": e["src"].get("source_path", ""),
-        "content": e["src"].get("content") or "",
-        "tags": e["src"].get("tags") or [],
-        "score": round(e["rrf"], 6),
-    } for e in ordered]
+    return _rank_records([knn_hits, lex_hits], client, terms, limit, module, per_path)
 
 
 def _semantic_spec_chunks(client: str, terms: str, limit: int,
                           required_tag: str | None = None, module: str | None = None):
-    """Hybrid (BM25 + dense_vector kNN, RRF-fused) spec-chunk retrieval (D-486;
-    was kNN-only in D-476). Returns excerpt-shaped chunks or None → caller falls
-    back to lexical. Shape preserved for cmd_spec_context / issue-context callers.
-    module (D-509) scopes to one domain via the registry."""
+    """Hybrid retrieval shaped as excerpts, for issue-context (D-460). None → caller
+    falls back to lexical."""
     hits = _hybrid_search(client, terms, limit, required_tag, module=module)
     if not hits:
         return None
-    _atypes = {"index-design", "service-spec", "contract", "adr", "design", "doc",
-               "issue"}  # D-460
-    out = []
-    for h in hits:
-        content = h["content"]
-        out.append({
-            "artifact_type": h.get("artifact_type") or next(
-                (t for t in h["tags"] if t in _atypes), None),
-            "section": h["section"],
-            "source_path": h["source_path"],
-            "score": h["score"],
-            "excerpt": content[:400] + ("…" if len(content) > 400 else ""),
-        })
-    return out
+    return [{"artifact_type": h.get("artifact_type"), "section": h.get("section"),
+             "source_path": h.get("source_path", ""), "score": h["score"],
+             "excerpt": (h.get("content") or "")[:400]
+             + ("…" if len(h.get("content") or "") > 400 else "")} for h in hits]
 
 
-def _assemble_spec_pack(client: str, module: str | None, terms: str, budget: int):
-    """D-486: token-budgeted spec pack assembled from the ES HYBRID index
-    (BM25 + dense_vector RRF, via _hybrid_search). Replaces the pgVector
-    ContextPackAssembler path (D-434) — pgVector is now a SECONDARY store
-    (oversized assets only). Returns (pack, markdown) or None when the hybrid
-    retrieval yields nothing → caller falls through to the JSON lexical path."""
-    query = terms or (module or client)
-    hits = _hybrid_search(client, query, max(40, budget // 400), module=module)
-    if not hits:
-        _warn("pack OFF — hybrid retrieval empty (semantic unavailable?). "
-              "Falling back to JSON chunks.")
-        return None
-    lines: list[str] = [f"# Spec context — {client}"
-                        + (f" / {module}" if module else ""), ""]
-    used = 0
-    included = 0
-    for h in hits:
-        content = h["content"]
-        cost = max(1, len(content) // 4)
-        if used + cost > budget and included > 0:
-            break
-        lines.append(f"## [{h.get('artifact_type') or 'doc'}] {h['section']}".rstrip())
-        if h["source_path"]:
-            lines.append(f"`{h['source_path']}`")
-        lines.append("")
-        lines.append(content)
-        lines.append("")
-        used += cost
-        included += 1
-    pack = {
-        "pack_id": f"spec-{client}-{module or 'all'}",
-        "total_token_count": used,
-        "budget_remaining": max(0, budget - used),
-        "chunks_included": included,
-        "retrieval": "hybrid",
-    }
-    return pack, "\n".join(lines)
+def _public_record(h: dict, layer: str | None, module: str | None) -> dict:
+    """One ADR-007 record for an agent: compact, anchored, nothing said twice. `id` only when
+    the source declared it (an undeclared id is just path:line, already in `src`); the line
+    range rides in `src` ("path:40-52"). Measured on INTL: declared + undeclared id + line_end
+    were ~11% of the envelope with no information of their own."""
+    line, end = h.get("line"), h.get("line_end")
+    src = f"{h.get('source_path')}:{line}" + (f"-{end}" if end and line and end > line else "")
+    score = h.get("score")
+    # The file name declares the issue code (ADR-007 R2). Left inside `src` only, Haiku read
+    # INT-INTL-008's criteria as INTL-008's in both proof runs (ARCH-022 item 8).
+    issue = h.get("artifact_name") if h.get("artifact_type") == "issue" else None
+    rec = {"id": h.get("record_id") if h.get("declared") else None, "issue": issue,
+           "kind": h.get("record_kind"), "src": src, "score": round(score, 4) if isinstance(score, float) else score,
+           "heading": h.get("section"), "parent": h.get("parent"),
+           "method": h.get("method"), "path": h.get("http_path"), "done": h.get("done"),
+           "text": h.get("content") or ""}
+    if h.get("layer") != layer:
+        rec["layer"] = h.get("layer")
+    if h.get("module") and (module or "").upper() != h.get("module"):
+        rec["module"] = h.get("module")
+    return {k: v for k, v in rec.items() if v is not None}
+
+
+def _spec_context_cache_field(args: argparse.Namespace) -> str:
+    """D-552 cache key derived from every argument that changes the result. The old fixed
+    `spec_context_packed` key served one caller's output to another (ARCH-022 C1)."""
+    import hashlib
+    key = json.dumps({k: getattr(args, k, None) for k in
+                      ("client", "module", "layer", "query", "limit", "budget", "pack",
+                       "semantic", "include", "per_path", "issue", "ids")},
+                     sort_keys=True, default=str)
+    return "spec_context:" + hashlib.sha256(key.encode("utf-8")).hexdigest()[:16]
 
 
 def cmd_spec_context(args: argparse.Namespace) -> int:
     """Cache-aware wrapper for spec-context (D-552). Delegates to inner fn."""
     cache_read = Path(args.cache_read) if getattr(args, "cache_read", None) else None
     cache_write = Path(args.cache_write) if getattr(args, "cache_write", None) else None
-    return _run_with_cache("spec_context_packed", cache_read, cache_write,
+    return _run_with_cache(_spec_context_cache_field(args), cache_read, cache_write,
                            args.module, _cmd_spec_context_inner, args)
 
 
 def _cmd_spec_context_inner(args: argparse.Namespace) -> int:
-    """Query the architecture-specs corpus (D-432) for the specs relevant to a
-    module/task. Used by execution agents (be/fe-implement, validator, planner)
-    to load spec context from ES instead of reading raw .md (D-434). Returns the
-    STRUCTURED index-spec docs (fields by role) + the most relevant spec CHUNKS.
-    Best-effort: available:false on any failure, agent falls back to the .md."""
+    """Spec records (ADR-007) relevant to a module/task, for the execution agents
+    (be/fe validator, planner, implement). Always one compact JSON envelope — never
+    markdown: {"v":1,"available":true,...,"records":[...]} or {"v":1,"available":false,
+    "reason":...}. --pack caps the records by a token budget instead of a count.
+    Best-effort: available:false on any failure, the agent falls back to the .md."""
     client = args.client or _derive_client()
     if not client:
-        _out({"available": False, "reason": "client not resolved"})
+        _out({"v": 1, "available": False, "reason": "client not resolved"})
+        return 0
+    if not _es_url():
+        _out({"v": 1, "available": False, "reason": "ES disabled (TECHLAB_ES_DISABLE=1)"})
         return 0
     terms = " ".join(x for x in (args.module, args.query) if x).strip()
+    include = tuple(args.include or ())
+    pack = bool(getattr(args, "pack", False))
+    limit = max(40, args.budget // 100) if pack else args.limit
+    common = dict(module=args.module, layer=args.layer, include=include, per_path=args.per_path)
+    issues = [x.upper() for x in _csv(getattr(args, "issue", None))]
+    ids = _csv(getattr(args, "ids", None))
+    exact = bool(issues or ids)
 
-    # Token-budgeted pack (D-486) — prompt-ready markdown assembled from the ES
-    # hybrid index (BM25 + dense_vector RRF). Falls back to JSON on empty retrieval.
-    if getattr(args, "pack", False):
-        result = _assemble_spec_pack(client, args.module, terms, args.budget)
-        if result is not None:
-            pack, md = result
-            sys.stdout.write(md)
-            print(f"\n<!-- pack_id={pack['pack_id']} budget={args.budget} "
-                  f"used={pack['total_token_count']} remaining={pack['budget_remaining']} -->")
-            return 0
-        # _assemble_spec_pack already emitted a specific reason (H2); fall through to JSON.
-
-    base = _es_url()
-    if not base:
-        _out({"available": False, "reason": "ES disabled (TECHLAB_ES_DISABLE=1)"})
-        return 0
-
-    # (1) Structured index-spec docs for the client — small, always included.
-    specs_res = _post(f"{base}/{SPECS_INDEX}/_search", {
-        "query": {"bool": {"must": [{"term": {"client": client}},
-                                    {"term": {"kind": "index-spec"}}]}},
-        "size": 20,
-        "_source": ["index_slug", "index_name", "index_class", "time_field",
-                    "fields", "artifact_name"],
-    })
-    # (2) Relevant spec chunks — hybrid BM25+dense_vector RRF (D-486) when requested
-    # and the semantic half is available, else lexical ES. Best-effort; warns on degrade.
-    retrieval = "lexical"
-    chunks = None
-    if getattr(args, "semantic", False):
-        sem = _semantic_spec_chunks(client, terms, args.limit, module=args.module)
-        if sem is not None:
-            chunks, retrieval = sem, "semantic"
-
-    chunks_res = None
-    if chunks is None:
-        chunk_query: dict = {"bool": {"must": [{"term": {"client": client}},
-                                               {"term": {"kind": "chunk"}}]}}
-        if terms:
-            chunk_query["bool"]["should"] = [{"multi_match": {
-                "query": terms, "fields": ["title^2", "content", "source_path^2", "tags^2"]}}]
-            chunk_query["bool"]["minimum_should_match"] = 1
-        chunks_res = _post(f"{base}/{SPECS_INDEX}/_search", {
-            "query": chunk_query, "size": args.limit,
-            "_source": ["artifact_type", "artifact_name", "section", "source_path", "content"],
-        })
-
-    if specs_res is None and chunks is None and chunks_res is None:
-        _out({"available": False, "reason": "ES unreachable"})
-        return 0
-
-    index_specs = []
-    for h in (specs_res or {}).get("hits", {}).get("hits", []):
-        s = h["_source"]
-        fields = s.get("fields", []) or []
-        roles: dict = {}
-        for f in fields:
-            roles[f["role"]] = roles.get(f["role"], 0) + 1
-        index_specs.append({
-            "index_slug": s.get("index_slug"), "index_name": s.get("index_name"),
-            "index_class": s.get("index_class"), "time_field": s.get("time_field"),
-            "field_count": len(fields), "roles": roles,
-            "dimensions": [f["path"] for f in fields if f["role"] == "dimension"],
-            "metrics": [f["path"] for f in fields if f["role"] == "metric"],
-        })
-
-    if chunks is None:
-        chunks = []
-        for h in (chunks_res or {}).get("hits", {}).get("hits", []):
-            s = h["_source"]
-            c = s.get("content", "") or ""
-            chunks.append({
-                "artifact_type": s.get("artifact_type"), "artifact": s.get("artifact_name"),
-                "section": s.get("section"), "source_path": s.get("source_path"),
-                "excerpt": c[:400] + ("…" if len(c) > 400 else ""),
-            })
-
-    # H2 (D-461): expose the degradation programmatically too, not just on stderr.
-    # `degraded` = caller asked for semantic but got lexical → assert on it when
-    # precision matters (see docs/how-to/semantic-search-cookbook.md R7).
+    retrieval, hits = "lexical", None
     semantic_requested = bool(getattr(args, "semantic", False))
-    _out({"available": True, "client": client, "module": args.module,
-          "query": args.query, "retrieval": retrieval,
-          "semantic_requested": semantic_requested,
-          "degraded": semantic_requested and retrieval != "semantic",
-          "index_specs": index_specs,
-          "chunk_count": len(chunks), "chunks": chunks})
+    missing: list[str] = []
+    if exact:
+        retrieval = "exact"
+        hits = _exact_records(client, issues, ids, args.layer, include)
+        if hits is not None:
+            # An exact lookup that finds nothing is an answer, not an empty success: name
+            # what was asked and not found, so "no records" cannot pass for "no criteria".
+            found_issues = {h.get("artifact_name") for h in hits if h.get("artifact_type") == "issue"}
+            found_ids = {h.get("record_id") for h in hits}
+            missing = [c for c in issues if c not in found_issues] + \
+                      [i for i in ids if i not in found_ids]
+    elif semantic_requested:
+        hits = _hybrid_search(client, terms or (args.module or client), limit, **common)
+        if hits is not None:
+            retrieval = "semantic"
+    if hits is None:
+        hits = _lexical_records(client, terms, limit, **common)
+    if hits is None:
+        _out({"v": 1, "available": False, "reason": "ES unreachable"})
+        return 0
+
+    # Budget counts the serialized record, not just its text: chars/4 on the text alone
+    # undercounted a 4000-token pack at ~7000 real tokens (ARCH-022 item 8). Spec JSON in
+    # Portuguese measured 2.9-3.3 chars/token (cl100k); 3.0 keeps the estimate on the safe side.
+    records, used = [], 0
+    for h in hits:
+        rec = _public_record(h, args.layer, args.module)
+        cost = max(1, -(-len(json.dumps(rec, ensure_ascii=False, separators=(",", ":"))) // 3))
+        if pack and used + cost > args.budget and records:
+            break
+        records.append(rec)
+        used += cost
+
+    env = {"v": 1, "available": True, "client": client, "layer": args.layer,
+           "module": args.module, "query": args.query, "retrieval": retrieval,
+           # H2 (D-461): degradation is programmatic, not just stderr
+           "degraded": semantic_requested and retrieval != "semantic"}
+    if exact:
+        env.update(issue=issues or None, ids=ids or None, missing=missing)
+    if pack:
+        env.update(budget=args.budget, used=used)
+    env["records"] = records
+    _out({k: v for k, v in env.items() if v is not None})
     return 0
+
+
+_EVIDENCE_HEAD = re.compile(r"^\s*(?:#+\s*)?Evid[eê]ncias consultadas", re.IGNORECASE)
+_EVIDENCE_ENTRY = re.compile(r"^\s+\d+\.\s+(?P<body>.+?)\s*$")
+_EVIDENCE_FONTE = re.compile(r"^\s*-\s*fonte:\s*(?P<v>.+?)\s*$", re.IGNORECASE)
+_SCORE_TAIL = re.compile(r"\s*\(score[^)]*\)\s*$", re.IGNORECASE)
+_SRC = re.compile(r"^(?P<path>[^\s:]+):(?P<a>\d+)(?:-(?P<b>\d+))?$")
+_NO_ID = {"", "-", "—", "sem-id", "(sem id)"}
+
+
+def _parse_evidence(text: str) -> tuple[list[str], list[str]]:
+    """(fontes, citations) from every "Evidencias consultadas" block of an agent report.
+    A block runs from its header to the next markdown heading; citations are the numbered
+    lines under it (the top-N of the molde in be/fe-validator.md)."""
+    fontes: list[str] = []
+    cites: list[str] = []
+    inside = False
+    for line in text.splitlines():
+        if _EVIDENCE_HEAD.match(line):
+            inside = True
+            continue
+        if not inside:
+            continue
+        if line.lstrip().startswith("#"):
+            inside = False
+            continue
+        m = _EVIDENCE_FONTE.match(line)
+        if m:
+            fontes.append(m.group("v"))
+            continue
+        m = _EVIDENCE_ENTRY.match(line)
+        if m:
+            cites.append(m.group("body"))
+    return fontes, cites
+
+
+def _resolve_doc(path: str) -> Path | None:
+    """source_path in the v3 index is relative to docs/architecture/ (backend/issues/...);
+    repo-root relative is accepted too."""
+    root = Path(__file__).resolve().parent.parent
+    for p in (root / "docs" / "architecture" / path, root / path):
+        if p.is_file():
+            return p
+    return None
+
+
+def _check_citation(cite: str, client: str, base: str, cache: dict) -> str | None:
+    """None when the citation holds, else the reason it does not. The cited range must fall
+    inside an INDEXED record's line..line_end, not match a line exactly: a doc edited after
+    indexing moves lines, and the index is what the agent was actually shown."""
+    body = _SCORE_TAIL.sub("", cite).strip().strip("`")
+    rid, _, src = body.rpartition(" @ ") if " @ " in body else ("", "", body)
+    rid, src = rid.strip().strip("`"), src.strip().strip("`")
+    m = _SRC.match(src)
+    if not m:
+        return "unparseable src (expected <id> @ <path:line[-end]>)"
+    path, a = m.group("path"), int(m.group("a"))
+    b = int(m.group("b") or a)
+    doc = _resolve_doc(path)
+    if doc is None:
+        return "file not found"
+    if b < a:
+        return "inverted line range"
+    n_lines = len(doc.read_text(encoding="utf-8", errors="replace").splitlines())
+    if b > n_lines:
+        return f"line {b} beyond end of file ({n_lines} lines)"
+    if path not in cache:
+        res = _post(f"{base}/{SPECS_INDEX}/_search", {
+            "query": {"bool": {"must": [{"term": {"client": client}}, {"term": {"kind": "record"}},
+                                        {"term": {"source_path": path}}]}},
+            "_source": ["record_id", "line", "line_end"], "size": _EXACT_MAX})
+        if res is None:
+            raise ConnectionError("ES unreachable")
+        cache[path] = [h["_source"] for h in res.get("hits", {}).get("hits", [])]
+    records = cache[path]
+    if not records:
+        return "no record indexed for this file"
+
+    def covers(r: dict) -> bool:
+        lo = r.get("line") or 0
+        return lo <= a and b <= (r.get("line_end") or lo)
+
+    if rid not in _NO_ID:
+        rec = next((r for r in records if r.get("record_id") == rid), None)
+        if rec is None:
+            return f"id {rid!r} not indexed for {path}"
+        if not covers(rec):
+            return f"src outside record range {rec.get('line')}-{rec.get('line_end')}"
+        return None
+    if not any(covers(r) for r in records):
+        return "src not inside any indexed record"
+    return None
+
+
+def cmd_verify_citations(args: argparse.Namespace) -> int:
+    """ARCH-023 C5: check the `<id> @ <src>` citations of an agent report against the v3
+    index. Deterministic, run by the ORCHESTRATOR next to accept-verdict -- never a tool the
+    agent chooses to call. Exit 0 = all hold; 2 = at least one invalid (or no evidence block,
+    or a non-NENHUMA source with an empty top-N); 1 = could not verify (ES/report missing)."""
+    report = Path(args.report)
+    if not report.is_file():
+        _out({"v": 1, "ok": False, "verified": False, "reason": f"report not found: {report}"})
+        return 1
+    text = report.read_text(encoding="utf-8", errors="replace")
+    fontes, cites = _parse_evidence(text)
+    invalid: list[dict] = []
+    if not fontes and not cites:
+        invalid.append({"cite": None, "reason": "no 'Evidencias consultadas' block"})
+    elif not cites and not all(f.upper().startswith("NENHUMA") for f in fontes):
+        invalid.append({"cite": None, "reason": f"top-N empty but fonte is {fontes[0]!r}"})
+    if cites:
+        client = args.client or _derive_client()
+        base = _es_url()
+        if not client or not base:
+            _out({"v": 1, "ok": False, "verified": False,
+                  "reason": "client not resolved" if not client else "ES disabled"})
+            return 1
+        cache: dict = {}
+        try:
+            for c in cites:
+                reason = _check_citation(c, client, base, cache)
+                if reason:
+                    invalid.append({"cite": c, "reason": reason})
+        except ConnectionError as exc:
+            _out({"v": 1, "ok": False, "verified": False, "reason": str(exc)})
+            return 1
+    _out({"v": 1, "ok": not invalid, "checked": len(cites), "invalid": invalid})
+    return 2 if invalid else 0
 
 
 def cmd_issue_context(args: argparse.Namespace) -> int:
@@ -871,7 +1247,7 @@ def cmd_issue_context(args: argparse.Namespace) -> int:
             _out({"available": False, "reason": "ES disabled (TECHLAB_ES_DISABLE=1)"})
             return 0
         q: dict = {"bool": {"must": [{"term": {"client": client}},
-                                     {"term": {"kind": "chunk"}},
+                                     {"term": {"kind": "record"}},
                                      {"term": {"artifact_type": "issue"}}]}}
         if terms:
             q["bool"]["should"] = [{"multi_match": {
@@ -1014,11 +1390,9 @@ def _run_with_cache(field: str, cache_read_path: Path | None, cache_write_path: 
 
 
 def _out(obj: dict) -> None:
-    text = json.dumps(obj, indent=2, ensure_ascii=False)
-    try:
-        print(text)
-    except UnicodeEncodeError:
-        print(json.dumps(obj, indent=2, ensure_ascii=True))
+    # ADR-007: agents get compact JSON. main() forces UTF-8 stdout, so no ASCII fallback —
+    # ensure_ascii turned every accented letter into a 6-char escape (+23% tokens, ARCH-022).
+    print(json.dumps(obj, ensure_ascii=False, separators=(",", ":")))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1066,38 +1440,74 @@ def main(argv: list[str] | None = None) -> int:
                         help="Return known pitfalls (rework_pattern) for a module/layer "
                              "as JSON (D-497/D-498); client-agnostic by design")
     lc.add_argument("--module", default=None,
-                    help="Module ID to should-boost (e.g. ASST); never filtered out")
+                    help="Module ID to rank first (e.g. ASST); pitfalls recorded against "
+                         "this module sort ahead of generic ones and survive --limit. "
+                         "Other modules' pitfalls are still returned, never filtered out")
     lc.add_argument("--layer", default=None,
                     help="Pipeline layer prefix to filter (e.g. be, be/test, be/web)")
     lc.add_argument("--client", default=None,
                     help="Client to should-boost (OPTIONAL — pitfalls are cross-client; "
                          "never required, never must-filtered)")
-    lc.add_argument("--limit", type=int, default=8,
-                    help="Max distinct pitfalls (defect_signatures) to return (default: 8)")
+    lc.add_argument("--limit", type=int, default=50,
+                    help="Max distinct pitfalls (defect_signatures) to return (default: 50)")
+    lc.add_argument("--per-artifact", type=int, default=0, metavar="N",
+                    dest="per_artifact",
+                    help="Breadth mode: take at most N pitfalls of each artifact class "
+                         "before spending the rest of --limit on depth. 0 (default) keeps "
+                         "the pure ranking. Use it when PLANNING a service, where the "
+                         "files are not known yet and --target-files cannot be given: the "
+                         "planner needs one alert per class, not the deepest cluster. "
+                         "The implementer, which does know the file, should keep "
+                         "--target-files and leave this at 0")
+    lc.add_argument("--artifact", action="append", default=[],
+                    help="Canonical artifact category to rank up (e.g. jpa-entity, bdd, "
+                         "security); repeat for several. See scripts/artifact_taxonomy.py. "
+                         "Like --module, it boosts and never filters out")
+    lc.add_argument("--target-files", dest="target_files", action="append", default=[],
+                    help="File the agent is about to create/edit; its artifact category "
+                         "is derived automatically (e.g. *JpaEntity.java -> jpa-entity). "
+                         "Repeat for each target. Prefer this over --artifact: it removes "
+                         "the judgment call that agents forget to make")
 
     s = sub.add_parser("spec-context",
-                       help="Return architecture specs from the corpus as JSON (D-432/D-434)")
+                       help="Return typed spec records (ADR-007) as one compact JSON "
+                            "envelope -- never markdown")
     s.add_argument("--module", default=None,
-                   help="Module/service to bias the chunk search (e.g. PED, orders)")
+                   help="Module to scope the search (e.g. INTL); records of other modules "
+                        "are dropped unless none match")
+    s.add_argument("--layer", default=None, choices=("be", "fe"),
+                   help="Keep only this layer's records (+ shared). Pass the agent's own layer")
     s.add_argument("--query", default=None,
-                   help="Free-text to bias the chunk search (e.g. 'data model invariants')")
+                   help="Free-text to bias the search (e.g. 'data model invariants')")
     s.add_argument("--client", default=None,
                    help="Client/project ID (default: derived from project-context.json)")
     s.add_argument("--limit", type=int, default=8,
-                   help="Max spec chunks to return (default: 8)")
+                   help="Max records to return without --pack (default: 8)")
     s.add_argument("--semantic", action="store_true",
                    help="hybrid BM25+dense_vector retrieval, RRF-fused, on the ES "
                         "specs index (D-486); falls back to lexical when the semantic "
-                        "half is unavailable")
+                        "half is unavailable (degraded=true)")
     s.add_argument("--pack", action="store_true",
-                   help="assemble a token-budgeted context pack (markdown) from the ES "
-                        "hybrid index (D-486; was pgVector ContextPackAssembler, D-434); "
-                        "falls back to JSON")
+                   help="cap the records by --budget tokens instead of --limit (still JSON)")
     s.add_argument("--budget", type=int, default=4000,
-                   help="total token budget for --pack (default: 4000)")
+                   help="token budget for --pack (default: 4000)")
+    s.add_argument("--include", action="append", choices=("rationale",), default=None,
+                   help="also return rationale records (context, alternatives, "
+                        "consequences), left out by default (ADR-007 R4)")
+    s.add_argument("--per-path", dest="per_path", type=int, default=3,
+                   help="max records from one source document (default: 3)")
+    s.add_argument("--issue", action="append", default=None, metavar="CODE[,CODE]",
+                   help="(ARCH-023) every record of these issues, exact match on the code, "
+                        "no ranking, document order. Use it when the code is known -- a "
+                        "broad query may not rank the right criteria into the top-k. "
+                        "--layer/--include still apply; --query/--semantic/--module do not")
+    s.add_argument("--ids", action="append", default=None, metavar="ID[,ID]",
+                   help="(ARCH-023) records by record id (declared id, or path:line for "
+                        "undeclared ones), exact match. Combinable with --issue. Codes/ids "
+                        "not found are listed in the envelope's `missing`")
     s.add_argument("--cache-read", default=None, metavar="PATH",
-                   help="(D-552) Read spec_context_packed from handoff.json cache if valid; "
-                        "skip ES query on hit")
+                   help="(D-552) Read this call's cached output from handoff.json if valid "
+                        "(key derived from the arguments); skip ES query on hit")
     s.add_argument("--cache-write", default=None, metavar="PATH",
                    help="(D-552) Persist output to handoff.json cache after ES query")
 
@@ -1115,7 +1525,19 @@ def main(argv: list[str] | None = None) -> int:
                    help="hybrid BM25+dense_vector retrieval, RRF-fused (D-486); "
                         "falls back to lexical when the semantic half is unavailable")
 
+    vc = sub.add_parser("verify-citations",
+                        help="(ARCH-023) check the '<id> @ <path:line>' citations of an agent "
+                             "report against the v3 spec index; exit 2 on any invalid one")
+    vc.add_argument("--report", required=True,
+                    help="File with the agent's final message (its 'Evidencias consultadas' block)")
+    vc.add_argument("--client", default=None,
+                    help="Client/project ID (default: derived from project-context.json)")
+
     args = parser.parse_args(argv)
+    if args.command == "verify-citations":
+        return cmd_verify_citations(args)
+    if args.command == "spec-context" and (args.issue or args.ids) and (args.query or args.semantic):
+        parser.error("spec-context: --issue/--ids is an exact lookup; drop --query/--semantic")
     if args.command == "module-state":
         return cmd_module_state(args)
     if args.command == "decision-context":

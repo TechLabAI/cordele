@@ -87,7 +87,7 @@ describe('ImportFacade', () => {
       expect(facade.error()).toBeNull();
 
       // Flush to avoid afterEach httpMock.verify() failure
-      httpMock.expectOne('/api/imp/manuscripts').flush(MOCK_MANUSCRITO);
+      httpMock.expectOne('/api/v1/imp/manuscripts').flush(MOCK_MANUSCRITO);
     });
 
     it('should transition to done and store result on HTTP 201 success', () => {
@@ -95,7 +95,7 @@ describe('ImportFacade', () => {
 
       facade.importar({ file, projetoTitulo: 'Livro Teste' });
 
-      const req = httpMock.expectOne('/api/imp/manuscripts');
+      const req = httpMock.expectOne('/api/v1/imp/manuscripts');
       expect(req.request.method).toBe('POST');
       req.flush(MOCK_MANUSCRITO, { status: 201, statusText: 'Created' });
 
@@ -112,7 +112,7 @@ describe('ImportFacade', () => {
       const file = new File([''], 'book.docx');
       facade.importar({ file, projetoTitulo: 'Projeto' });
 
-      const req = httpMock.expectOne('/api/imp/manuscripts');
+      const req = httpMock.expectOne('/api/v1/imp/manuscripts');
       req.flush(
         { detail: 'Informe o nome do projeto ou selecione um existente, mas não ambos.' },
         { status: 422, statusText: 'Unprocessable Entity' },
@@ -126,7 +126,7 @@ describe('ImportFacade', () => {
       const file = new File([''], 'huge.docx');
       facade.importar({ file, projetoTitulo: 'Grande Projeto' });
 
-      const req = httpMock.expectOne('/api/imp/manuscripts');
+      const req = httpMock.expectOne('/api/v1/imp/manuscripts');
       req.flush(null, { status: 413, statusText: 'Payload Too Large' });
 
       expect(facade.phase()).toBe('error');
@@ -136,7 +136,7 @@ describe('ImportFacade', () => {
       const file = new File([''], 'manuscript.docx');
       facade.importar({ file, projetoTitulo: 'Título do Projeto' });
 
-      const req = httpMock.expectOne('/api/imp/manuscripts');
+      const req = httpMock.expectOne('/api/v1/imp/manuscripts');
       expect(req.request.body).toBeInstanceOf(FormData);
       req.flush(MOCK_MANUSCRITO);
     });
@@ -145,7 +145,7 @@ describe('ImportFacade', () => {
       const file = new File([''], 'manuscript.docx');
       facade.importar({ file, projetoId: 'proj-existing-001' });
 
-      const req = httpMock.expectOne('/api/imp/manuscripts');
+      const req = httpMock.expectOne('/api/v1/imp/manuscripts');
       expect(req.request.body).toBeInstanceOf(FormData);
       const form: FormData = req.request.body;
       expect(form.get('projetoId')).toBe('proj-existing-001');
@@ -159,7 +159,7 @@ describe('ImportFacade', () => {
       facade.importar({ file, projetoTitulo: 'P' });
 
       // Flush the request to avoid verify() error
-      const req = httpMock.expectOne('/api/imp/manuscripts');
+      const req = httpMock.expectOne('/api/v1/imp/manuscripts');
       req.flush(null, { status: 500, statusText: 'Internal Server Error' });
 
       expect(facade.phase()).toBe('error');
@@ -175,7 +175,7 @@ describe('ImportFacade', () => {
       const file = new File([''], 'book.docx');
       vi.spyOn(router, 'navigate').mockResolvedValue(true);
       facade.importar({ file, projetoTitulo: 'Projeto' });
-      httpMock.expectOne('/api/imp/manuscripts').flush(MOCK_MANUSCRITO);
+      httpMock.expectOne('/api/v1/imp/manuscripts').flush(MOCK_MANUSCRITO);
 
       expect(facade.phase()).toBe('done');
 

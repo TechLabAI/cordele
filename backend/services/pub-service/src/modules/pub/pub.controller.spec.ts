@@ -1,13 +1,14 @@
 /**
  * Unit spec for PubController (PUB-001).
  *
- * Covers all six route handlers:
+ * Covers all seven route handlers:
  *   4.1 POST  projetos/:projetoId/publicacoes           → trigger()
  *   4.2 GET   .../publicacoes/:publicacaoId/status       → status()
  *   4.3 GET   .../publicacoes                            → history()
  *   4.4 GET   .../publicacoes/:publicacaoId/download     → downloadUrl()
  *   4.5 GET   .../publicacoes/stats                      → stats()
  *   4.6 GET   .../publicacoes/:publicacaoId/validation-messages → listValidationMessages()
+ *   4.7 POST  publications/latest-batch                  → latestBatch()
  *
  * Use cases are mocked via the token Symbols from pub.tokens.ts and injected
  * through @nestjs/testing Test.createTestingModule — the standard pattern for
@@ -28,12 +29,15 @@ import { ValidationSeverity } from '../../domain/pub/validation-severity.enum';
 import { type AuthenticatedUser } from '../../domain/auth/authenticated-user';
 import {
   GENERATE_PUBLICATION_USE_CASE,
+  GET_LATEST_BATCH_USE_CASE,
   GET_PUBLICATION_HISTORY_USE_CASE,
   GET_PUBLICATION_STATS_USE_CASE,
   GET_PUBLICATION_STATUS_USE_CASE,
   GET_SIGNED_DOWNLOAD_URL_USE_CASE,
   LIST_VALIDATION_MESSAGES_USE_CASE,
 } from './pub.tokens';
+import { type GetLatestBatchUseCase } from './use-cases/get-latest-batch.use-case';
+import { type LatestBatchResponseItemDto } from './dto/latest-batch-response-item.dto';
 import { type GeneratePublicationUseCase } from './use-cases/generate-publication.use-case';
 import { type GetPublicationHistoryUseCase } from './use-cases/get-publication-history.use-case';
 import { type GetPublicationStatsUseCase } from './use-cases/get-publication-stats.use-case';
@@ -100,6 +104,7 @@ describe('PubController', () => {
   let downloadUrlUseCase: jest.Mocked<GetSignedDownloadUrlUseCase>;
   let statsUseCase: jest.Mocked<GetPublicationStatsUseCase>;
   let listValidationMessagesUseCase: jest.Mocked<ListValidationMessagesUseCase>;
+  let latestBatchUseCase: jest.Mocked<GetLatestBatchUseCase>;
 
   beforeEach(async () => {
     generateUseCase = { execute: jest.fn() } as unknown as jest.Mocked<GeneratePublicationUseCase>;
@@ -108,6 +113,7 @@ describe('PubController', () => {
     downloadUrlUseCase = { execute: jest.fn() } as unknown as jest.Mocked<GetSignedDownloadUrlUseCase>;
     statsUseCase = { execute: jest.fn() } as unknown as jest.Mocked<GetPublicationStatsUseCase>;
     listValidationMessagesUseCase = { execute: jest.fn() } as unknown as jest.Mocked<ListValidationMessagesUseCase>;
+    latestBatchUseCase = { execute: jest.fn() } as unknown as jest.Mocked<GetLatestBatchUseCase>;
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PubController],
@@ -118,6 +124,7 @@ describe('PubController', () => {
         { provide: GET_SIGNED_DOWNLOAD_URL_USE_CASE, useValue: downloadUrlUseCase },
         { provide: GET_PUBLICATION_STATS_USE_CASE, useValue: statsUseCase },
         { provide: LIST_VALIDATION_MESSAGES_USE_CASE, useValue: listValidationMessagesUseCase },
+        { provide: GET_LATEST_BATCH_USE_CASE, useValue: latestBatchUseCase },
       ],
     }).compile();
 
@@ -418,6 +425,53 @@ describe('PubController', () => {
         { projetoId: PROJETO_ID, publicacaoId: PUBLICACAO_ID, severity: 'warning' },
         user,
       );
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 4.7 latestBatch() — POST publications/latest-batch
+  // -------------------------------------------------------------------------
+
+  describe('latestBatch()', () => {
+    const PROJETO_B = 'bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb';
+    const PUB_B = 'cccccccc-cccc-4ccc-cccc-cccccccccccc';
+
+    it('returns empty array when projetoIds is empty', async () => {
+      latestBatchUseCase.execute.mockResolvedValue([]);
+      const result = await controller.latestBatch({ projetoIds: [] }, makeUser());
+      expect(result).toEqual([]);
+      expect(latestBatchUseCase.execute).toHaveBeenCalledWith({ projetoIds: [] }, makeUser());
+    });
+
+    it('delegates to the use case and returns the batch result', async () => {
+      const items: LatestBatchResponseItemDto[] = [
+        { projetoId: PROJETO_ID, publicacaoId: PUBLICACAO_ID, epubcheckStatus: EpubcheckStatus.VALIDO },
+        { projetoId: PROJETO_B, publicacaoId: PUB_B, epubcheckStatus: EpubcheckStatus.PENDENTE },
+      ];
+      latestBatchUseCase.execute.mockResolvedValue(items);
+      const user = makeUser();
+
+      const result = await controller.latestBatch({ projetoIds: [PROJETO_ID, PROJETO_B] }, user);
+
+      expect(result).toHaveLength(2);
+      expect(result).toEqual(items);
+      expect(latestBatchUseCase.execute).toHaveBeenCalledWith(
+        { projetoIds: [PROJETO_ID, PROJETO_B] },
+        user,
+      );
+    });
+
+    it('omits projects with no publications (use case responsibility — controller passes through)', async () => {
+      // Only PROJETO_ID has a publication; PROJETO_B absent from result = never published
+      const items: LatestBatchResponseItemDto[] = [
+        { projetoId: PROJETO_ID, publicacaoId: PUBLICACAO_ID, epubcheckStatus: EpubcheckStatus.VALIDO },
+      ];
+      latestBatchUseCase.execute.mockResolvedValue(items);
+
+      const result = await controller.latestBatch({ projetoIds: [PROJETO_ID, PROJETO_B] }, makeUser());
+
+      expect(result).toHaveLength(1);
+      expect(result[0]!.projetoId).toBe(PROJETO_ID);
     });
   });
 

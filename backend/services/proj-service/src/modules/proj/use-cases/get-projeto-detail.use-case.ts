@@ -23,10 +23,17 @@ import {
   PROJECT_METADATA_PORT,
   PUBLICATION_HISTORY_PORT,
 } from '../proj.tokens';
+import {
+  MANUSCRIPT_SUMMARY_IS_STUB,
+  PROJECT_METADATA_IS_STUB,
+  PUBLICATION_HISTORY_IS_STUB,
+} from '../../../domain/proj/ports/outbound/read-port-flags';
 
 export interface GetProjetoDetailInput {
   readonly projetoId: string;
   readonly empresaId: string;
+  /** JWT bearer from the originating HTTP request, forwarded to cross-context ports. */
+  readonly bearerToken?: string;
 }
 
 /** null when the project does not exist or belongs to a different empresa. */
@@ -45,6 +52,12 @@ export class GetProjetoDetailUseCase {
     private readonly metadataPort: ProjectMetadataPort,
     @Inject(PUBLICATION_HISTORY_PORT)
     private readonly publicationPort: PublicationHistoryPort,
+    @Inject(MANUSCRIPT_SUMMARY_IS_STUB)
+    private readonly manuscriptIsStub: boolean,
+    @Inject(PROJECT_METADATA_IS_STUB)
+    private readonly metadataIsStub: boolean,
+    @Inject(PUBLICATION_HISTORY_IS_STUB)
+    private readonly historyIsStub: boolean,
   ) {}
 
   async execute(input: GetProjetoDetailInput): Promise<GetProjetoDetailResult> {
@@ -53,26 +66,28 @@ export class GetProjetoDetailUseCase {
       return null;
     }
 
-    let degraded = false;
+    // Pre-set degraded when any port resolved to its stub adapter at startup
+    // (stubs return valid defaults but never throw — SPEC-07 fix, Problem 3a).
+    let degraded = this.manuscriptIsStub || this.metadataIsStub || this.historyIsStub;
     const markDegraded = () => { degraded = true; };
 
     // Batched: one call per port even for a single project
     const summaries = await this.callPort(
-      () => this.manuscriptPort.summaries([input.projetoId], input.empresaId),
+      () => this.manuscriptPort.summaries([input.projetoId], input.empresaId, input.bearerToken),
       'ManuscriptSummaryPort',
       new Map(),
       markDegraded,
     );
 
     const metadataMap = await this.callPort(
-      () => this.metadataPort.metadata([input.projetoId], input.empresaId),
+      () => this.metadataPort.metadata([input.projetoId], input.empresaId, input.bearerToken),
       'ProjectMetadataPort',
       new Map(),
       markDegraded,
     );
 
     const publicationHistory = await this.callPort(
-      () => this.publicationPort.history(input.projetoId, input.empresaId),
+      () => this.publicationPort.history(input.projetoId, input.empresaId, input.bearerToken),
       'PublicationHistoryPort',
       [],
       markDegraded,

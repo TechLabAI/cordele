@@ -38,6 +38,7 @@ export interface ProjectMetadataPort {
   metadata(
     projetoIds: string[],
     empresaId: string,
+    bearerToken?: string,
   ): Promise<Map<string, ProjectMetadata>>;
 }
 

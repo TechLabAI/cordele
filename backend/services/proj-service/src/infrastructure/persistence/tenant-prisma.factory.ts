@@ -76,13 +76,12 @@ export class TenantPrismaFactory implements OnModuleDestroy {
   /**
    * Resolve o schema Postgres a partir do empresaId recebido.
    *
-   * Aceita dois formatos de empresaId:
-   * - slug puro: "aetos" → schema "emp_aetos"
-   * - slug prefixado: "emp_aetos" → schema "emp_aetos" (sem duplo prefixo)
+   * Recebe sempre o slug puro (ex.: "aetos") — JwtStrategy normaliza o claim
+   * empresa_id para slug antes de popular request.user.empresaId. Prefixar
+   * "emp_" aqui é suficiente para produzir o schema correto ("emp_aetos").
    */
   private resolveSchema(empresaId: string): string {
-    const slug = empresaId.startsWith('emp_') ? empresaId.slice(4) : empresaId;
-    return `emp_${slug}`;
+    return `emp_${empresaId}`;
   }
 
   /** Closes every cached per-schema connection pool on Nest shutdown. */

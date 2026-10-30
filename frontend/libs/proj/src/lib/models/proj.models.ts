@@ -13,7 +13,29 @@ export type BadgeTone = 'draft' | 'progress' | 'valid' | 'warn' | 'error' | 'pen
 
 // ── API shapes (api-contract §6) ──────────────────────────────────────────────
 
-/** api-contract §6.2 — library card (GET /api/proj/projetos) */
+/**
+ * api-contract §4.2 — paginated library page (GET /api/v1/proj/projetos).
+ * `nextCursor` is opaque base64 keyset; pass as `?cursor=` on the next request.
+ * `null` means this is the last page.
+ */
+export interface ProjetoListPage {
+  items: ProjetoCard[];
+  nextCursor: string | null;
+}
+
+/**
+ * Composite result from listProjetos(): bundles the page body and the
+ * `X-Degraded` header flag so callers don't need to touch HttpResponse directly.
+ * `degraded=true` means cross-context aggregation data (autor, chapters, epubcheck)
+ * may be incomplete — the projects themselves are always correct.
+ */
+export interface ProjetoListResult {
+  page: ProjetoListPage;
+  /** true when the backend set X-Degraded: true on the response (api-contract §3). */
+  degraded: boolean;
+}
+
+/** api-contract §6.2 — library card (GET /api/v1/proj/projetos) */
 export interface ProjetoCard {
   id: string;
   nome: string;
@@ -38,7 +60,7 @@ export interface PublicacaoHistoryItem {
   criadoEm: string;
 }
 
-/** api-contract §6.1 — full project aggregate (GET /api/proj/projetos/{id} + reopen response) */
+/** api-contract §6.1 — full project aggregate (GET /api/v1/proj/projetos/{id} + reopen response) */
 export interface ProjetoDetail {
   id: string;
   editoraId: string;

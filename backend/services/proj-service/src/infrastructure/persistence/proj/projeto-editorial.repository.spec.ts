@@ -10,7 +10,8 @@
  *    (tenant isolation — withTenant called with the correct empresaId).
  * 5. updateStatus() writes to BOTH projeto_editorial and
  *    projeto_status_historico in a single transaction.
- * 6. findAll() delegates ordering to the adapter (orderBy: atualizadoEm desc).
+ * 6. findAll() delegates stable ordering (atualizadoEm DESC, id ASC) and
+ *    applies keyset WHERE clause when cursor is provided.
  * 7. delete() removes the row from the tenant's schema.
  * 8. existsByIdAndEmpresa() returns false for unknown id.
  *
@@ -206,7 +207,7 @@ describe('PrismaProjetoEditorialRepository', () => {
   // findAll()
   // -------------------------------------------------------------------------
   describe('findAll()', () => {
-    it('deve retornar lista de projetos ordenados por atualizadoEm DESC', async () => {
+    it('deve retornar lista de projetos ordenados por atualizadoEm DESC, id ASC (keyset ordering)', async () => {
       const rows = [
         makeRow({ id: 'p2', atualizadoEm: new Date('2026-02-01') }),
         makeRow({ id: 'p1', atualizadoEm: new Date('2026-01-01') }),
@@ -218,9 +219,11 @@ describe('PrismaProjetoEditorialRepository', () => {
       const result = await repo.findAll('aetos');
 
       expect(result).toHaveLength(2);
-      // Ordering is delegated to Prisma — verify it was requested
+      // Stable ordering for keyset pagination: atualizadoEm DESC, id ASC
       expect(findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ orderBy: { atualizadoEm: 'desc' } }),
+        expect.objectContaining({
+          orderBy: [{ atualizadoEm: 'desc' }, { id: 'asc' }],
+        }),
       );
     });
 
@@ -236,6 +239,46 @@ describe('PrismaProjetoEditorialRepository', () => {
           where: { status: ProjetoStatus.em_composicao },
         }),
       );
+    });
+
+    it('aplica limit quando informado no filter', async () => {
+      const findMany = jest.fn().mockResolvedValue([]);
+      const tx = makeTx({ projetoEditorial: { findMany } });
+      mockTenantFactory.withTenant.mockImplementation(async (_e, fn) => fn(tx));
+
+      await repo.findAll('aetos', { limit: 26 });
+
+      expect(findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 26 }),
+      );
+    });
+
+    it('aplica cursor keyset quando filter.cursor presente', async () => {
+      const cursorDate = new Date('2026-08-25T10:00:00.000Z');
+      const cursorId = 'some-uuid-id';
+      const cursor = Buffer.from(
+        JSON.stringify({ atualizadoEm: cursorDate.toISOString(), id: cursorId }),
+      ).toString('base64');
+
+      const findMany = jest.fn().mockResolvedValue([]);
+      const tx = makeTx({ projetoEditorial: { findMany } });
+      mockTenantFactory.withTenant.mockImplementation(async (_e, fn) => fn(tx));
+
+      await repo.findAll('aetos', { cursor });
+
+      const call = findMany.mock.calls[0][0] as { where?: { AND?: unknown[] } };
+      // WHERE clause must be wrapped in AND containing the keyset OR condition
+      expect(call.where).toBeDefined();
+      expect((call.where as { AND?: unknown[] }).AND).toBeDefined();
+    });
+
+    it('rejeita cursor invalido com Error claro', async () => {
+      const tx = makeTx({ projetoEditorial: { findMany: jest.fn() } });
+      mockTenantFactory.withTenant.mockImplementation(async (_e, fn) => fn(tx));
+
+      await expect(
+        repo.findAll('aetos', { cursor: 'not-base64-at-all!!!' }),
+      ).rejects.toThrow();
     });
   });
 

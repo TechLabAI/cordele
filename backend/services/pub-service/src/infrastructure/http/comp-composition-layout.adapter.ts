@@ -72,7 +72,7 @@ export class CompCompositionLayoutAdapter implements CompositionLayoutPort {
     config: ConfigService,
     private readonly empresaContext: EmpresaContextService,
   ) {
-    this.compBaseUrl = config.get<string>('COMP_SERVICE_URL') ?? 'http://localhost:3001';
+    this.compBaseUrl = config.getOrThrow<string>('COMP_SERVICE_URL');
   }
 
   async get(projetoId: string): Promise<LayoutRead | null> {

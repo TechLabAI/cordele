@@ -52,14 +52,14 @@ describe('ProjController', () => {
   let controller: ProjController;
 
   const NOW = new Date('2026-08-25T10:00:00Z');
-  const user = { id: 'user-1', empresaId: 'emp_aetos', scopes: ['proj:read', 'proj:write'] };
+  const user = { id: 'user-1', empresaId: 'aetos', scopes: ['proj:read', 'proj:write'] };
 
   const mockCreateUseCase = {
     execute: jest.fn().mockResolvedValue({
       id: 'proj-id-1',
       nome: 'Romance das Cidades',
       descricao: null,
-      editoraId: 'emp_aetos',
+      editoraId: 'aetos',
       status: 'rascunho',
       criadoEm: NOW,
       atualizadoEm: NOW,
@@ -75,13 +75,13 @@ describe('ProjController', () => {
   };
 
   const mockLibraryUseCase = {
-    execute: jest.fn().mockResolvedValue({ cards: [], degraded: false }),
+    execute: jest.fn().mockResolvedValue({ cards: [], degraded: false, nextCursor: null }),
   };
 
   const mockDetailUseCase = {
     execute: jest.fn().mockResolvedValue({
       id: 'proj-id-1',
-      editoraId: 'emp_aetos',
+      editoraId: 'aetos',
       nome: 'Romance das Cidades',
       descricao: null,
       status: 'rascunho',
@@ -163,17 +163,100 @@ describe('ProjController', () => {
   // ---------------------------------------------------------------------------
 
   describe('findAll() — GET /projetos', () => {
-    it('returns a ProjetoCardDto array from library use case', async () => {
-      const result = await controller.findAll(user);
+    // Mock express Response: findAll calls res.setHeader when degraded.
+    const mockRes = { setHeader: jest.fn() } as unknown as import('express').Response;
 
-      expect(Array.isArray(result)).toBe(true);
+    it('returns ProjetoLibraryPageDto envelope with items and nextCursor', async () => {
+      const result = await controller.findAll(user, mockRes);
+
+      expect(result).toHaveProperty('items');
+      expect(result).toHaveProperty('nextCursor');
+      expect(Array.isArray(result.items)).toBe(true);
+      expect(result.nextCursor).toBeNull();
       expect(mockLibraryUseCase.execute).toHaveBeenCalledTimes(1);
     });
 
-    it('accepts optional status, limit and cursor query params without throwing', async () => {
+    it('sets X-Degraded header when library use case returns degraded=true', async () => {
+      const setHeaderFn = jest.fn();
+      const degradedRes = { setHeader: setHeaderFn } as unknown as import('express').Response;
+      mockLibraryUseCase.execute.mockResolvedValueOnce({ cards: [], degraded: true, nextCursor: null });
+
+      await controller.findAll(user, degradedRes);
+
+      expect(setHeaderFn).toHaveBeenCalledWith('X-Degraded', 'true');
+    });
+
+    it('accepts a valid limit query param and passes it to the use case', async () => {
+      await controller.findAll(user, mockRes, undefined, undefined, '25');
+
+      expect(mockLibraryUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: 25 }),
+      );
+    });
+
+    it('accepts limit=50 (the maximum) without throwing', async () => {
       await expect(
-        controller.findAll(user, 'rascunho', 10, 'cursor-abc'),
+        controller.findAll(user, mockRes, undefined, undefined, '50'),
       ).resolves.toBeDefined();
+    });
+
+    it('throws BadRequestException when limit exceeds maximum (50)', async () => {
+      const { BadRequestException } = await import('@nestjs/common');
+
+      await expect(
+        controller.findAll(user, mockRes, undefined, undefined, '51'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when limit is non-numeric', async () => {
+      const { BadRequestException } = await import('@nestjs/common');
+
+      await expect(
+        controller.findAll(user, mockRes, undefined, undefined, 'abc'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when limit is zero', async () => {
+      const { BadRequestException } = await import('@nestjs/common');
+
+      await expect(
+        controller.findAll(user, mockRes, undefined, undefined, '0'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('accepts a valid base64 cursor and passes it to the use case', async () => {
+      const cursor = Buffer.from(JSON.stringify({ atualizadoEm: '2026-08-25T10:00:00.000Z', id: 'some-uuid' })).toString('base64');
+
+      await controller.findAll(user, mockRes, undefined, undefined, undefined, cursor);
+
+      expect(mockLibraryUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ cursor }),
+      );
+    });
+
+    it('throws BadRequestException when cursor is invalid base64', async () => {
+      const { BadRequestException } = await import('@nestjs/common');
+
+      await expect(
+        controller.findAll(user, mockRes, undefined, undefined, undefined, '!!!not-base64!!!'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when cursor is valid base64 but missing fields', async () => {
+      const { BadRequestException } = await import('@nestjs/common');
+      const badCursor = Buffer.from(JSON.stringify({ foo: 'bar' })).toString('base64');
+
+      await expect(
+        controller.findAll(user, mockRes, undefined, undefined, undefined, badCursor),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('accepts status filter and passes it to the use case', async () => {
+      await controller.findAll(user, mockRes, undefined, 'rascunho');
+
+      expect(mockLibraryUseCase.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'rascunho' }),
+      );
     });
   });
 
@@ -259,10 +342,24 @@ describe('ProjController', () => {
     it('delegates to DeleteProjetoUseCase and returns undefined (no body for 204)', async () => {
       const projetoId = '11111111-1111-1111-1111-111111111111';
 
-      const result = await controller.remove(projetoId, user);
+      const result = await controller.remove(projetoId, user, undefined);
 
-      expect(mockDeleteUseCase.execute).toHaveBeenCalledWith({ projetoId }, user);
+      expect(mockDeleteUseCase.execute).toHaveBeenCalledWith(
+        { projetoId, bearerToken: undefined },
+        user,
+      );
       expect(result).toBeUndefined();
+    });
+
+    it('extracts bearer token from Authorization header and forwards it to the use case', async () => {
+      const projetoId = '11111111-1111-1111-1111-111111111111';
+
+      await controller.remove(projetoId, user, 'Bearer my-proj-delete-token');
+
+      expect(mockDeleteUseCase.execute).toHaveBeenCalledWith(
+        { projetoId, bearerToken: 'my-proj-delete-token' },
+        user,
+      );
     });
   });
 

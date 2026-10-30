@@ -50,7 +50,8 @@ export interface PublicacaoRepositoryPort {
    * Returns a single publication by its own id (without requiring projetoId).
    *
    * Tenant isolation is enforced at the schema level (schema-per-empresa via
-   * Prisma search_path), so no additional projetoId discriminator is needed.
+   * `PrismaEmpresaService` — one PrismaClient per schema, ADR-003 D-619), so no
+   * additional projetoId discriminator is needed.
    * Returns null when the id does not exist in the current tenant schema.
    *
    * Used by PublicationHistoryPort.signedDownloadUrl() (PUB-014).

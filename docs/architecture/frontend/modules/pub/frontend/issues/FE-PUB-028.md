@@ -1,6 +1,6 @@
 ## [FE-PUB-028] Playwright e2e — T08 download-e-historico.feature (7 cenários SPEC-08)
 
-**Status:** 🔲 ABERTA
+**Status:** ✅ DONE
 **GitHub:** [#TBD]
 
 **Outcome:**

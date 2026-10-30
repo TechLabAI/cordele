@@ -5,11 +5,27 @@
  * (author, layout, etc.) for a list of project IDs. Registered under
  * PROJECT_METADATA_PORT when COMP_SERVICE_URL is set (PROJ-INT-002).
  *
- * Error handling: on any HTTP failure, returns empty Map (callers degrade
- * gracefully — SPEC-07).
- *
  * RULE-05: infrastructure must not import modules/.
  * RULE-06: outbound HTTP clients belong in infrastructure/.
+ *
+ * Chunking:
+ *   projetoIds is split into blocks of CROSS_SERVICE_BATCH_LIMIT (50) because
+ *   the COMP batch endpoint rejects requests larger than 50 IDs with HTTP 400
+ *   (contractual limit, see COMP api-contract.md). Blocks are fetched in parallel
+ *   via Promise.allSettled to reduce latency — see ImpManuscriptSummaryAdapter
+ *   for rationale.
+ *
+ * Partial degradation:
+ *   - All blocks succeed → returns merged Map, no exception.
+ *   - Some blocks fail   → throws PartialResultError<Map<...>> carrying the data
+ *     from successful blocks; callPort in the use case extracts the partial result
+ *     and marks degraded=true.
+ *   - All blocks fail    → throws Error; callPort marks degraded=true and returns
+ *     the empty-Map fallback.
+ *
+ * Bearer token is forwarded from the originating request so the COMP service
+ * validates the same JWT principal and scope (comp:read). The header is mounted
+ * only when a token is present; its value is never logged (security gate).
  */
 
 import { Injectable, Logger } from '@nestjs/common';
@@ -19,10 +35,11 @@ import type {
   ProjectMetadata,
   ProjectMetadataPort,
 } from '../../../domain/proj/ports/outbound/project-metadata.port';
+import { PartialResultError } from '../../../domain/shared/partial-result.error';
+import { chunkArray, CROSS_SERVICE_BATCH_LIMIT } from './batch-chunk.util';
 
 /**
  * Shape of the response from COMP's batch-query endpoint.
- * Adjust to match COMP's actual contract when COMP is scaffolded.
  */
 interface CompMetadataResponse {
   projetoId: string;
@@ -38,6 +55,7 @@ export class CompProjectMetadataAdapter implements ProjectMetadataPort {
   async metadata(
     projetoIds: string[],
     empresaId: string,
+    bearerToken?: string,
   ): Promise<Map<string, ProjectMetadata>> {
     if (projetoIds.length === 0) {
       return new Map();
@@ -45,39 +63,88 @@ export class CompProjectMetadataAdapter implements ProjectMetadataPort {
 
     const baseUrl = this.config.get<string>('COMP_SERVICE_URL');
     if (!baseUrl) {
-      this.logger.warn('COMP_SERVICE_URL not configured — returning empty metadata');
-      return new Map();
+      throw new Error('COMP_SERVICE_URL not configured — cannot fetch project metadata');
     }
 
-    try {
-      const url = `${baseUrl}/api/v1/comp/metadata/batch`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Empresa-Id': empresaId,
-        },
-        body: JSON.stringify({ projetoIds }),
-      });
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (bearerToken) {
+      headers['Authorization'] = `Bearer ${bearerToken}`;
+      this.logger.debug('CompProjectMetadataAdapter: Authorization header mounted');
+    }
 
-      if (!response.ok) {
-        this.logger.warn(
-          `COMP metadata batch returned ${response.status} — degrading`,
-        );
-        return new Map();
-      }
+    const chunks = chunkArray(projetoIds, CROSS_SERVICE_BATCH_LIMIT);
+    this.logger.log(
+      `CompProjectMetadataAdapter: fetching ${projetoIds.length} ids in ${chunks.length} chunks`,
+    );
 
-      const data = (await response.json()) as CompMetadataResponse[];
-      const result = new Map<string, ProjectMetadata>();
-      for (const item of data) {
-        result.set(item.projetoId, { autor: item.autor ?? null });
-      }
-      return result;
-    } catch (err) {
-      this.logger.warn(
-        `CompProjectMetadataAdapter error — degrading: ${(err as Error).message}`,
+    const settled = await Promise.allSettled(
+      chunks.map((chunk, index) =>
+        this.fetchChunk(baseUrl, headers, empresaId, chunk, index),
+      ),
+    );
+
+    return this.mergeSettled(settled, chunks.length, empresaId);
+  }
+
+  private async fetchChunk(
+    baseUrl: string,
+    headers: Record<string, string>,
+    empresaId: string,
+    chunk: string[],
+    chunkIndex: number,
+  ): Promise<Map<string, ProjectMetadata>> {
+    const url = `${baseUrl}/api/v1/comp/metadata/batch`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ projetoIds: chunk }),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `COMP metadata/batch chunk ${chunkIndex} returned ${response.status} for empresaId=${empresaId}`,
       );
-      return new Map();
     }
+
+    const data = (await response.json()) as CompMetadataResponse[];
+    const result = new Map<string, ProjectMetadata>();
+    for (const item of data) {
+      result.set(item.projetoId, { autor: item.autor ?? null });
+    }
+    return result;
+  }
+
+  private mergeSettled(
+    settled: PromiseSettledResult<Map<string, ProjectMetadata>>[],
+    totalChunks: number,
+    empresaId: string,
+  ): Map<string, ProjectMetadata> {
+    const merged = new Map<string, ProjectMetadata>();
+    let failedChunks = 0;
+    let lastError: Error | undefined;
+
+    for (const result of settled) {
+      if (result.status === 'fulfilled') {
+        for (const [k, v] of result.value) {
+          merged.set(k, v);
+        }
+      } else {
+        failedChunks++;
+        lastError = result.reason as Error;
+        this.logger.warn(
+          `CompProjectMetadataAdapter: chunk failed for empresaId=${empresaId}: ${lastError.message}`,
+        );
+      }
+    }
+
+    if (failedChunks === 0) {
+      return merged;
+    }
+    if (failedChunks === totalChunks) {
+      throw lastError!;
+    }
+    throw new PartialResultError(merged, failedChunks, totalChunks, lastError);
   }
 }

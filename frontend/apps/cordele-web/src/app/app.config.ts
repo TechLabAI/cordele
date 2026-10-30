@@ -5,8 +5,9 @@
  * - provideHttpClient: required by all HTTP adapters.
  * - COMP: adapter='http' — comp-service is available; real API, no mocks.
  *
- * Updated: INT-FE-COMP-001/006 (P4) — wires ACCESS_EMPRESA_ID token from
- * EmpresaContextService so that AccessHttpClient propagates X-Empresa-Id on every request.
+ * Updated: INT-FE-COMP-001/006 (P4) — empresa context is resolved server-side from the
+ * JWT `empresa_id` claim via EmpresaContextInterceptor. The FE does NOT send X-Empresa-Id;
+ * ACCESS_EMPRESA_ID provider removed (token no longer wired to HTTP headers).
  *
  * Updated: P7 (E2E fix A) — adds APP_INITIALIZER that reads localStorage['cordele_access_token']
  * at bootstrap so AuthSessionService.isAuthenticated is true when authGuard runs.
@@ -22,10 +23,14 @@
  *
  * Updated: PUB P4 (INT-FE-PUB-001/006):
  * - INT-FE-PUB-001: provider order verified — provideHttpClient + interceptors declared before
- *   all module providers (provideImp, provideComp, providePub). ACCESS_EMPRESA_ID provided after
- *   module factories (value providers are order-agnostic for DI, but placed last for readability).
+ *   all module providers (provideImp, provideComp, providePub).
  * - INT-FE-PUB-006: PUB_EMPRESA_CHANGED token wired to PubShellIntegrationService.empresaChanged
  *   so that ExportFacade cancels in-flight polls on empresa switch.
+ *
+ * Updated: PUB P6 (FE-PUB-023 — Navigation / Breadcrumbs):
+ * - PUB_UPDATE_BREADCRUMB token wired to PubShellIntegrationService.updateBreadcrumb.
+ *   Feature components (T07/T08) inject this token (type:domain) to call updateBreadcrumb
+ *   without violating Nx boundary (type:feature cannot import type:feature).
  */
 import {
   ApplicationConfig,
@@ -45,11 +50,10 @@ import {
 // INT-FE-COMP-006 (P6): import from canonical non-lazy sublib to avoid boundary violation
 import { provideComp } from '@cordele/comp/data-access';
 // P2 (FE-PUB-007): import from canonical sub-lib — real pub-service integration, no mocks
-import { PUB_EMPRESA_CHANGED, providePub } from '@cordele/pub-data-access';
+import { PUB_BREADCRUMB, PUB_EMPRESA_CHANGED, providePub, PUB_UPDATE_BREADCRUMB, PUB_PERMISSION_MAP_STATIC, PUB_FEATURE_FLAGS_STATIC } from '@cordele/pub-data-access';
 // PUB P4 (INT-FE-PUB-006): wire empresaChanged signal so ExportFacade cancels poll on empresa switch
+// PUB P6 (FE-PUB-023): wire PUB_UPDATE_BREADCRUMB token to PubShellIntegrationService.updateBreadcrumb
 import { PubShellIntegrationService } from '@cordele/pub-integration';
-import { ACCESS_EMPRESA_ID } from '@cordele/shared/access-http-base';
-import { EmpresaContextService } from '@cordele/shared/empresa-context';
 import { AuthSessionService } from '@cordele/shared/auth-session';
 import { AccessDecisionService } from '@cordele/shared/access-decision';
 
@@ -72,6 +76,7 @@ function initAuthSession(): () => void {
       if (token) {
         authService.setToken(token);
       }
+    // eslint-disable-next-line no-restricted-syntax -- SSR/sandbox: localStorage unavailable in some environments (SSR, sandboxed iframes, private-browsing locks); silence is correct here because the app initializes without a token and Keycloak redirect handles re-auth.
     } catch {
       // localStorage unavailable (SSR, sandboxed iframe, private-browsing locks) — safe to ignore.
     }
@@ -96,6 +101,30 @@ function initImpPermissions(): () => void {
   };
 }
 
+/**
+ * initPubPermissions — APP_INITIALIZER factory (P9 E2E hardening).
+ * Registers PUB_PERMISSION_MAP_STATIC and PUB_FEATURE_FLAGS_STATIC in AccessDecisionService
+ * so that accessGuard('pub.export'), accessGuard('pub.view'), and accessGuard('pub.download')
+ * can resolve BE scopes from JWT claims and evaluate correctly.
+ *
+ * Without this, AccessDecisionService.can('pub.export') returns false (fail-closed
+ * on unknown permission) → accessGuard redirects to /acesso-negado even for
+ * authenticated users with the correct JWT scopes (pub:write).
+ *
+ * Mirrors initImpPermissions above — same pattern, PUB module.
+ */
+function initPubPermissions(): () => void {
+  const ads = inject(AccessDecisionService);
+  return () => {
+    ads.registerPermissions(PUB_PERMISSION_MAP_STATIC);
+    ads.registerFlags(
+      Object.fromEntries(
+        Object.entries(PUB_FEATURE_FLAGS_STATIC).map(([k, v]) => [k, { defaultState: v.defaultState }]),
+      ),
+    );
+  };
+}
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
@@ -111,6 +140,13 @@ export const appConfig: ApplicationConfig = {
     {
       provide: APP_INITIALIZER,
       useFactory: initImpPermissions,
+      multi: true,
+    },
+    // P9 (E2E hardening): registers PUB permissions so accessGuard('pub.export') evaluates correctly.
+    // Without this, pub.export → pub:write lookup returns false (unknown perm) → guard redirect.
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initPubPermissions,
       multi: true,
     },
     // P7 (E2E fix C): adapter='http' — IMP e2e tests use page.route() Playwright intercepts
@@ -129,12 +165,29 @@ export const appConfig: ApplicationConfig = {
       provide: PUB_EMPRESA_CHANGED,
       useFactory: () => inject(PubShellIntegrationService).empresaChanged,
     },
-    // INT-FE-COMP-001/006: Wire empresa context into AccessHttpClient's X-Empresa-Id header.
-    // The empresa_id is derived from the JWT claim via EmpresaContextService.current().
-    // This is observability-only — the server resolves empresa from the JWT, not this header.
+    // PUB P6 (FE-PUB-023): wire PUB_UPDATE_BREADCRUMB to PubShellIntegrationService.updateBreadcrumb.
+    // Feature components (T07/T08) inject PUB_UPDATE_BREADCRUMB from @cordele/pub-data-access and call
+    // it with the projetoId/nomeProjeto to resolve breadcrumb segments for the active screen.
+    // This avoids the Nx boundary violation: type:feature (pub-feature-*) cannot import type:feature (pub-integration).
     {
-      provide: ACCESS_EMPRESA_ID,
-      useFactory: () => inject(EmpresaContextService).currentId(),
+      provide: PUB_UPDATE_BREADCRUMB,
+      useFactory: () => {
+        const svc = inject(PubShellIntegrationService);
+        return (nomeProjeto: string) => svc.updateBreadcrumb(nomeProjeto);
+      },
+    },
+    // PUB P8 (FE-PUB-026): wire PUB_BREADCRUMB to PubShellIntegrationService.publishBreadcrumb.
+    // ExportFacade, HistoryFacade (type:data-access) and ExportacaoEValidacaoComponent (type:feature)
+    // inject PUB_BREADCRUMB from @cordele/pub-data-access and call it to emit lifecycle telemetry events.
+    // Token in pub-data-access (not pub-integration) because data-access cannot import feature — same
+    // boundary pattern as PUB_EMPRESA_CHANGED and PUB_UPDATE_BREADCRUMB.
+    {
+      provide: PUB_BREADCRUMB,
+      useFactory: () => {
+        const svc = inject(PubShellIntegrationService);
+        return (event: string, projetoId: string, correlationId?: string) =>
+          svc.publishBreadcrumb(event, projetoId, correlationId);
+      },
     },
   ],
 };

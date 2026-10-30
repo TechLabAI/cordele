@@ -44,6 +44,8 @@ import { type IProjectEventPublisher } from '../proj.event-publisher.interface';
 
 export interface DeleteProjetoInput {
   readonly projetoId: string;
+  /** JWT forwarded from the originating HTTP request so erasure ports can authenticate. */
+  readonly bearerToken?: string;
 }
 
 @Injectable()
@@ -71,7 +73,7 @@ export class DeleteProjetoUseCase {
    *         row is left intact so the cascade can be retried
    */
   async execute(input: DeleteProjetoInput, user: UsuarioContext): Promise<void> {
-    const { projetoId } = input;
+    const { projetoId, bearerToken } = input;
     const { empresaId } = user;
 
     const projeto = await this.repository.findById(projetoId, empresaId);
@@ -83,19 +85,19 @@ export class DeleteProjetoUseCase {
 
     // Step 1: PUB — leaf furthest from the source of truth.
     await this.erase(
-      () => this.publicationErasure.erase(projetoId, empresaId),
+      () => this.publicationErasure.erase(projetoId, empresaId, bearerToken),
       'PublicationErasurePort',
     );
 
     // Step 2: COMP.
     await this.erase(
-      () => this.compositionErasure.erase(projetoId, empresaId),
+      () => this.compositionErasure.erase(projetoId, empresaId, bearerToken),
       'CompositionErasurePort',
     );
 
     // Step 3: IMP.
     await this.erase(
-      () => this.manuscriptErasure.erase(projetoId, empresaId),
+      () => this.manuscriptErasure.erase(projetoId, empresaId, bearerToken),
       'ManuscriptErasurePort',
     );
 

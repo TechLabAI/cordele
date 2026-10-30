@@ -8,7 +8,7 @@
  *
  * Multi-empresa contract (multi-empresa.md §3):
  *   - empresa_id is carried in the JWT claim `empresa_id`.
- *   - The FE NEVER sends `X-Empresa-Id` as a scoping authority; it is observability-only.
+ *   - The FE does NOT send `X-Empresa-Id`; empresa context is resolved server-side from the JWT claim.
  *   - `EmpresaContextService` is the single source of truth for empresa_id on the FE.
  *
  * INT-FE-COMP-006: initial implementation wired to AuthSessionService.
@@ -76,6 +76,7 @@ export class EmpresaContextService {
         // NgZone.run() ensures Angular's change detection triggers after the signal update.
         this.ngZone.run(() => this._storageEmpresaId.set(id));
       });
+    // eslint-disable-next-line no-restricted-syntax -- SSR / sandboxed iframe: window.addEventListener is unavailable; silence is correct and no alternative exists
     } catch {
       // SSR or sandboxed iframe — window not available.
     }

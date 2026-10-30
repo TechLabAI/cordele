@@ -90,6 +90,47 @@ Proibido:
 
 ---
 
+## Silent-degradation gate (SD-02 — FE)
+
+One ESLint rule is enforced in `frontend/.eslintrc.json` for all TypeScript files:
+
+### RULE-SD-02: Empty or comment-only catch blocks
+
+```
+Pattern:  catch { }
+          catch (e) { }   // even with only a comment inside
+```
+
+A swallowed exception silently leaves the component in an inconsistent state;
+no error toast is shown and no error state is set in the signal/store.
+
+**Fix:** set a visible error state, show a toast, or rethrow.
+
+**Annotate if silence is genuinely correct** (SSR compatibility, best-effort
+cleanup, or a UX decision documented in the issue):
+
+```ts
+// eslint-disable-next-line no-restricted-syntax -- SSR: window not available; silence is correct and no alternative exists
+} catch {
+  // SSR or sandboxed iframe — window.addEventListener unavailable
+}
+```
+
+**UX-decision catches** (e.g. non-blocking download failure with a product
+decision about the error message still pending) must also be annotated and
+should reference the tracking issue:
+
+```ts
+// eslint-disable-next-line no-restricted-syntax -- non-blocking UX decision; error toast message TBD in PROJ-XXX
+} catch {
+  // user can retry from the history view
+}
+```
+
+The gate is disabled for `*.spec.ts` test files.
+
+---
+
 ## PR checklist
 
 - [ ] Imports respeitam tags (`@nx/enforce-module-boundaries` verde).
@@ -97,3 +138,4 @@ Proibido:
 - [ ] Rotas lazy preservadas (`loadComponent` ou `loadChildren`).
 - [ ] `nx lint`, `nx test`, `nx build` verdes.
 - [ ] Sem `../../../` cross-project -- usar path mappings de `tsconfig.base.json`.
+- [ ] Nenhum `catch {}` vazio ou com apenas comentário sem anotação `no-restricted-syntax`.

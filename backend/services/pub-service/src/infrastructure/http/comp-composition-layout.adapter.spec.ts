@@ -21,6 +21,10 @@ describe('CompCompositionLayoutAdapter', () => {
   const makeConfig = (url = COMP_BASE_URL): ConfigService =>
     ({
       get: jest.fn().mockImplementation((key: string) => (key === 'COMP_SERVICE_URL' ? url : undefined)),
+      getOrThrow: jest.fn().mockImplementation((key: string) => {
+        if (key === 'COMP_SERVICE_URL') return url;
+        throw new Error(`[test] ConfigService key not found: ${key}`);
+      }),
     }) as unknown as ConfigService;
 
   const makeResponse = (body: unknown, status = 200): Response =>
@@ -167,6 +171,24 @@ describe('CompCompositionLayoutAdapter', () => {
       const result = await adapter.get(PROJETO_ID);
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('Cenário 5: SD-01 — sem env var, adapter falha na construcao', () => {
+    it('throws during construction when COMP_SERVICE_URL env var is absent (SD-01 guard)', () => {
+      // Validates that the adapter fails loudly at boot time instead of silently
+      // falling back to a wrong default. This test would break if getOrThrow()
+      // were reverted to config.get() ?? 'default'.
+      const configWithoutUrl: ConfigService = {
+        get: jest.fn().mockReturnValue(undefined),
+        getOrThrow: jest.fn().mockImplementation((key: string) => {
+          throw new Error(`[test] Missing env var: ${key}`);
+        }),
+      } as unknown as ConfigService;
+
+      expect(() => new CompCompositionLayoutAdapter(configWithoutUrl, empresaContextService)).toThrow(
+        /Missing env var: COMP_SERVICE_URL/,
+      );
     });
   });
 });

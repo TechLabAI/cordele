@@ -2,14 +2,14 @@
  * layout-http.adapter.spec.ts — HttpTestingController tests for LayoutHttpAdapter.
  * FE-COMP-007: GET layout, PUT layout (upsertLayout body), GET preview-context.
  * Key constraint: PUT /layout payload NEVER includes tipo='em-branco' (D-H / ADR-COMP-001).
- * INT-FE-COMP-001 (P4): verifies X-Empresa-Id header is propagated via AccessHttpClient.
+ * INT-FE-COMP-001 (P4): verifies X-Empresa-Id header is NOT sent — empresa context comes from JWT claim.
  */
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { LayoutHttpAdapter } from './api/layout-http.adapter';
-import { ACCESS_EMPRESA_ID, AccessHttpClient } from '@cordele/shared/access-http-base';
+import { ACCESS_EMPRESA_ID, AccessHttpClient, moduleBase } from '@cordele/shared/access-http-base';
 import type { UpsertLayoutBody, ConfiguracaoLayoutDto } from './models/comp.models';
 
 describe('LayoutHttpAdapter', () => {
@@ -17,7 +17,8 @@ describe('LayoutHttpAdapter', () => {
   let httpMock: HttpTestingController;
 
   const PROJECT_ID = 'proj-xyz-002';
-  const BASE = `/api/comp/projetos/${PROJECT_ID}`;
+  /** Derives from moduleBase so spec tracks the same source as production code. */
+  const BASE = `${moduleBase('comp')}/projetos/${PROJECT_ID}`;
 
   const MOCK_LAYOUT: ConfiguracaoLayoutDto = {
     fonteCorpoFamilia: 'serif',
@@ -58,11 +59,13 @@ describe('LayoutHttpAdapter', () => {
     req.flush(MOCK_LAYOUT);
   });
 
-  it('GET /layout — sends X-Empresa-Id header (INT-FE-COMP-001)', () => {
+  it('GET /layout — does NOT send X-Empresa-Id header (INT-FE-COMP-001 — empresa from JWT)', () => {
+    // Even when ACCESS_EMPRESA_ID token is provided, the header must be absent.
+    // Server resolves empresa from JWT `empresa_id` claim (EmpresaContextInterceptor).
     adapter.getLayout(PROJECT_ID).subscribe();
 
     const req = httpMock.expectOne(`${BASE}/layout`);
-    expect(req.request.headers.get('X-Empresa-Id')).toBe('emp_aetos');
+    expect(req.request.headers.get('X-Empresa-Id')).toBeNull();
     req.flush(MOCK_LAYOUT);
   });
 
@@ -96,7 +99,9 @@ describe('LayoutHttpAdapter', () => {
     req.flush({ ...MOCK_LAYOUT, materialized: true });
   });
 
-  it('PUT /layout — sends X-Empresa-Id header (INT-FE-COMP-001)', () => {
+  it('PUT /layout — does NOT send X-Empresa-Id header (INT-FE-COMP-001 — empresa from JWT)', () => {
+    // Even when ACCESS_EMPRESA_ID token is provided, the header must be absent.
+    // Server resolves empresa from JWT `empresa_id` claim (EmpresaContextInterceptor).
     const body: UpsertLayoutBody = {
       fonteCorpoFamilia: 'serif',
       fonteCorpoTamanho: 12,
@@ -112,7 +117,7 @@ describe('LayoutHttpAdapter', () => {
 
     const req = httpMock.expectOne(`${BASE}/layout`);
     expect(req.request.method).toBe('PUT');
-    expect(req.request.headers.get('X-Empresa-Id')).toBe('emp_aetos');
+    expect(req.request.headers.get('X-Empresa-Id')).toBeNull();
     req.flush(MOCK_LAYOUT);
   });
 
@@ -148,6 +153,48 @@ describe('LayoutHttpAdapter', () => {
       arvore: [],
       layout: MOCK_LAYOUT,
       overrides: [],
+    });
+  });
+
+  /**
+   * URL prefix regression guard.
+   *
+   * Locks the /api/v1/comp/ prefix so that a revert to /api/comp/ is caught here
+   * before reaching runtime. URL is derived from moduleBase('comp') — never hardcoded.
+   */
+  describe('URL prefix regression guard', () => {
+    it('getLayout uses /api/v1/comp/ prefix (not /api/comp/)', () => {
+      adapter.getLayout(PROJECT_ID).subscribe();
+      httpMock.expectNone(r => r.url.startsWith('/api/comp/'));
+      const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/comp/'));
+      expect(req.request.url).toBe(`${BASE}/layout`);
+      req.flush(MOCK_LAYOUT);
+    });
+
+    it('upsertLayout uses /api/v1/comp/ prefix (not /api/comp/)', () => {
+      const body: UpsertLayoutBody = {
+        fonteCorpoFamilia: 'serif',
+        fonteCorpoTamanho: 12,
+        espacamentoLinha: 1.5,
+        margemLateral: 20,
+        h1Tamanho: 28,
+        h2Tamanho: 22,
+        h3Tamanho: 18,
+        overrides: [],
+      };
+      adapter.upsertLayout(PROJECT_ID, body).subscribe();
+      httpMock.expectNone(r => r.url.startsWith('/api/comp/'));
+      const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/comp/'));
+      expect(req.request.url).toBe(`${BASE}/layout`);
+      req.flush(MOCK_LAYOUT);
+    });
+
+    it('getPreviewContext uses /api/v1/comp/ prefix (not /api/comp/)', () => {
+      adapter.getPreviewContext(PROJECT_ID).subscribe();
+      httpMock.expectNone(r => r.url.startsWith('/api/comp/'));
+      const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/comp/'));
+      expect(req.request.url).toBe(`${BASE}/preview-context`);
+      req.flush({ projetoId: PROJECT_ID, arvore: [], layout: MOCK_LAYOUT, overrides: [] });
     });
   });
 });

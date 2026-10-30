@@ -4,6 +4,6 @@
  *
  * Blocks COMP routes when no active empresa is set in the session.
  * Empresa is resolved server-side from the JWT claim empresa_id (multi-empresa.md §3).
- * COMP never sends X-Empresa-Id as a scoping authority — it is observability-only.
+ * Empresa is resolved server-side from the JWT `empresa_id` claim — the FE does not send X-Empresa-Id.
  */
 export { empresaGuard } from '@cordele/shared/empresa-context';

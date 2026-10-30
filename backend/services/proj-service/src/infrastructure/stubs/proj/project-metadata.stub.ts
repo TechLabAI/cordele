@@ -28,6 +28,7 @@ export class ProjectMetadataStub implements ProjectMetadataPort {
   async metadata(
     projetoIds: string[],
     empresaId: string,
+    _bearerToken?: string,
   ): Promise<Map<string, ProjectMetadata>> {
     if (projetoIds.length === 0) {
       return new Map();

@@ -1,0 +1,379 @@
+{
+  "realm": "cordele",
+  "displayName": "Cordelê",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "bruteForceProtected": false,
+  "accessTokenLifespan": 1800,
+  "refreshTokenMaxReuse": 0,
+  "revokeRefreshToken": false,
+
+  "roles": {
+    "realm": [
+      {
+        "name": "empresa-admin",
+        "description": "Administrador da empresa — acesso total + override de tenant via X-Tenant-Id"
+      },
+      {
+        "name": "coordenadora-editorial",
+        "description": "Coordenadora editorial — fluxo completo IMP→COMP→PUB→PROJ (sem proj:delete)"
+      },
+      {
+        "name": "leitor-editorial",
+        "description": "Leitor editorial — somente read + download do ePub"
+      }
+    ]
+  },
+
+  "clientScopes": [
+    {
+      "name": "imp:read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "imp:write",
+      "protocol": "openid-connect",
+      "description": "Scope declarado na spec e no frontend mas sem @RequiredScopes no código hoje (gap §6 do modelo.md). Incluído no realm para não quebrar clientes futuros.",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "comp:read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "comp:write",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "pub:read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "pub:write",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "proj:read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "proj:write",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    },
+    {
+      "name": "proj:delete",
+      "protocol": "openid-connect",
+      "description": "Erasure LGPD — scope privilegiado (PROJ-014). Somente empresa-admin.",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      }
+    }
+  ],
+
+  "clients": [
+    {
+      "clientId": "cordele-web",
+      "name": "Cordelê Web",
+      "description": "SPA Angular — public client com PKCE. NÃO usar em produção sem revisão de URIs.",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "redirectUris": [
+        "http://localhost:4500/*",
+        "http://localhost:4200/*",
+        "http://localhost:4500",
+        "http://localhost:4200"
+      ],
+      "webOrigins": [
+        "http://localhost:4500",
+        "http://localhost:4200"
+      ],
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email",
+        "imp:read",
+        "comp:read",
+        "pub:read",
+        "proj:read"
+      ],
+      "optionalClientScopes": [
+        "imp:write",
+        "comp:write",
+        "pub:write",
+        "proj:write",
+        "proj:delete"
+      ],
+      "protocolMappers": [
+        {
+          "name": "sub",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-sub-mapper",
+          "consentRequired": false,
+          "config": {
+            "introspection.token.claim": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "true"
+          }
+        },
+        {
+          "name": "username",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "username",
+            "claim.name": "preferred_username",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "realm_access.roles",
+            "multivalued": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true",
+            "jsonType.label": "String",
+            "usermodel.realmRoleMapping.rolePrefix": ""
+          }
+        },
+        {
+          "name": "empresa_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "empresa_id",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "empresa_id",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "effective-scope-override",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-effective-scope-mapper",
+          "consentRequired": false,
+          "config": {}
+        },
+        {
+          "name": "aud-imp-service",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "imp-service",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "aud-comp-service",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "comp-service",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "aud-pub-service",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "pub-service",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "aud-proj-service",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "proj-service",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+
+  "users": [
+    {
+      "username": "admin-aetos",
+      "email": "admin@aetos.dev",
+      "firstName": "Admin",
+      "lastName": "Aetós",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["empresa-admin"],
+      "attributes": {
+        "empresa_id": ["aetos"],
+        "effective_scope": ["openid imp:read imp:write comp:read comp:write pub:read pub:write proj:read proj:write proj:delete"]
+      }
+    },
+    {
+      "username": "coordenadora",
+      "email": "coordenadora@aetos.dev",
+      "firstName": "Marina",
+      "lastName": "Coordenadora",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "coord123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["coordenadora-editorial"],
+      "attributes": {
+        "empresa_id": ["aetos"],
+        "effective_scope": ["openid imp:read imp:write comp:read comp:write pub:read pub:write proj:read proj:write"]
+      }
+    },
+    {
+      "username": "leitor",
+      "email": "leitor@aetos.dev",
+      "firstName": "Leitor",
+      "lastName": "Editorial",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "leitor123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["leitor-editorial"],
+      "attributes": {
+        "empresa_id": ["aetos"],
+        "effective_scope": ["openid imp:read comp:read pub:read proj:read"]
+      }
+    },
+    {
+      "username": "admin-outra",
+      "email": "admin@outra-empresa.dev",
+      "firstName": "Admin",
+      "lastName": "Outra Empresa",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["empresa-admin"],
+      "attributes": {
+        "empresa_id": ["outra-empresa"],
+        "effective_scope": ["openid imp:read imp:write comp:read comp:write pub:read pub:write proj:read proj:write proj:delete"]
+      }
+    },
+    {
+      "username": "coordenadora-outra",
+      "email": "coordenadora@outra-empresa.dev",
+      "firstName": "Marina",
+      "lastName": "Outra Empresa",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "coord123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["coordenadora-editorial"],
+      "attributes": {
+        "empresa_id": ["outra-empresa"],
+        "effective_scope": ["openid imp:read imp:write comp:read comp:write pub:read pub:write proj:read proj:write"]
+      }
+    },
+    {
+      "username": "leitor-outra",
+      "email": "leitor@outra-empresa.dev",
+      "firstName": "Leitor",
+      "lastName": "Outra Empresa",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "leitor123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["leitor-editorial"],
+      "attributes": {
+        "empresa_id": ["outra-empresa"],
+        "effective_scope": ["openid imp:read comp:read pub:read proj:read"]
+      }
+    }
+  ]
+}

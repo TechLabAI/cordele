@@ -8,6 +8,8 @@
  * RULE-NX-05: no raw HttpClient. HTTP lives in PublicacaoHttpAdapter (extends AccessHttpClient).
  * Cross-context: getProjetoHeader (PROJ) and getAutor (COMP) are stubbed here for P2;
  *               they will be wired to the real cross-service calls in P4 (INT-FE-PUB-002/003).
+ *
+ * INT-FE-PUB-004 (2026-09-03): getValidationMessages added (§4.6 unblocked — PUB-016 BE done).
  */
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -18,6 +20,8 @@ import {
   PublicacaoStatus,
   PublicationStats,
   SignedDownloadUrl,
+  ValidationMessageItem,
+  ValidationMessageSeverity,
 } from './models/pub.models';
 
 @Injectable({ providedIn: 'root' })
@@ -74,10 +78,28 @@ export class PublicacaoApiService {
     return this.port.getStats(projetoId);
   }
 
+  // ─── §4.6 — Validation messages (INT-FE-PUB-004) ─────────────────────────
+
+  /**
+   * GET /api/v1/pub/projetos/{projetoId}/publicacoes/{publicacaoId}/validation-messages
+   * Detailed epubcheck message rows ordered by `ordem ASC` (api-contract §4.6).
+   * `severity` is optional; omitted = all severities.
+   *
+   * Scope: pub:read — same as poll; no extra scope needed.
+   * 404 (urn:cordele:pub:publicacao-not-found) on cross-tenant mismatch.
+   */
+  getValidationMessages(
+    projetoId: string,
+    publicacaoId: string,
+    severity?: ValidationMessageSeverity,
+  ): Observable<ValidationMessageItem[]> {
+    return this.port.getValidationMessages(projetoId, publicacaoId, severity);
+  }
+
   // ─── Cross-context — wired in P4 ─────────────────────────────────────────
 
   /**
-   * GET /api/proj/projetos/{projetoId} — project header (name, status, editora).
+   * GET /api/v1/proj/projetos/{projetoId} — project header (name, status, editora).
    * INT-FE-PUB-002 (P4): provides real cross-context data when an injection token
    * override is registered in app.config.ts (PUB_PROJETO_HEADER_FN token).
    * Default (no override): returns null — HistoryFacade renders gracefully without header.
@@ -94,7 +116,7 @@ export class PublicacaoApiService {
   }
 
   /**
-   * Metadata subtitle (autor) from COMP (GET /api/comp/projetos/{projetoId}/metadados).
+   * Metadata subtitle (autor) from COMP (GET /api/v1/comp/projetos/{projetoId}/metadados).
    * INT-FE-PUB-003 (P4): provides real cross-context data when an injection token
    * override is registered in app.config.ts (PUB_AUTOR_FN token).
    * Default (no override): returns null — HistoryFacade renders gracefully without autor.

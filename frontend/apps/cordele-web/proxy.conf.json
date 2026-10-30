@@ -1,0 +1,26 @@
+{
+  "/api/v1/imp": {
+    "target": "http://localhost:3000",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "info"
+  },
+  "/api/v1/comp": {
+    "target": "http://localhost:3001",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "info"
+  },
+  "/api/v1/pub": {
+    "target": "http://localhost:3002",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "info"
+  },
+  "/api/v1/proj": {
+    "target": "http://localhost:3003",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "info"
+  }
+}

@@ -6,8 +6,8 @@
  *   - Bounded poll: POST 202 + GET status with Retry-After (D-N; no SSE, no setInterval).
  *   - Progress is always indeterminate — PublicacaoStatus carries no percentage (D-N, SPEC-03).
  *   - podeBaixar = computed(epubcheckStatus ∈ {valido, avisos} AND arquivoDisponivel) — R4.
- *   - KPI tiles (Tamanho/Páginas/Capítulos/Imagens): no field in api-contract → always null → tiles hidden (INT-FE-PUB-005).
- *   - Avisos detail (§4.6): NOT called — INT-FE-PUB-004 BLOCKED (PUB-016 not ratified).
+   *   - KPI tiles (INT-FE-PUB-005 resolved): tamanhoBytes/totalCapitulos/totalImagens in api-contract §6.1;
+ *   - Avisos detail (§4.6): called after terminal — INT-FE-PUB-004 unblocked (PUB-016 landed, 2026-09-03).
  *   - setInterval: never used — all async via timer() + switchMap.
  *   - empresaChanged: ExportFacade injects PUB_EMPRESA_CHANGED token (Signal<number>) and
  *     cancels any in-flight poll when the signal increments (INT-FE-PUB-006).
@@ -25,11 +25,47 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { Observable, Subject, switchMap, take, timer } from 'rxjs';
 import { PUB_EMPRESA_CHANGED } from './empresa-changed.token';
+import { PUB_BREADCRUMB } from './pub-breadcrumb.token';
 import { PublicacaoApiService } from './publicacao-api.service';
-import { ExportPhase, PublicacaoStatus } from './models/pub.models';
+import {
+  AvisoVM,
+  EpubSummaryVM,
+  ExportPhase,
+  PublicacaoStatus,
+  formatBytes,
+  toAvisoVM,
+} from './models/pub.models';
 
 const DEFAULT_RETRY_MS = 2_000;
 const MAX_POLLS       = 60;
+
+/**
+ * Extract the X-Correlation-Id from a raw error object (FE-PUB-024).
+ * Priority (highest first):
+ *   1. AppError.correlationId — top-level (set by a normalising error interceptor).
+ *   2. HttpErrorResponse.error.correlationId — parsed JSON body from the BE.
+ *      Angular's HttpClient wraps the response body in `err.error`; the Cordelê BE
+ *      always includes `correlationId` in error bodies.
+ *   3. HttpErrorResponse.headers.get('x-correlation-id') — response header.
+ * Returns null when none is available (network errors without a backend response).
+ */
+function extractTraceId(err: unknown): string | null {
+  if (!err || typeof err !== 'object') return null;
+  const e = err as Record<string, unknown>;
+  // 1. AppError.correlationId (normalised by an error interceptor)
+  if (typeof e['correlationId'] === 'string') return e['correlationId'];
+  // 2. HttpErrorResponse.error.correlationId (parsed JSON body from BE)
+  const errorBody = e['error'] as Record<string, unknown> | null | undefined;
+  if (errorBody && typeof errorBody === 'object' && typeof errorBody['correlationId'] === 'string') {
+    return errorBody['correlationId'];
+  }
+  // 3. HttpErrorResponse.headers.get('x-correlation-id')
+  const headers = e['headers'] as { get?: (k: string) => string | null } | undefined;
+  if (headers && typeof headers.get === 'function') {
+    return headers.get('x-correlation-id');
+  }
+  return null;
+}
 
 function toPhase(s: PublicacaoStatus): ExportPhase {
   if (s.status === 'gerando' || s.status === 'validando') return 'gerando';
@@ -49,18 +85,38 @@ export class ExportFacade {
   private readonly destroyRef    = inject(DestroyRef);
   /** Signal<number>: increments on cada empresa switch. Default = signal(0) (no-op). */
   private readonly empresaChanged: Signal<number> = inject(PUB_EMPRESA_CHANGED);
+  /**
+   * Telemetry breadcrumb callback (FE-PUB-026 / P8).
+   * Optional: no-op default factory in token; real impl wired in app.config.ts.
+   * Called with 'export-requested' after a successful POST to trigger the export build.
+   */
+  private readonly breadcrumb = inject(PUB_BREADCRUMB, { optional: true });
 
   // ── Raw state ─────────────────────────────────────────────────────────────
-  private readonly _phase     = signal<ExportPhase>('gerando');
-  private readonly _status    = signal<PublicacaoStatus | null>(null);
-  private readonly _error     = signal<string | null>(null);
-  private readonly _projetoId = signal<string | null>(null);
+  private readonly _phase        = signal<ExportPhase>('gerando');
+  private readonly _status       = signal<PublicacaoStatus | null>(null);
+  private readonly _error        = signal<string | null>(null);
+  private readonly _errorTraceId = signal<string | null>(null);
+  private readonly _projetoId    = signal<string | null>(null);
+  /** Detailed epubcheck messages (§4.6 / INT-FE-PUB-004). Populated after terminal state. */
+  private readonly _avisos       = signal<AvisoVM[]>([]);
 
   // ── Public readonly signals ───────────────────────────────────────────────
   readonly phase     = this._phase.asReadonly();
   readonly status    = this._status.asReadonly();
   readonly error     = this._error.asReadonly();
+  /**
+   * X-Correlation-Id from the last failed request (FE-PUB-024 / SPEC-07 §4).
+   * Displayed to the user as a support reference. Null when no error is active.
+   */
+  readonly errorTraceId = this._errorTraceId.asReadonly();
   readonly projetoId = this._projetoId.asReadonly();
+  /**
+   * Detailed epubcheck validation messages from §4.6 (INT-FE-PUB-004).
+   * Populated after reaching a terminal build state (publicado or com_erros).
+   * Empty until then; resets on reset() or new startExport().
+   */
+  readonly avisos = this._avisos.asReadonly();
 
   /** True iff epubcheckStatus ∈ {valido, avisos} AND arquivoDisponivel (api-contract D-Q / SPEC-03 R4). */
   readonly podeBaixar = computed(() => {
@@ -75,6 +131,22 @@ export class ExportFacade {
   readonly totalAvisos = computed(() => this._status()?.totalAvisos ?? 0);
   readonly totalErros  = computed(() => this._status()?.totalErros  ?? 0);
   readonly resumoErro  = computed(() => this._status()?.resumoErro  ?? null);
+
+  /**
+   * ePub KPI tiles view model (INT-FE-PUB-005 / SPEC-03 §3).
+   * Non-null only when status = 'publicado' (BE fields are non-null only then).
+   * paginas is PERMANENTLY null — ADR-004: ePub reflowable has no fixed pagination.
+   */
+  readonly summary = computed<EpubSummaryVM | null>(() => {
+    const s = this._status();
+    if (!s || s.status !== 'publicado') return null;
+    return {
+      tamanho:   s.tamanhoBytes != null ? formatBytes(s.tamanhoBytes) : null,
+      paginas:   null,  // ADR-004: ePub reflowable — sem paginação fixa; nunca exibir tile
+      capitulos: s.totalCapitulos,
+      imagens:   s.totalImagens,
+    };
+  });
 
   // ── Poll control ──────────────────────────────────────────────────────────
   private readonly _stop$ = new Subject<void>();
@@ -98,6 +170,7 @@ export class ExportFacade {
     this._phase.set('gerando');
     this._error.set(null);
     this._status.set(null);
+    this._avisos.set([]);
     this._stop$.next(); // cancel any previous poll
 
     this.api.triggerExport(projetoId)
@@ -105,14 +178,18 @@ export class ExportFacade {
       .subscribe({
         next: status => {
           this._status.set(status);
+          // FE-PUB-026 (P8): emit telemetry event after successful export trigger.
+          this.breadcrumb?.('export-requested', projetoId);
           if (isTerminal(status)) {
             this._phase.set(toPhase(status));
+            this._loadAvisos(projetoId, status.publicacaoId);
           } else {
             this._beginPoll(projetoId, status.publicacaoId, DEFAULT_RETRY_MS);
           }
         },
         error: err => {
           this._phase.set('error');
+          this._errorTraceId.set(extractTraceId(err));
           this._error.set(this._toMessage(err));
         },
       });
@@ -162,6 +239,7 @@ export class ExportFacade {
         },
         error: err => {
           this._phase.set('error');
+          this._errorTraceId.set(extractTraceId(err));
           this._error.set(this._toMessage(err));
         },
       });
@@ -177,7 +255,9 @@ export class ExportFacade {
     this._phase.set('gerando');
     this._status.set(null);
     this._error.set(null);
+    this._errorTraceId.set(null);
     this._projetoId.set(null);
+    this._avisos.set([]);
   }
 
   // ── Private ───────────────────────────────────────────────────────────────
@@ -186,7 +266,10 @@ export class ExportFacade {
     this._stop$.next();
     if (this._phase() === 'gerando') {
       this._phase.set('error');
-      this._error.set('A exportação foi cancelada porque a empresa foi alterada. Tente novamente.');
+      this._errorTraceId.set(null);
+      // FE-PUB-024: "empresa alterada" replaced by neutral message — cancel can be triggered
+      // by navigation or empresa switch (INT-FE-PUB-006); neither warrants empresa-specific copy.
+      this._error.set('A exportação foi cancelada. Tente novamente.');
     }
   }
 
@@ -214,18 +297,34 @@ export class ExportFacade {
             this._status.set(status);
             if (isTerminal(status)) {
               this._phase.set(toPhase(status));
+              this._loadAvisos(projetoId, publicacaoId);
             } else {
               tick();
             }
           },
           error: err => {
             this._phase.set('error');
+            this._errorTraceId.set(extractTraceId(err));
             this._error.set(this._toMessage(err));
           },
         });
     };
 
     tick();
+  }
+
+  /**
+   * Load detailed epubcheck messages from §4.6 after a terminal build state.
+   * Best-effort: errors are silently swallowed (counts from §6.1 remain available).
+   * Called for both publicado and com_erros — both states may have messages.
+   */
+  private _loadAvisos(projetoId: string, publicacaoId: string): void {
+    this.api.getValidationMessages(projetoId, publicacaoId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next:  items => this._avisos.set(items.map(toAvisoVM)),
+        error: _err  => { /* best-effort — counts from §6.1 still shown */ },
+      });
   }
 
   private _toMessage(err: unknown): string {

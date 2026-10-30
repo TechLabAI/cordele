@@ -6,7 +6,7 @@
  *
  * Strategy:
  *   1. Extract projetoId from ActivatedRouteSnapshot.
- *   2. GET /api/proj/projetos/{projetoId} via AccessHttpClient (X-Empresa-Id propagated).
+ *   2. GET /api/v1/proj/projetos/{projetoId} via AccessHttpClient (RULE-NX-05).
  *   3. em_composicao → allow.
  *   4. rascunho → redirect to /imp/projetos/:projetoId/importar.
  *   5. publicado / com_erros → redirect to /proj/projetos/:projetoId/historico.
@@ -15,15 +15,15 @@
  * This is a FE-only UX guard (SPEC-01 §3): the BE api-contract defines no COMP
  * illegal-status error. The guard pre-empts the navigation; it is not a security boundary.
  *
- * HTTP: uses AccessHttpClient (not HttpClient directly) — all module HTTP passes via
- * access-http-base so X-Empresa-Id is propagated consistently (INT-FE-COMP-001).
+ * HTTP: uses AccessHttpClient (not HttpClient directly) per RULE-NX-05 — empresa context
+ * is resolved server-side from the JWT `empresa_id` claim (INT-FE-COMP-001).
  *
  * Track D: created by fe-architect-promote COMP @ cordele (D-494).
  * Updated: INT-FE-COMP-003 (P4) — real proj-service integration via AccessHttpClient.
  */
 import { inject } from '@angular/core';
 import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
-import { AccessHttpClient } from '@cordele/shared/access-http-base';
+import { AccessHttpClient, moduleBase } from '@cordele/shared/access-http-base';
 import { catchError, map, of } from 'rxjs';
 
 // Canonical project status values (mirrors BE ProjetoStatus enum)
@@ -52,7 +52,7 @@ export const compStatusGuard: CanActivateFn = (route: ActivatedRouteSnapshot) =>
   }
 
   return http
-    .get<ProjetoStatusDto>(`/api/proj/projetos/${projetoId}`)
+    .get<ProjetoStatusDto>(`${moduleBase('proj')}/projetos/${projetoId}`)
     .pipe(
       map(projeto => {
         switch (projeto.status) {

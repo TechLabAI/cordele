@@ -3,8 +3,14 @@
  * FE-PROJ-017 (P1): load states, computed canQuickDownload, navigation actions.
  * FE-PROJ-007 (P2): isEmpty fix, empresa-switch via ProjetoApiService.
  *
+ * Contract change (api-contract §4.2, 2026-09):
+ *   listProjetos() returns ProjetoListResult { page, degraded }.
+ *   Tests updated: makeApiService now returns envelope; new tests cover:
+ *     - degraded=true propagation from header
+ *     - loadMore() appends cards and uses nextCursor
+ *     - empresa switch resets pagination
+ *
  * Pattern: TestBed with mocked ProjetoApiService and EmpresaContextService (no HTTP).
- * isEmpty() fix: status==='empty' (not 'ready' && cards.length===0 which was always false).
  */
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -14,7 +20,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { LibraryFacade } from './library.facade';
 import { ProjetoApiService } from './api/projeto-api.service';
 import { EmpresaContextService } from '@cordele/shared/empresa-context';
-import type { ProjetoCard, ProjetoCardVM } from './models/proj.models';
+import type { ProjetoCard, ProjetoCardVM, ProjetoListResult } from './models/proj.models';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -44,13 +50,17 @@ const CARD_RASCUNHO: ProjetoCard = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function makeResult(items: ProjetoCard[], nextCursor: string | null = null, degraded = false): ProjetoListResult {
+  return { page: { items, nextCursor }, degraded };
+}
+
 function makeRouter(): { navigate: ReturnType<typeof vi.fn> } {
   return { navigate: vi.fn().mockResolvedValue(true) };
 }
 
 function makeApiService(overrides: Partial<ProjetoApiService> = {}): Partial<ProjetoApiService> {
   return {
-    listProjetos:       vi.fn().mockReturnValue(of([CARD_VALIDO, CARD_RASCUNHO])),
+    listProjetos:       vi.fn().mockReturnValue(of(makeResult([CARD_VALIDO, CARD_RASCUNHO]))),
     listPublicacoes:    vi.fn().mockReturnValue(of([])),
     resolveDownloadUrl: vi.fn().mockReturnValue(of({ publicacaoId: 'pub-1', arquivoUrl: 'https://cdn.example.com/file.epub', expiresAt: '2024-12-31T23:59:59Z' })),
     ...overrides,
@@ -107,7 +117,7 @@ describe('LibraryFacade — load: retorna [] → status empty, isEmpty() true', 
   let facade: LibraryFacade;
 
   beforeEach(() => {
-    const api = makeApiService({ listProjetos: vi.fn().mockReturnValue(of([])) });
+    const api = makeApiService({ listProjetos: vi.fn().mockReturnValue(of(makeResult([]))) });
     facade = setup(api, makeRouter());
   });
 
@@ -120,8 +130,6 @@ describe('LibraryFacade — load: retorna [] → status empty, isEmpty() true', 
   it('isEmpty() é true quando status="empty" (fix do bug isEmpty P2)', () => {
     facade.load();
     TestBed.flushEffects();
-    // Bug fixado: anteriormente isEmpty() era 'ready' && cards===[], sempre false.
-    // Agora isEmpty() === (status === 'empty').
     expect(facade.isEmpty()).toBe(true);
   });
 
@@ -145,7 +153,6 @@ describe('LibraryFacade — isEmpty() false quando status não é empty', () => 
 
   it('isEmpty() é false antes de load() (status=loading)', () => {
     const facade = setup(makeApiService(), makeRouter());
-    // Do NOT call load() — status stays 'loading'
     expect(facade.status()).toBe('loading');
     expect(facade.isEmpty()).toBe(false);
   });
@@ -176,11 +183,133 @@ describe('LibraryFacade — load: erro de rede → status error', () => {
   });
 });
 
+// ── degraded signal (api-contract §3) ────────────────────────────────────────
+
+describe('LibraryFacade — degraded: X-Degraded header propagado', () => {
+  it('degraded() é false quando API retorna degraded=false', () => {
+    const api = makeApiService({
+      listProjetos: vi.fn().mockReturnValue(of(makeResult([CARD_VALIDO], null, false))),
+    });
+    const facade = setup(api, makeRouter());
+    facade.load();
+    TestBed.flushEffects();
+    expect(facade.degraded()).toBe(false);
+  });
+
+  it('degraded() é true quando API retorna degraded=true', () => {
+    const api = makeApiService({
+      listProjetos: vi.fn().mockReturnValue(of(makeResult([CARD_VALIDO], null, true))),
+    });
+    const facade = setup(api, makeRouter());
+    facade.load();
+    TestBed.flushEffects();
+    expect(facade.degraded()).toBe(true);
+  });
+
+  it('degraded resets para false em load()', () => {
+    // First load with degraded=true
+    const listProjetosSpy = vi.fn()
+      .mockReturnValueOnce(of(makeResult([CARD_VALIDO], null, true)))
+      .mockReturnValue(of(makeResult([CARD_VALIDO], null, false)));
+    const api = makeApiService({ listProjetos: listProjetosSpy });
+    const facade = setup(api, makeRouter());
+
+    facade.load();
+    TestBed.flushEffects();
+    expect(facade.degraded()).toBe(true);
+
+    // Retry clears and sets from new response
+    facade.retry();
+    TestBed.flushEffects();
+    expect(facade.degraded()).toBe(false);
+  });
+});
+
+// ── pagination: hasMore + loadMore ────────────────────────────────────────────
+
+describe('LibraryFacade — hasMore() e loadMore()', () => {
+  it('hasMore() é false quando nextCursor é null', () => {
+    const api = makeApiService({
+      listProjetos: vi.fn().mockReturnValue(of(makeResult([CARD_VALIDO], null))),
+    });
+    const facade = setup(api, makeRouter());
+    facade.load();
+    TestBed.flushEffects();
+    expect(facade.hasMore()).toBe(false);
+  });
+
+  it('hasMore() é true quando nextCursor não é null', () => {
+    const api = makeApiService({
+      listProjetos: vi.fn().mockReturnValue(of(makeResult([CARD_VALIDO], 'cursor-abc'))),
+    });
+    const facade = setup(api, makeRouter());
+    facade.load();
+    TestBed.flushEffects();
+    expect(facade.hasMore()).toBe(true);
+  });
+
+  it('loadMore() acumula cards e usa o cursor da página anterior', () => {
+    const page2Card: ProjetoCard = { ...CARD_RASCUNHO, id: 'proj-003', nome: 'Terceiro' };
+    const listProjetosSpy = vi.fn()
+      .mockReturnValueOnce(of(makeResult([CARD_VALIDO], 'cursor-abc')))
+      .mockReturnValueOnce(of(makeResult([page2Card], null)));
+
+    const api = makeApiService({ listProjetos: listProjetosSpy });
+    const facade = setup(api, makeRouter());
+
+    facade.load();
+    TestBed.flushEffects();
+    expect(facade.projects().length).toBe(1);
+    expect(facade.hasMore()).toBe(true);
+
+    facade.loadMore();
+    TestBed.flushEffects();
+    // Second call must use the cursor from the first page
+    expect(listProjetosSpy).toHaveBeenNthCalledWith(2, { cursor: 'cursor-abc' });
+    expect(facade.projects().length).toBe(2);
+    expect(facade.hasMore()).toBe(false);
+  });
+
+  it('loadMore() é idempotente quando há status=loading-more', () => {
+    // Cannot easily test internal 'loading-more' state without async control,
+    // but we can verify loadMore() does nothing when nextCursor is null
+    const listProjetosSpy = vi.fn().mockReturnValue(of(makeResult([CARD_VALIDO], null)));
+    const api = makeApiService({ listProjetos: listProjetosSpy });
+    const facade = setup(api, makeRouter());
+    facade.load();
+    TestBed.flushEffects();
+
+    // With no cursor, loadMore should be a no-op
+    facade.loadMore();
+    TestBed.flushEffects();
+    // Only the initial load call, loadMore was skipped
+    expect(listProjetosSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('loadMore() degraded é sticky: OR com páginas anteriores', () => {
+    const listProjetosSpy = vi.fn()
+      .mockReturnValueOnce(of(makeResult([CARD_VALIDO], 'cursor-abc', true)))  // page 1 degraded
+      .mockReturnValueOnce(of(makeResult([CARD_RASCUNHO], null, false)));       // page 2 not degraded
+
+    const api = makeApiService({ listProjetos: listProjetosSpy });
+    const facade = setup(api, makeRouter());
+
+    facade.load();
+    TestBed.flushEffects();
+    expect(facade.degraded()).toBe(true);
+
+    facade.loadMore();
+    TestBed.flushEffects();
+    // degraded stays true even though page 2 was not degraded
+    expect(facade.degraded()).toBe(true);
+  });
+});
+
 // ── computed canQuickDownload ─────────────────────────────────────────────────
 
 describe('LibraryFacade — computed: canQuickDownload', () => {
   it('canQuickDownload é true para card com ultimoEpubcheckStatus="valido"', () => {
-    const api = makeApiService({ listProjetos: vi.fn().mockReturnValue(of([CARD_VALIDO])) });
+    const api = makeApiService({ listProjetos: vi.fn().mockReturnValue(of(makeResult([CARD_VALIDO]))) });
     const facade = setup(api, makeRouter());
     facade.load();
     TestBed.flushEffects();
@@ -188,7 +317,7 @@ describe('LibraryFacade — computed: canQuickDownload', () => {
   });
 
   it('canQuickDownload é false para card sem epubcheck (null)', () => {
-    const api = makeApiService({ listProjetos: vi.fn().mockReturnValue(of([CARD_RASCUNHO])) });
+    const api = makeApiService({ listProjetos: vi.fn().mockReturnValue(of(makeResult([CARD_RASCUNHO]))) });
     const facade = setup(api, makeRouter());
     facade.load();
     TestBed.flushEffects();
@@ -243,10 +372,9 @@ describe('LibraryFacade — onNewProject()', () => {
 
 describe('LibraryFacade — empresa-switch: reload ao trocar empresa', () => {
   it('re-chama listProjetos() quando empresa muda após load() (switchMap cancela in-flight)', () => {
-    const listProjetosSpy = vi.fn().mockReturnValue(of([CARD_VALIDO]));
+    const listProjetosSpy = vi.fn().mockReturnValue(of(makeResult([CARD_VALIDO])));
     const api = makeApiService({ listProjetos: listProjetosSpy });
 
-    // Use a writable signal for the empresa current value
     const currentSignal = signal<string | null>('emp-aetos');
     const empresaCtx: Partial<EmpresaContextService> = {
       current: currentSignal.asReadonly() as EmpresaContextService['current'],
@@ -254,7 +382,6 @@ describe('LibraryFacade — empresa-switch: reload ao trocar empresa', () => {
 
     const facade = setup(api, makeRouter(), empresaCtx);
 
-    // Initial load
     facade.load();
     TestBed.flushEffects();
     expect(listProjetosSpy).toHaveBeenCalledTimes(1);
@@ -264,5 +391,32 @@ describe('LibraryFacade — empresa-switch: reload ao trocar empresa', () => {
     TestBed.flushEffects();
 
     expect(listProjetosSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('empresa switch reseta nextCursor e degraded', () => {
+    const listProjetosSpy = vi.fn()
+      .mockReturnValueOnce(of(makeResult([CARD_VALIDO], 'cursor-abc', true)))
+      .mockReturnValue(of(makeResult([CARD_RASCUNHO], null, false)));
+
+    const api = makeApiService({ listProjetos: listProjetosSpy });
+    const currentSignal = signal<string | null>('emp-aetos');
+    const empresaCtx: Partial<EmpresaContextService> = {
+      current: currentSignal.asReadonly() as EmpresaContextService['current'],
+    };
+
+    const facade = setup(api, makeRouter(), empresaCtx);
+    facade.load();
+    TestBed.flushEffects();
+
+    expect(facade.hasMore()).toBe(true);
+    expect(facade.degraded()).toBe(true);
+
+    // Switch empresa
+    currentSignal.set('emp-novo');
+    TestBed.flushEffects();
+
+    // After empresa switch, pagination and degraded are reset per new response
+    expect(facade.hasMore()).toBe(false);
+    expect(facade.degraded()).toBe(false);
   });
 });

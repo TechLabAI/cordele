@@ -34,6 +34,8 @@ export interface GetSignedDownloadUrlInput {
   readonly projetoId: string;
   readonly publicacaoId: string;
   readonly empresaId: string;
+  /** JWT bearer from the originating HTTP request, forwarded to PUB port. */
+  readonly bearerToken?: string;
 }
 
 @Injectable()
@@ -60,6 +62,7 @@ export class GetSignedDownloadUrlUseCase {
     const records = await this.publicationPort.history(
       input.projetoId,
       input.empresaId,
+      input.bearerToken,
     );
     const record = records.find((r) => r.publicacaoId === input.publicacaoId);
     if (!record) {
@@ -81,7 +84,9 @@ export class GetSignedDownloadUrlUseCase {
     // 4. Mint the signed URL (port delegates to PUB / storage service).
     const signed = await this.publicationPort.signedDownloadUrl(
       input.publicacaoId,
+      input.projetoId,
       input.empresaId,
+      input.bearerToken,
     );
 
     this.logger.log(

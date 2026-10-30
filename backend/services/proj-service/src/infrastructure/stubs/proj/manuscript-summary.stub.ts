@@ -28,6 +28,7 @@ export class ManuscriptSummaryStub implements ManuscriptSummaryPort {
   async summaries(
     projetoIds: string[],
     empresaId: string,
+    _bearerToken?: string,
   ): Promise<Map<string, ManuscriptSummary>> {
     if (projetoIds.length === 0) {
       return new Map();

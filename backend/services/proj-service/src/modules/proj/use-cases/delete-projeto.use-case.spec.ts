@@ -117,6 +117,30 @@ describe('DeleteProjetoUseCase', () => {
     expect(mockRepository.delete).toHaveBeenCalledTimes(1);
   });
 
+  it('propagates bearerToken to every erasure port so they can authenticate', async () => {
+    const user = makeUser();
+    await useCase.execute({ projetoId: 'projeto-id-1', bearerToken: 'tok-123' }, user);
+
+    expect(mockPublicationErasure.erase).toHaveBeenCalledWith(
+      'projeto-id-1', user.empresaId, 'tok-123',
+    );
+    expect(mockCompositionErasure.erase).toHaveBeenCalledWith(
+      'projeto-id-1', user.empresaId, 'tok-123',
+    );
+    expect(mockManuscriptErasure.erase).toHaveBeenCalledWith(
+      'projeto-id-1', user.empresaId, 'tok-123',
+    );
+  });
+
+  it('erasure ports called without bearerToken when it is absent from input', async () => {
+    const user = makeUser();
+    await useCase.execute({ projetoId: 'projeto-id-1' }, user);
+
+    expect(mockPublicationErasure.erase).toHaveBeenCalledWith(
+      'projeto-id-1', user.empresaId, undefined,
+    );
+  });
+
   it('emits ProjectDeleted only after the DB delete succeeds', async () => {
     await useCase.execute({ projetoId: 'projeto-id-1' }, makeUser());
 

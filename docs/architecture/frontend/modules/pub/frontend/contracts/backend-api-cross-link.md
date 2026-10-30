@@ -18,6 +18,7 @@
 | `.../projetos/{projetoId}/publicacoes` §4.3 | GET | `PublicacaoApiService.listByProjeto()` | `HistoryFacade` (+ T07 resume) | Newest-first history (T08); also the resume source on T07 re-entry. |
 | `.../publicacoes/{publicacaoId}/download` §4.4 | GET | `ArtifactDownloadService.getSignedUrl()` | `HistoryFacade`/`ExportFacade` | Mints **short-TTL signed URL** `{ arquivoUrl, expiresAt }`; client opens directly. **Never streams bytes** (D-F/D-R). |
 | `.../projetos/{projetoId}/publicacoes/stats` §4.5 | GET | `PublicacaoApiService.getStats()` | `HistoryFacade` | Live KPI projection `PublicationStats` (D-O). |
+| `.../publicacoes/{publicacaoId}/validation-messages` §4.6 | GET | `PublicacaoApiService.getValidationMessages()` | `ExportFacade` | **Desbloqueado (INT-FE-PUB-004, 2026-09-03).** `ValidationMessageItem[]` ordered `ordem ASC`. Optional `severity` query param (`error\|warning\|info`). `location` nullable — rendered as "—". 404 on cross-tenant mismatch. Scope `pub:read`. |
 | `/api/proj/projetos/{projetoId}` (PROJ) | GET | `PublicacaoApiService.getProjetoHeader()` | `HistoryFacade` | T08 header (name, "Publicado" chip, editora). Cross-context read — PROJ-owned. |
 | COMP `GetMetadados` (`autor`) | GET | `PublicacaoApiService.getAutor()` | `HistoryFacade` | T08 subtitle. Cross-context read — COMP-owned. |
 
@@ -27,7 +28,7 @@
 |---|---|---|
 | `GET .../publicacoes/latest` (resume) | **Not present** | Resume via §4.3 history list, newest-first (index 0); §4.5 `ultimo*` may short-circuit. SPEC-04 §3. |
 | `GET /api/pub/publicacoes/{id}` (poll, flat) | Nested `.../projetos/{projetoId}/publicacoes/{publicacaoId}/status` §4.2 | Poll the nested status endpoint; honour `Retry-After`. |
-| `GET .../publicacoes/{id}/avisos` (warning list) | **Not present** | Counts (`totalAvisos`/`totalErros`) + `resumoErro` rendered; per-warning `{code,msg,local}` list is an **M4 gap** (§6). |
+| `GET .../publicacoes/{id}/avisos` (warning list) | `.../publicacoes/{publicacaoId}/validation-messages` §4.6 (PUB-016) | **IMPLEMENTED (INT-FE-PUB-004, 2026-09-03).** Endpoint ratificado; `ValidationMessageItem[]` → `AvisoVM[]` via `toAvisoVM()`; `ExportFacade.avisos` populado após terminal; `WarningsDetailsComponent` renderiza lista detalhada. Gap §6 GAP 1 fechado. |
 | `GET .../publicacoes/{id}/arquivo` (byte stream) | `.../publicacoes/{publicacaoId}/download` §4.4 (signed URL) | Mint a fresh signed URL and open it directly; never proxy bytes. SPEC-04 §4. |
 | Progress percentage (`progresso: 0–100`) | **No percentage field** in `PublicacaoStatus` §6.1 | `gerando` is **indeterminate** (no numeric %); poll cadence driven by `Retry-After`. SPEC-03 §1. |
 | BE scopes `pub:read`/`pub:export`/`pub:download` | Only **`pub:read`** + **`pub:write`** (§2) | `pub.export → pub:write`; `pub.view`/`pub.download → pub:read`. SPEC-05 §2. |
@@ -73,9 +74,11 @@ project status is handled by `pubStatusGuard` (client) + the server's manuscript
 These FE behaviours reference data **not present** in `api-contract.md` §6; they are backlog items,
 not FE inventions:
 
-1. **Per-warning detail list** — no endpoint/field returns the `{ code, msg, local }` rows for the T07
-   `<details>`. The FE renders the **counts** + `resumoErro`; the detailed list stays empty until a BE
-   field/endpoint lands (SPEC-03 §5).
+1. ~~**Per-warning detail list**~~ — **CLOSED (INT-FE-PUB-004, 2026-09-03).** `GET .../validation-messages`
+   (api-contract §4.6, PUB-016 BE) ratificado e implementado. `ValidationMessageItem[]` (`{ id, severity, code,
+   message, location: string|null, ordem }`) mapeado para `AvisoVM[]` via `toAvisoVM()` e exposto como
+   `ExportFacade.avisos`. `WarningsDetailsComponent` renderiza a lista detalhada com `location: null` → "—".
+   Scope `pub:read`; 404 cross-tenant guard ativo.
 2. ~~**ePub summary KPIs**~~ — **CLOSED (ADR-004 / api-contract D-S, 2026-09-01).** `Tamanho`,
    `Capítulos`, `Imagens` now have a source: `PublicacaoStatus.tamanhoBytes` / `.totalCapitulos` /
    `.totalImagens` (§6.1), non-null iff `status=publicado`. `Páginas` is **not** a gap anymore either — it

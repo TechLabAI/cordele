@@ -122,7 +122,9 @@ describe('GetSignedDownloadUrlUseCase', () => {
     expect(result.expiresAt).toBe('2026-08-25T15:00:00Z');
     // Port called exactly once, after status validation
     expect(publicationPort.signedDownloadUrl).toHaveBeenCalledTimes(1);
-    expect(publicationPort.signedDownloadUrl).toHaveBeenCalledWith(PUB_ID, EMPRESA_ID);
+    // projetoId is now the second arg (Problem 3 fix: port signature includes projetoId)
+    // bearerToken=undefined since the test input has no bearerToken
+    expect(publicationPort.signedDownloadUrl).toHaveBeenCalledWith(PUB_ID, PROJETO_ID, EMPRESA_ID, undefined);
   });
 
   it('returns signed URL for avisos publication', async () => {

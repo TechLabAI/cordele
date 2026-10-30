@@ -1,7 +1,7 @@
-## [INT-FE-PUB-005] KPIs de resumo ePub — decisão de produto tomada (ADR-004); implementação pendente
+## [INT-FE-PUB-005] KPIs de resumo ePub — DONE
 
-**Status:** 🔓 DESBLOQUEADA — decisão registrada (ADR-004 / api-contract D-S, 2026-09-01); pronta para
-implementação (steps 3-4 abaixo)
+**Status:** ✅ DONE — decisão registrada (ADR-004 / api-contract D-S, 2026-09-01); steps 3-4
+implementados em `bd4fd5d` + `20f85b4` (2026-09-03), validados por /fe-validator PUB (score 82)
 **GitHub:** [#TBD]
 
 **Outcome:**
@@ -28,11 +28,13 @@ continuam omitidos na prática (campo ainda não populado pelo BE) — mesmo com
    ADR-004 / api-contract D-S.
 2. ~~Emenda de api-contract.md §6 com os novos campos na resposta adequada.~~ **FEITO** — §6.1
    `PublicacaoStatus` (não §6.2, ver D-S).
-3. Atualizar modelos TS em `libs/pub/data-access/models` (`tamanhoBytes`, `totalCapitulos`,
-   `totalImagens` em `PublicacaoStatus`). **Pendente** — depende do BE (`pub-service`) implementar a
-   emenda de contrato (`EpubBuilder` popular as 3 colunas no assembly).
-4. ExportFacade: popular `summary` (`EpubSummaryVM`) com os campos quando disponíveis; `tamanho` formatado
-   (`formatBytes`), `paginas` fixo em `null`. **Pendente**.
+3. ~~Atualizar modelos TS em `libs/pub/data-access/models` (`tamanhoBytes`, `totalCapitulos`,
+   `totalImagens` em `PublicacaoStatus`).~~ **FEITO** — `bd4fd5d`. O BE já popula as 3 colunas
+   (PUB-021); o contrato real (`PublicacaoStatusDto`) confirma `number | null` nos três campos.
+4. ~~ExportFacade: popular `summary` (`EpubSummaryVM`) com os campos quando disponíveis; `tamanho`
+   formatado (`formatBytes`), `paginas` fixo em `null`.~~ **FEITO** — `bd4fd5d`. `summary` é um
+   `computed<EpubSummaryVM | null>`, não-nulo apenas em `status=publicado`; `paginas` permanentemente
+   `null` (ADR-004). Estado vazio explícito do grid restaurado em `20f85b4`.
 5. ~~Atualizar `contracts/backend-api-cross-link.md §6` com GAP 2 fechado.~~ **FEITO**.
 
 **Non-goals:**

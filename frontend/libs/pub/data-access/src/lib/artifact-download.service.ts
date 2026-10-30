@@ -9,14 +9,20 @@
  *   - Gate: only called when podeBaixar is true (pre-empts 409 artifact-not-available).
  *
  * RULE-NX-05: no raw HttpClient — delegates to PublicacaoApiService (which delegates to port).
+ *
+ * FE-PUB-025: DownloadResult now carries `status` instead of `success`:
+ *   'refetching' — emitted immediately when a 401/404 triggers the auto re-fetch,
+ *                  before the second API call is made. Callers use this to show a notice.
+ *   'success'    — emitted once the file is open in a new tab.
  */
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, map, switchMap, throwError } from 'rxjs';
+import { Observable, catchError, concat, map, of, throwError } from 'rxjs';
 import { PublicacaoApiService } from './publicacao-api.service';
 import { SignedDownloadUrl } from './models/pub.models';
 
 export interface DownloadResult {
-  success: boolean;
+  /** 'refetching': signed URL expired, re-fetching now; 'success': file open in new tab. */
+  status: 'success' | 'refetching';
   arquivoUrl?: string;
   error?: string;
 }
@@ -35,15 +41,16 @@ export class ArtifactDownloadService {
 
   /**
    * Mint a signed URL and open it in a new browser context.
-   * On expiry (401/404), re-fetches once before emitting an error.
+   * On expiry (401/404), emits {status:'refetching'} then re-fetches once.
    *
    * SPEC-04 §4.4: SPA never proxies bytes. Never falls back to a public link.
+   * FE-PUB-025: emits 'refetching' before the second attempt so callers can show a notice.
    */
   download(projetoId: string, publicacaoId: string): Observable<DownloadResult> {
     return this.api.getDownloadUrl(projetoId, publicacaoId).pipe(
       map(signed => {
         window.open(signed.arquivoUrl, '_blank', 'noopener,noreferrer');
-        return { success: true, arquivoUrl: signed.arquivoUrl };
+        return { status: 'success' as const, arquivoUrl: signed.arquivoUrl };
       }),
       catchError(err => {
         const status = (err as { status?: number }).status;
@@ -59,19 +66,24 @@ export class ArtifactDownloadService {
 
   /**
    * Re-fetch a fresh signed URL once (auto-retry on expiry).
+   * Emits {status:'refetching'} synchronously before the second API call (FE-PUB-025)
+   * so that the caller can show a notice without waiting for the network round-trip.
    * If the second attempt also fails, the error propagates to the caller.
    */
   private _refetchAndOpen(projetoId: string, publicacaoId: string): Observable<DownloadResult> {
-    return this.api.getDownloadUrl(projetoId, publicacaoId).pipe(
-      switchMap(signed => {
-        window.open(signed.arquivoUrl, '_blank', 'noopener,noreferrer');
-        return [{ success: true, arquivoUrl: signed.arquivoUrl }];
-      }),
-      catchError(err =>
-        throwError(() => ({
-          ...(err as object),
-          message: 'O link de download expirou. Gerando um novo link…',
-        })),
+    return concat(
+      of({ status: 'refetching' as const }),
+      this.api.getDownloadUrl(projetoId, publicacaoId).pipe(
+        map((signed: SignedDownloadUrl) => {
+          window.open(signed.arquivoUrl, '_blank', 'noopener,noreferrer');
+          return { status: 'success' as const, arquivoUrl: signed.arquivoUrl };
+        }),
+        catchError(err =>
+          throwError(() => ({
+            ...(err as object),
+            message: 'O link de download expirou. Tente novamente.',
+          })),
+        ),
       ),
     );
   }

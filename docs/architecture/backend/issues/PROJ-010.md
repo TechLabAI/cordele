@@ -1,4 +1,5 @@
 # PROJ-010 -- GetProjetoLibraryUseCase (GET /projetos) batched N+1-free read + degraded fallback + G5 filter reservation
+<!-- status: in-review -->
 
 **Status:** REDUCED -- pos-validacao 2026-08-28
 **Maturidade:** 71 -- Consistente

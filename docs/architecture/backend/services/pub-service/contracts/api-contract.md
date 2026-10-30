@@ -266,6 +266,44 @@ Acceptance criteria (EARS):
 
 ---
 
+### 4.7 `POST /api/pub/publications/latest-batch` — batch latest publication status per project (PROJ integration)
+
+Returns the latest publication summary for a batch of project IDs in a **single round-trip**.
+Used by PROJ's `GetProjetoLibraryUseCase` / `GetProjetoDetailsUseCase` to decorate project cards
+with the current publication status without N+1 queries.
+
+**Scope:** `pub:read`  
+**Body:** `{ "projetoIds": string[] }` — list of project UUIDs (v4). Empty array is valid. **Max 50 IDs** per request.  
+**Success — `200 OK`**, body = `LatestBatchResponseItem[]`.
+
+```
+LatestBatchResponseItem {
+  projetoId:       string   // UUID of the project
+  publicacaoId:    string   // UUID of the latest publication
+  epubcheckStatus: string   // valido | avisos | erros_criticos | pendente
+}
+```
+
+Projects with no publications are **omitted** from the response array (absence = "never published").
+The response is **unordered** — consumers must index by `projetoId`.
+
+"Latest" = the publication with the highest `sequencia` per `projetoId`.
+Resolution is done in a single `findMany` with `ORDER BY sequencia DESC`,
+then the first entry per `projetoId` wins in O(n) in memory.
+
+Acceptance criteria (EARS):
+
+- `WHEN a batch of projetoIds is supplied, THE SYSTEM SHALL return at most one item per projetoId — the one with the highest sequencia.`
+- `WHEN a projetoId has no publications, THE SYSTEM SHALL omit it from the response (absence = never published).`
+- `WHEN the batch is empty, THE SYSTEM SHALL return an empty array without querying the database.`
+- `IF the token carries no empresa claim, THE SYSTEM SHALL respond 403.`
+- `WHEN the projetoIds list exceeds 50 items, THE SYSTEM SHALL return 400 with type urn:cordele:pub:validation.`
+
+> **Batch limit:** máximo 50 IDs por requisição (padrão cross-módulo). O consumidor (proj-service)
+> deve fatiar listas maiores em blocos de até 50.
+
+---
+
 ## 5. Errors (RFC 7807 ProblemDetail)
 
 All errors use `application/problem+json`. `type` is a stable URN; `traceId` mirrors `X-Correlation-Id`.

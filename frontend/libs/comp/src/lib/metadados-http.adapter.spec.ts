@@ -1,14 +1,14 @@
 /**
  * metadados-http.adapter.spec.ts — HttpTestingController tests for MetadadosHttpAdapter.
  * FE-COMP-006: GET/PUT metadados, POST/DELETE capa — URL, method and body verification.
- * INT-FE-COMP-001 (P4): verifies X-Empresa-Id header is propagated via AccessHttpClient.
+ * INT-FE-COMP-001 (P4): verifies X-Empresa-Id header is NOT sent — empresa context comes from JWT claim.
  */
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { MetadadosHttpAdapter } from './api/metadados-http.adapter';
-import { ACCESS_EMPRESA_ID, AccessHttpClient } from '@cordele/shared/access-http-base';
+import { ACCESS_EMPRESA_ID, AccessHttpClient, moduleBase } from '@cordele/shared/access-http-base';
 import type { MetadadosDto } from './models/comp.models';
 
 describe('MetadadosHttpAdapter', () => {
@@ -16,7 +16,8 @@ describe('MetadadosHttpAdapter', () => {
   let httpMock: HttpTestingController;
 
   const PROJECT_ID = 'proj-abc-001';
-  const BASE = `/api/comp/projetos/${PROJECT_ID}`;
+  /** Derives from moduleBase so spec tracks the same source as production code. */
+  const BASE = `${moduleBase('comp')}/projetos/${PROJECT_ID}`;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -58,11 +59,13 @@ describe('MetadadosHttpAdapter', () => {
     expect(received?.titulo).toBe('Livro Teste');
   });
 
-  it('GET /metadados — sends X-Empresa-Id header (INT-FE-COMP-001)', () => {
+  it('GET /metadados — does NOT send X-Empresa-Id header (INT-FE-COMP-001 — empresa from JWT)', () => {
+    // Even when ACCESS_EMPRESA_ID token is provided, the header must be absent.
+    // Server resolves empresa from JWT `empresa_id` claim (EmpresaContextInterceptor).
     adapter.get(PROJECT_ID).subscribe();
 
     const req = httpMock.expectOne(`${BASE}/metadados`);
-    expect(req.request.headers.get('X-Empresa-Id')).toBe('emp_aetos');
+    expect(req.request.headers.get('X-Empresa-Id')).toBeNull();
     req.flush({
       projetoId: PROJECT_ID,
       titulo: 'T',
@@ -75,7 +78,9 @@ describe('MetadadosHttpAdapter', () => {
     });
   });
 
-  it('PUT /metadados — sends correct URL, method, body and X-Empresa-Id header', () => {
+  it('PUT /metadados — sends correct URL, method, body and does NOT send X-Empresa-Id header', () => {
+    // Even when ACCESS_EMPRESA_ID token is provided, the header must be absent.
+    // Server resolves empresa from JWT `empresa_id` claim (EmpresaContextInterceptor).
     const putBody: MetadadosDto = {
       projetoId: PROJECT_ID,
       titulo: 'Título Atualizado',
@@ -92,7 +97,7 @@ describe('MetadadosHttpAdapter', () => {
     const req = httpMock.expectOne(`${BASE}/metadados`);
     expect(req.request.method).toBe('PUT');
     expect(req.request.body).toEqual(putBody);
-    expect(req.request.headers.get('X-Empresa-Id')).toBe('emp_aetos');
+    expect(req.request.headers.get('X-Empresa-Id')).toBeNull();
     req.flush({ ...putBody, materialized: true });
   });
 
@@ -120,5 +125,53 @@ describe('MetadadosHttpAdapter', () => {
     req.flush(null, { status: 204, statusText: 'No Content' });
 
     expect(completed).toBe(true);
+  });
+
+  /**
+   * URL prefix regression guard.
+   *
+   * Locks the /api/v1/comp/ prefix so that a revert to /api/comp/ (e.g. removing the
+   * /v1 segment from ACCESS_HTTP_BASE or moduleBase) is caught here before reaching runtime.
+   *
+   * Each test uses a predicate on expectOne so the guard fails when the URL
+   * does NOT start with /api/v1/comp/ (no matching request → test error).
+   * expectNone on the un-versioned path adds an explicit negative assertion.
+   *
+   * URL is derived from moduleBase('comp') — never a hardcoded literal — so the guard
+   * tracks the same source as the production code and cannot become a copy of the bug.
+   */
+  describe('URL prefix regression guard', () => {
+    it('get uses /api/v1/comp/ prefix (not /api/comp/)', () => {
+      adapter.get(PROJECT_ID).subscribe();
+      httpMock.expectNone(r => r.url.startsWith('/api/comp/'));
+      const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/comp/'));
+      expect(req.request.url).toBe(`${BASE}/metadados`);
+      req.flush({});
+    });
+
+    it('update uses /api/v1/comp/ prefix (not /api/comp/)', () => {
+      adapter.update(PROJECT_ID, {}).subscribe();
+      httpMock.expectNone(r => r.url.startsWith('/api/comp/'));
+      const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/comp/'));
+      expect(req.request.url).toBe(`${BASE}/metadados`);
+      req.flush({});
+    });
+
+    it('uploadCapa uses /api/v1/comp/ prefix (not /api/comp/)', () => {
+      const file = new File(['bytes'], 'capa.jpg');
+      adapter.uploadCapa(PROJECT_ID, file).subscribe();
+      httpMock.expectNone(r => r.url.startsWith('/api/comp/'));
+      const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/comp/'));
+      expect(req.request.url).toBe(`${BASE}/capa`);
+      req.flush({ capaUrl: 'https://cdn.example.com/capa.jpg' });
+    });
+
+    it('removeCapa uses /api/v1/comp/ prefix (not /api/comp/)', () => {
+      adapter.removeCapa(PROJECT_ID).subscribe();
+      httpMock.expectNone(r => r.url.startsWith('/api/comp/'));
+      const req = httpMock.expectOne(r => r.url.startsWith('/api/v1/comp/'));
+      expect(req.request.url).toBe(`${BASE}/capa`);
+      req.flush(null, { status: 204, statusText: 'No Content' });
+    });
   });
 });

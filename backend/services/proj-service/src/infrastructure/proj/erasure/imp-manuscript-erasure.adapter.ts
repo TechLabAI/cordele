@@ -25,10 +25,16 @@ export class ImpManuscriptErasureAdapter implements ManuscriptErasurePort {
 
   constructor(private readonly config: ConfigService) {}
 
-  async erase(projetoId: string, empresaId: string): Promise<void> {
+  async erase(projetoId: string, empresaId: string, bearerToken?: string): Promise<void> {
     const baseUrl = this.config.get<string>('IMP_SERVICE_URL');
     if (!baseUrl) {
       throw new Error('IMP_SERVICE_URL not configured — cannot purge manuscript data');
+    }
+
+    const headers: Record<string, string> = {};
+    if (bearerToken) {
+      headers['Authorization'] = `Bearer ${bearerToken}`;
+      this.logger.debug('ImpManuscriptErasureAdapter: Authorization header mounted');
     }
 
     let response: Response;
@@ -36,7 +42,7 @@ export class ImpManuscriptErasureAdapter implements ManuscriptErasurePort {
       const url = `${baseUrl}/api/v1/imp/projetos/${projetoId}/erasure`;
       response = await fetch(url, {
         method: 'DELETE',
-        headers: { 'X-Empresa-Id': empresaId },
+        headers,
       });
     } catch (err) {
       this.logger.error(
@@ -46,7 +52,7 @@ export class ImpManuscriptErasureAdapter implements ManuscriptErasurePort {
     }
 
     if (!response.ok) {
-      const message = `IMP erasure returned ${response.status} for projetoId=${projetoId}`;
+      const message = `IMP erasure returned ${response.status} for projetoId=${projetoId} empresaId=${empresaId}`;
       this.logger.error(message);
       throw new Error(message);
     }

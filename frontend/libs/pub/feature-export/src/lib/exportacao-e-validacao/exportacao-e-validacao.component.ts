@@ -1,10 +1,11 @@
 /**
  * exportacao-e-validacao.component.ts — T07 — Exportação e Validação.
  * Migrated from libs/pub (flat lib) to libs/pub/feature-export (P3 — FE-PUB-012).
+ * Updated: FE-PUB-023 (P6 — breadcrumb resolution via PUB_UPDATE_BREADCRUMB token).
  *
  * Removals vs prototype (FE-PUB-012):
  *   ✗ setInterval timer                — replaced by ExportFacade bounded poll (ADR-PUB-001)
- *   ✗ AVISOS_MOCK hard-coded array     — avisos detail not called (INT-FE-PUB-004 BLOCKED)
+ *   ✗ AVISOS_MOCK hard-coded array     — avisos now loaded from §4.6 via ExportFacade.avisos (INT-FE-PUB-004)
  *   ✗ "Simular estado" selector        — FE-PUB-018 removal; state driven by facade only
  *   ✗ progresso% numeric bar           — indeterminate only (SPEC-03)
  *   ✗ kpis[] with hard-coded values    — KPI tiles omitted (INT-FE-PUB-005 BLOCKED)
@@ -16,23 +17,26 @@
  *
  * Warnings / Errors: delegated to <pub-warnings-details> (FE-PUB-016, pub-ui).
  *
- * Boundary: type:feature → imports type:data-access (@cordele/pub-data-access)
- *           and type:ui (@cordele/pub-ui). No mock adapters in production path.
+ * Boundary: type:feature → imports type:data-access (@cordele/pub-data-access),
+ *           type:ui (@cordele/pub-ui), and type:domain (@cordele/pub-navigation).
+ *           PUB_UPDATE_BREADCRUMB is type:domain — no boundary violation.
+ *           Cannot import PubShellIntegrationService (type:feature) directly.
  *
  * Multi-empresa: ExportFacade injects PUB_EMPRESA_CHANGED token; cancels poll on
  * empresa switch (INT-FE-PUB-006, P2). No additional wiring needed here.
  *
- * Track D: FE-PUB-012 — P3 Feature Libs.
+ * Track D: FE-PUB-012 — P3 Feature Libs. Updated: FE-PUB-023 (P6).
  */
 import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
+  effect,
   inject,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { ExportFacade } from '@cordele/pub-data-access';
-import { WarningsDetailsComponent } from '@cordele/pub-ui';
+import { ExportFacade, PUB_BREADCRUMB, PUB_UPDATE_BREADCRUMB } from '@cordele/pub-data-access';
+import { EpubSummaryGridComponent, WarningsDetailsComponent } from '@cordele/pub-ui';
 
 const STEPS = [
   { n: 1, label: 'Importar' },
@@ -44,7 +48,7 @@ const STEPS = [
 @Component({
   selector: 'pub-exportacao-e-validacao',
   standalone: true,
-  imports: [RouterLink, WarningsDetailsComponent],
+  imports: [RouterLink, WarningsDetailsComponent, EpubSummaryGridComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="px-8 py-8 max-w-[var(--content-max-width)] mx-auto">
@@ -71,10 +75,10 @@ const STEPS = [
 
       <!-- ESTADO: GERANDO (indeterminate — sem barra de progresso percentual, SPEC-03) -->
       @if (facade.phase() === 'gerando') {
-        <div class="flex flex-col items-center justify-center py-16 text-center">
+        <div class="flex flex-col items-center justify-center py-16 text-center" data-testid="pub-estado-gerando">
           <div class="relative mb-8">
             <div class="size-16 rounded-full border-4 border-t-transparent animate-spin"
-                 style="border-color:oklch(58% 0.19 245 / 0.18);border-top-color:oklch(58% 0.19 245);"
+                 style="width:4rem;height:4rem;border-color:oklch(58% 0.19 245 / 0.18);border-top-color:oklch(58% 0.19 245);"
                  role="progressbar" aria-label="Gerando ePub"></div>
           </div>
           <h1 class="font-display font-semibold text-xl mb-2" style="color:var(--text-primary)">
@@ -90,7 +94,7 @@ const STEPS = [
       @if (facade.phase() === 'valido') {
         <div>
           <!-- Resultado principal -->
-          <div class="flex items-center gap-4 rounded-xl p-6 mb-6"
+          <div class="flex items-center gap-4 rounded-xl p-6 mb-6" data-testid="banner-valido"
                style="background:oklch(58% 0.18 145 / 0.08);border:1px solid oklch(58% 0.18 145 / 0.3);">
             <span class="material-symbols-outlined text-4xl" style="color:oklch(58% 0.18 145)"
                   aria-hidden="true">
@@ -106,13 +110,19 @@ const STEPS = [
             </div>
           </div>
 
-          <!-- KPI grid: OMITIDO — INT-FE-PUB-005 (campos não existem no api-contract §6) -->
+          <!-- KPI grid: ePub summary (INT-FE-PUB-005 resolved — ADR-004) -->
+          <pub-epub-summary-grid
+            [tamanho]="facade.summary()?.tamanho ?? null"
+            [capitulos]="facade.summary()?.capitulos ?? null"
+            [imagens]="facade.summary()?.imagens ?? null"
+          />
 
-          <!-- Avisos / Erros: delegados a WarningsDetailsComponent (FE-PUB-016) -->
+          <!-- Avisos / Erros: delegados a WarningsDetailsComponent (FE-PUB-016 / INT-FE-PUB-004) -->
           <pub-warnings-details
             [totalErros]="facade.totalErros()"
             [totalAvisos]="facade.totalAvisos()"
             [resumoErro]="facade.resumoErro()"
+            [avisos]="facade.avisos()"
           />
 
           <!-- CTAs -->
@@ -124,6 +134,7 @@ const STEPS = [
               Ajustar layout
             </a>
             <button
+              data-testid="btn-baixar"
               [disabled]="!facade.podeBaixar()"
               (click)="baixar()"
               class="inline-flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -138,7 +149,7 @@ const STEPS = [
       <!-- ESTADO: ERROS CRÍTICOS (epubcheckStatus = erros_criticos) -->
       @if (facade.phase() === 'erros') {
         <div>
-          <div class="flex items-center gap-4 rounded-xl p-6 mb-6"
+          <div class="flex items-center gap-4 rounded-xl p-6 mb-6" data-testid="banner-erros"
                style="background:oklch(52% 0.23 25 / 0.08);border:1px solid oklch(52% 0.23 25 / 0.3);">
             <span class="material-symbols-outlined text-4xl" style="color:var(--color-error)"
                   aria-hidden="true">error</span>
@@ -152,11 +163,12 @@ const STEPS = [
             </div>
           </div>
 
-          <!-- Avisos / Erros detalhados (contagens apenas — FE-PUB-016) -->
+          <!-- Avisos / Erros detalhados (FE-PUB-016 / INT-FE-PUB-004) -->
           <pub-warnings-details
             [totalErros]="facade.totalErros()"
             [totalAvisos]="facade.totalAvisos()"
             [resumoErro]="facade.resumoErro()"
+            [avisos]="facade.avisos()"
           />
 
           <div class="flex items-center justify-between mt-6">
@@ -177,7 +189,7 @@ const STEPS = [
 
       <!-- ESTADO: ERRO DE REDE / TIMEOUT -->
       @if (facade.phase() === 'error') {
-        <div class="flex flex-col items-center justify-center py-16 text-center gap-4">
+        <div class="flex flex-col items-center justify-center py-16 text-center gap-4" data-testid="pub-estado-error">
           <span class="material-symbols-outlined text-4xl" style="color:var(--color-error)"
                 aria-hidden="true">
             cloud_off
@@ -185,7 +197,14 @@ const STEPS = [
           <p class="text-sm" style="color:var(--text-secondary)">
             {{ facade.error() ?? 'Erro ao exportar. Tente novamente.' }}
           </p>
+          @if (facade.errorTraceId()) {
+            <!-- FE-PUB-024 / SPEC-07 §4: correlation id for support reference -->
+            <p class="text-xs font-mono" data-testid="error-trace-id" style="color:var(--text-tertiary)">
+              Trace: {{ facade.errorTraceId() }}
+            </p>
+          }
           <button
+            data-testid="btn-retry"
             (click)="startExport()"
             class="inline-flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-semibold"
             style="background:var(--color-brand);color:var(--text-on-brand);">
@@ -201,6 +220,26 @@ const STEPS = [
 export class ExportacaoEValidacaoComponent implements OnInit {
   protected readonly facade = inject(ExportFacade);
   private  readonly  route  = inject(ActivatedRoute);
+  /** P6 (FE-PUB-023): breadcrumb update via token — avoids type:feature → type:feature boundary. */
+  private  readonly  doUpdateBreadcrumb = inject(PUB_UPDATE_BREADCRUMB);
+  /** P8 (FE-PUB-026): telemetry breadcrumb via token — avoids type:feature → type:feature boundary. */
+  private  readonly  doBreadcrumb = inject(PUB_BREADCRUMB);
+
+  constructor() {
+    // FE-PUB-026 (P8): emit 'verdict-shown' when the phase transitions to a terminal verdict.
+    // Terminal phases: 'valido' (epubcheck passed) or 'erros' (epubcheck critical errors).
+    // 'error' is a network/timeout error — not a verdict from epubcheck; not emitted here.
+    effect(() => {
+      const phase = this.facade.phase();
+      if (phase === 'valido' || phase === 'erros') {
+        this.doBreadcrumb(
+          'verdict-shown',
+          this.projetoId,
+          this.facade.errorTraceId() ?? undefined,
+        );
+      }
+    });
+  }
 
   readonly steps = STEPS;
 
@@ -210,6 +249,9 @@ export class ExportacaoEValidacaoComponent implements OnInit {
 
   ngOnInit(): void {
     this.startExport();
+    // P6 (FE-PUB-023): resolve T07 breadcrumb — "Projetos › {projetoId} › Exportar"
+    // projetoId used as display label until ProjFacade exposes the project name.
+    this.doUpdateBreadcrumb(this.projetoId);
   }
 
   startExport(): void {

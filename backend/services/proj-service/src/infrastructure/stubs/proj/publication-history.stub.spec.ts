@@ -83,7 +83,7 @@ describe('PublicationHistoryStub — compile + degraded log (PROJ-009)', () => {
   // ---------------------------------------------------------------------------
 
   it('signedDownloadUrl() returns arquivoUrl and expiresAt without throwing', async () => {
-    const result = await stub.signedDownloadUrl('pub-uuid-001', EMPRESA_ID);
+    const result = await stub.signedDownloadUrl('pub-uuid-001', 'proj-uuid-test', EMPRESA_ID);
 
     expect(result).toHaveProperty('arquivoUrl');
     expect(result).toHaveProperty('expiresAt');
@@ -92,7 +92,7 @@ describe('PublicationHistoryStub — compile + degraded log (PROJ-009)', () => {
   });
 
   it('signedDownloadUrl() logs degraded WARN with publicacaoId', async () => {
-    await stub.signedDownloadUrl('pub-uuid-001', EMPRESA_ID);
+    await stub.signedDownloadUrl('pub-uuid-001', 'proj-uuid-test', EMPRESA_ID);
 
     expect(warnSpy).toHaveBeenCalledTimes(1);
     const [warnMessage] = warnSpy.mock.calls[0] as [string];

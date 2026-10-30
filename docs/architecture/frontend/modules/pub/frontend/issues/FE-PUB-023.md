@@ -1,6 +1,6 @@
 ## [FE-PUB-023] Breadcrumb state — PUB_NAV_CONFIG, barra 4 etapas integrada ao NavigationService
 
-**Status:** 🔲 ABERTA
+**Status:** ✅ DONE
 **GitHub:** [#TBD]
 
 **Outcome:**

@@ -1,6 +1,44 @@
 name: cordele
 
 services:
+  keycloak:
+    # Imagem customizada que embute o realm JSON — evita bind mount do host
+    # (Docker Desktop + WSL2 tem instabilidade em caminhos Windows com espaços).
+    # Versão base: quay.io/keycloak/keycloak:26.1.4
+    #   - quay.io é a imagem oficial pós-18.0 (Docker Hub está deprecado)
+    #   - 26.x é a série LTS mais recente com suporte longo
+    #   - start-dev --import-realm suportado desde Keycloak 17
+    # ATENÇÃO: ambiente de desenvolvimento apenas. Não usar em produção sem:
+    #   - banco externo (substituir H2 por Postgres)
+    #   - HTTPS habilitado (KC_HTTPS_*)
+    #   - senhas fortes e gerenciadas por secret manager
+    build:
+      context: ./keycloak
+      dockerfile: Dockerfile
+    container_name: cordele-keycloak
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8180:8080"
+    healthcheck:
+      # curl não está na imagem base (UBI minimal); usa bash /dev/tcp como alternativa.
+      # Aguarda o realm cordele estar disponível (não só o servidor HTTP em pé).
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080 && printf \"GET /realms/cordele/.well-known/openid-configuration HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n\" >&3 && head -1 <&3 | grep -q 200'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
+    # Sem dependência de postgres — usa H2 embarcado em modo dev.
+    # Os 4 serviços buscam JWKS sob demanda (jwks-rsa lazy fetch), portanto
+    # podem subir antes do Keycloak estar pronto; o primeiro token validado
+    # dispara o fetch. Se precisar que os serviços aguardem o Keycloak, adicione:
+    #   depends_on:
+    #     keycloak:
+    #       condition: service_healthy
+    # em cada um dos 4 serviços abaixo.
+
   postgres:
     image: postgres:16
     container_name: cordele-postgres
@@ -37,6 +75,7 @@ services:
       JWT_AUDIENCE: imp-service
       FILE_STORAGE_ADAPTER: local
       FILE_STORAGE_BASE_DIR: /tmp/cordele-files
+      PROJ_SERVICE_BASE_URL: http://proj-service:3000
     ports:
       - "3000:3000"
     depends_on:
@@ -110,6 +149,12 @@ services:
       DATABASE_URL: postgresql://cordele:cordele@postgres:5432/cordele_dev?schema=public
       JWT_ISSUER_URI: http://host.docker.internal:8180/realms/cordele
       JWT_AUDIENCE: proj-service
+      # Cross-context read-port adapters — activates real HTTP adapters over stubs.
+      # Absent URLs fall back to in-memory stubs (PROJ-INT-001..003) and mark
+      # the response degraded=true (Problem 3 fix).
+      IMP_SERVICE_URL: http://imp-service:3000
+      COMP_SERVICE_URL: http://comp-service:3000
+      PUB_SERVICE_URL: http://pub-service:3000
     ports:
       - "3003:3000"
     depends_on:
