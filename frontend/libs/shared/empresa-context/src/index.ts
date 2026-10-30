@@ -1,1 +1,1 @@
-export * from './lib/empresa-context';
+export { EmpresaContextService, empresaGuard, type EmpresaContext } from './lib/empresa-context';

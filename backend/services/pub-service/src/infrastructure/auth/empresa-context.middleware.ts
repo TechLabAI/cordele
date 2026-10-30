@@ -47,7 +47,10 @@ export class EmpresaContextMiddleware implements NestMiddleware {
           const empresaId = payload.empresa_id ?? '';
 
           if (userId && empresaId) {
-            this.empresaContextService.run({ userId, empresaId }, () => next());
+            // INT-PUB-002: store the raw bearer token in the ALS context so
+            // outbound HTTP adapters (CompCompositionMetadataAdapter, etc.) can
+            // retrieve it via getBearerToken() without changing port signatures.
+            this.empresaContextService.run({ userId, empresaId, bearerToken: token }, () => next());
             return;
           }
         } catch (err) {

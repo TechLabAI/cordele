@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../prisma-client';
 
 /**
  * Factory de Prisma com isolamento de schema por empresa (multi-empresa).

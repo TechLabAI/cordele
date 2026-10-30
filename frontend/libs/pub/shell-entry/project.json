@@ -1,0 +1,36 @@
+{
+  "name": "pub-shell-entry",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/pub/shell-entry/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["scope:pub", "type:app"],
+  "implicitDependencies": ["pub-feature-export", "pub-feature-history", "pub-data-access", "pub-ui"],
+  "targets": {
+    "build": {
+      "executor": "@nx/angular:ng-packagr-lite",
+      "outputs": ["{workspaceRoot}/dist/{projectRoot}"],
+      "dependsOn": ["^build"],
+      "options": {
+        "project": "libs/pub/shell-entry/ng-lib.json",
+        "tsConfig": "libs/pub/shell-entry/tsconfig.lib.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "libs/pub/shell-entry/tsconfig.lib.prod.json"
+        },
+        "development": {}
+      },
+      "defaultConfiguration": "production"
+    },
+    "test": {
+      "executor": "@nx/angular:unit-test",
+      "options": {
+        "watch": false
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

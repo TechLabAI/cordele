@@ -6,14 +6,14 @@
  *     then navigate to COMP; 409 (projeto em rascunho) resets reopenPending with toast.
  *   - degraded=true: render identity + status, never error state (api-contract §4.3).
  *   - Download: resolve signed URL, open in new tab (D-F — no byte proxy).
+ * P2: uses ProjetoApiService (standardised, multi-empresa, ProblemDetail mapping).
  * Track D: created by fe-architect-promote PROJ @ cordele (D-494).
  */
 import { DestroyRef, Injectable, inject, signal, computed } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { lastValueFrom } from 'rxjs';
-import { PROJETO_PORT } from './api/projeto.port';
-import { PUBLICACAO_PORT } from './api/publicacao.port';
+import { ProjetoApiService } from './api/projeto-api.service';
 import {
   ProjetoDetail,
   ProjetoStatus,
@@ -43,10 +43,9 @@ export interface PublicacaoRowVM extends PublicacaoHistoryItem {
 
 @Injectable({ providedIn: 'root' })
 export class HistoryFacade {
-  private readonly projetoPort    = inject(PROJETO_PORT);
-  private readonly publicacaoPort = inject(PUBLICACAO_PORT);
-  private readonly router         = inject(Router);
-  private readonly destroyRef     = inject(DestroyRef);
+  private readonly projetoApi  = inject(ProjetoApiService);
+  private readonly router      = inject(Router);
+  private readonly destroyRef  = inject(DestroyRef);
 
   // ── Raw state ─────────────────────────────────────────────────────────────
   private readonly _status         = signal<HistoryStatus>('loading');
@@ -96,7 +95,7 @@ export class HistoryFacade {
     this._reopenError.set(null);
 
     // Load project detail + publication history concurrently
-    this.projetoPort.get(projetoId)
+    this.projetoApi.getProjeto(projetoId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: detail => {
@@ -104,18 +103,17 @@ export class HistoryFacade {
           if (detail.degraded) {
             this._degraded.set(true);
           }
-          // Publications come from the detail.publicationHistory OR separate endpoint
-          // Use separate /publicacoes endpoint for the full list (T08)
+          // Publications come from the separate /publicacoes endpoint for full list (T08)
           this.loadPublications(projetoId);
         },
-        error: err => {
-          this._status.set(err?.status === 404 ? 'not-found' : 'error');
+        error: (err: { httpStatus?: number; message?: string }) => {
+          this._status.set(err?.httpStatus === 404 ? 'not-found' : 'error');
         },
       });
   }
 
   private loadPublications(projetoId: string): void {
-    this.publicacaoPort.list(projetoId)
+    this.projetoApi.listPublicacoes(projetoId)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: pubs => {
@@ -145,14 +143,15 @@ export class HistoryFacade {
     this._reopenError.set(null);
 
     try {
-      const updated = await lastValueFrom(this.projetoPort.reopen(projetoId));
+      const updated = await lastValueFrom(this.projetoApi.reopenProjeto(projetoId));
       this._detail.set(updated);
       // Navigate to COMP after confirmed reopen
       const route = destination === 'metadata' ? '/comp' : '/comp';
       this.router.navigate([route]);
     } catch (err: unknown) {
-      const e = err as { status?: number; message?: string };
-      if (e?.status === 409) {
+      // AppError from mapProblemDetailToAppError carries httpStatus (not status)
+      const e = err as { httpStatus?: number; message?: string };
+      if (e?.httpStatus === 409) {
         // Projeto em rascunho — 409 defensivo (spec requirement)
         this._reopenError.set('Este projeto está em rascunho e não pode ser reaberto.');
       } else {
@@ -171,7 +170,7 @@ export class HistoryFacade {
     if (!row.canDownload || !this._currentProjetoId) return;
     try {
       const signed: SignedDownloadUrl = await lastValueFrom(
-        this.publicacaoPort.getDownloadUrl(this._currentProjetoId, row.publicacaoId),
+        this.projetoApi.resolveDownloadUrl(this._currentProjetoId, row.publicacaoId),
       );
       window.open(signed.arquivoUrl, '_blank', 'noopener,noreferrer');
     } catch {

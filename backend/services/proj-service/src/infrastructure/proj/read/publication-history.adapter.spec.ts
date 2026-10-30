@@ -120,4 +120,24 @@ describe('PubPublicationHistoryAdapter', () => {
 
     await expect(adapter.signedDownloadUrl('pub-1', EMPRESA_ID)).rejects.toThrow();
   });
+
+  it('signedDownloadUrl() does not validate epubcheckStatus — that responsibility belongs to the use case (PROJ-013)', async () => {
+    // Contract: the PORT itself is agnostic about epubcheckStatus.
+    // GetSignedDownloadUrlUseCase (PROJ-013) is responsible for checking epubcheckStatus
+    // and throwing ArtifactNotAvailableError (→ 409) BEFORE calling this port method.
+    // The adapter just delegates to PUB and returns whatever PUB provides.
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        arquivoUrl: 'https://storage.example.com/romance.epub?sig=xyz',
+        expiresAt: '2026-09-01T12:00:00Z',
+      }),
+    });
+
+    // No epubcheckStatus guard in the adapter — it must not throw based on status alone
+    const result = await adapter.signedDownloadUrl('pub-any-status', EMPRESA_ID);
+
+    expect(result.arquivoUrl).toBe('https://storage.example.com/romance.epub?sig=xyz');
+    expect(result.expiresAt).toBe('2026-09-01T12:00:00Z');
+  });
 });

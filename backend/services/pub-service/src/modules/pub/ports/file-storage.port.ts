@@ -19,7 +19,12 @@ export interface SignedUrl {
  * tested against Jest mocks of this interface.
  */
 export interface FileStoragePort {
-  put(key: string, content: Buffer | Readable, contentType: string): Promise<{ url: string }>;
+  /**
+   * Stores `content` under `key`. Returns the internal URL and the number of
+   * bytes written to storage (ADR-004: `bytesWritten` feeds `tamanho_bytes` on
+   * the `publicacao` row via `PublicationBuildJob`).
+   */
+  put(key: string, content: Buffer | Readable, contentType: string): Promise<{ url: string; bytesWritten: number }>;
   get(key: string): Promise<Readable>;
   delete(key: string): Promise<void>;
   signUrl(key: string, ttlSeconds: number): Promise<SignedUrl>;

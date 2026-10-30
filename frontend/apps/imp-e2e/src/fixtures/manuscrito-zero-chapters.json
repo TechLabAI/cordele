@@ -1,0 +1,42 @@
+{
+  "id": "f1e2d3c4-b5a6-4789-abcd-012345678902",
+  "projetoId": "a1b2c3d4-e5f6-4789-abcd-012345678901",
+  "nomeArquivo": "vazio.docx",
+  "formato": "docx",
+  "status": "imported",
+  "totalCapitulos": 0,
+  "totalImagens": 0,
+  "trechosNaoParseados": 2,
+  "tamanhoBytes": 5120,
+  "criadoEm": "2026-08-31T10:00:00.000Z",
+  "estrutura": {
+    "schemaVersion": "1.0",
+    "formato": "docx",
+    "chapters": [
+      {
+        "id": "ch-fake",
+        "order": 1,
+        "title": "",
+        "blocks": [
+          {
+            "type": "unparsed",
+            "id": "seg-z01",
+            "order": 1,
+            "rawContent": "[bloco não reconhecido A]",
+            "reason": "other",
+            "sourceLocation": { "kind": "docx", "paragraphIndex": 1, "styleName": "Normal" }
+          },
+          {
+            "type": "unparsed",
+            "id": "seg-z02",
+            "order": 2,
+            "rawContent": "[bloco não reconhecido B]",
+            "reason": "unknown_docx_style",
+            "sourceLocation": { "kind": "docx", "paragraphIndex": 5, "styleName": "CustomStyle" }
+          }
+        ],
+        "sections": []
+      }
+    ]
+  }
+}

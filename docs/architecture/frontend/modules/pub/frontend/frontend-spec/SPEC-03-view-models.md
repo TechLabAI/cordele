@@ -83,17 +83,20 @@ interface PublicacaoVM {
 
 ```ts
 interface EpubSummaryVM {
-  tamanho: string | null;               // human file size (e.g. "1,4 MB")
-  paginas: number | null;
+  tamanho: string | null;               // human file size (e.g. "1,4 MB"), formatted from tamanhoBytes
+  paginas: number | null;               // always null — see contract note below
   capitulos: number | null;
   imagens: number | null;
 }
 ```
 
-> **Contract note (R5):** `PublicacaoStatus`/`PublicacaoHistoryItem` (api-contract §6) do **not** expose
-> per-ePub summary fields (Tamanho/Páginas/Capítulos/Imagens). The prototype hardcodes them. Until a BE
-> contract field lands, any tile the contract cannot supply is **dropped, not faked** (`null` ⇒ tile
-> hidden). Recorded as a gap for M4 (see `contracts/backend-api-cross-link.md` §6 and SPEC-08).
+> **Contract note (R5, resolved — ADR-004 / api-contract D-S, 2026-09-01):** `PublicacaoStatus` (§6.1)
+> now exposes `tamanhoBytes`/`totalCapitulos`/`totalImagens`, non-null iff `status=publicado`; the FE maps
+> them to `tamanho` (formatted, e.g. `formatBytes(tamanhoBytes)`), `capitulos`, `imagens` — each tile
+> still hides on `null` (build in flight / `com_erros`), same `pub-kpi-omit-missing` behaviour as before,
+> now only transient rather than permanent. `paginas` stays `null` **forever, by design**: ePub reflowable
+> has no fixed pagination, so the BE contract will never carry a pages field (product decision, not a
+> pending gap). No longer tracked in `contracts/backend-api-cross-link.md` §6 / SPEC-08 as an open item.
 
 ## 4. `HistoryVM` (T08 — `/projetos/:projetoId/download-e-historico`)
 

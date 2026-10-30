@@ -1,6 +1,6 @@
 ## [FE-IMP-022] Loading states, skeletons e reason-label fallback
 
-**Status:** 🔲 ABERTA
+**Status:** ✅ COMPLETA (P4 validação 2026-08-31T17:50Z)
 **GitHub:** [#TBD]
 
 **Outcome:**

@@ -33,8 +33,8 @@ Files to create (relative to monolith root `backend/`):
 - [x] `findAll` returns projects ordered by `atualizado_em DESC` (index `idx_projeto_editorial_atualizado_em`)
 - [x] `updateStatus` writes the `projeto_editorial` update and `projeto_status_historico` insert in a single Prisma `$transaction`
 - [x] Tenant schema slug resolved from `TenantPrismaFactory.withTenant(empresaId)`, never a hardcoded schema name
-- [ ] `pnpm test` on repository spec exits 0 (validado pelo Validator-Orchestrator com DB real)
-- [ ] proj.module.ts stub `{ provide: PROJETO_EDITORIAL_REPOSITORY, useValue: {...} }` removed — confirmed: DONE (moved to PersistenceModule with real adapter)
+- [x] `pnpm test` on repository spec exits 0 (validado pelo Validator-Orchestrator com DB real)
+- [x] proj.module.ts stub `{ provide: PROJETO_EDITORIAL_REPOSITORY, useValue: {...} }` removed — confirmed: DONE (moved to PersistenceModule with real adapter)
 
 ## Dependencias
 

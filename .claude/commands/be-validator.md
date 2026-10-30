@@ -82,15 +82,21 @@ Interpretar por modo:
 
 ---
 
-## Contexto de decisões do framework (D-419)
+## Contexto de decisões do framework (D-419, cache D-552)
 
-**Executar uma vez no início (best-effort), em qualquer modo:**
+**Executar uma vez no início (best-effort), em qualquer modo.** `decision-context` e
+`spec-context` passam pelo cache de ciclo (`handoff.json`, D-552) — primeira chamada do
+ciclo popula, chamadas seguintes (validator/planner/implement do mesmo `<MODULO>`) reusam
+sem nova consulta ao ES enquanto o TTL (60 min) valer. Sempre passar **os dois** flags
+(`--cache-read` + `--cache-write` no mesmo path); o script decide sozinho ler ou popular:
 
 ```bash
-python scripts/pipeline-context.py decision-context --tags backend,validator,pipeline
+python scripts/pipeline-context.py decision-context --tags backend,validator,pipeline \
+  --cache-read tmp/pipeline-cycle/<MODULO>/handoff.json --cache-write tmp/pipeline-cycle/<MODULO>/handoff.json
 # D-434: specs do modulo via RAG (corpus D-432) — preferir a reler os .md crus; use --query "<tema>" para focar
-python scripts/pipeline-context.py spec-context --module <MODULE> --pack --semantic
-# D-460: issues relacionadas (cross-modulo, implementacoes semelhantes) — opcional
+python scripts/pipeline-context.py spec-context --module <MODULE> --pack --semantic \
+  --cache-read tmp/pipeline-cycle/<MODULO>/handoff.json --cache-write tmp/pipeline-cycle/<MODULO>/handoff.json
+# D-460: issues relacionadas (cross-modulo, implementacoes semelhantes) — opcional (fora do escopo do cache D-552)
 python scripts/pipeline-context.py issue-context --module <MODULE> --query "<tema da issue>" --semantic
 # D-611: known pitfalls (rework_pattern) desta camada — consulte ANTES de decidir/rotear
 python scripts/pipeline-context.py learning-context --module <MODULE> --layer be
@@ -101,6 +107,7 @@ python scripts/pipeline-context.py learning-context --module <MODULE> --layer be
 - `learning-context` (D-611/D-498/D-497) devolve **known pitfalls** (defeitos recorrentes cross-client agrupados por `defect_signature`): se um padrão conhecido explica a causa de um score baixo ou de um gap detectado, cite-o na decisão/README em vez de re-diagnosticar do zero. Não é responsabilidade do validator emitir sinal — isso acontece no `be-implement` quando o defeito é de fato corrigido.
 - `available: false` (ES indisponível) → prosseguir sem o pacote de decisões; **nunca bloquear**.
 - Não reler o consolidation doc — o índice ES é a fonte consultável.
+- **Cache de ciclo (D-552):** `tmp/pipeline-cycle/<MODULO>/handoff.json` é compartilhado entre este agente, `be-planner` e `be-implement` para o mesmo `<MODULO>` — evita repetir `spec-context --pack --semantic` (a chamada mais cara) a cada prioridade do B1-B6. Falha de cache (arquivo ausente/corrompido/TTL expirado) é sempre best-effort: o script cai para a consulta normal ao ES.
 
 ---
 
@@ -175,12 +182,24 @@ README e atualizado (somente delta: secoes 3, 4, 6, 7, 8, 9, 10) apenas apos os 
 
 ### Comandos obrigatorios
 
-**Tier leve (`--light`)** — rode apenas lint + conformance (sem pnpm test/build/e2e):
+**Tier leve (`--light`)** — rode apenas lint + conformance (sem pnpm test/build/e2e).
+`--mode b5 --module <MODULO>` (D-553) faz o `gates-run.py` ler
+`tmp/pipeline-cycle/<MODULO>/touched-packages.json` (escrito pelo `be-implement` na
+prioridade anterior, Etapa 5) e ajustar os gates ao que realmente mudou — ex.: pula gates
+de teste/arch se a prioridade so tocou documentacao. Ausencia do arquivo (prioridade
+antiga, sem D-553) e no-op: comportamento identico ao atual.
 
 ```bash
 python scripts/gates-run.py run --layer be --project <service> \
-  --gates lint --output tmp/gates.json --report
+  --gates lint --mode b5 --module <MODULO> --tmp-dir tmp/pipeline-cycle \
+  --output tmp/gates.json --report
+```
 
+`arch-conformance.py` (checagem estatica, distinta do gate `arch-conformance` do
+`gates-run.py`/eslint-plugin-boundaries) so roda se `touched-packages.json` **nao** existir
+ou **nao** marcar `has_docs_only: true` — ler o arquivo primeiro:
+
+```bash
 python scripts/arch-conformance.py check --layer be --target backend/services/<service> --report
 ```
 
@@ -209,7 +228,31 @@ Escreve `docs/architecture/backend/issues/<MODULO>-NNN.state.json`: checklist co
 (`DONE`/`PARTIAL`/`MISSING`/`BLOCKED` + `evidence`) + score objetivo (structure/tests_lint/e2e)
 + `functionality` **provisoria** (`needsAgentConfirm`) + `soft` para voce. **Use o numero do
 `state.json`** ao preencher a secao 7 (Maturidade) do README; confirme a functionality e
-julgue os 10 soft (RULE-07 contexto de empresa enforcement, observabilidade).
+julgue os 10 soft (**layer be**: observabilidade + enforcement multi-empresa RULE-07;
+a11y nao se aplica a backend — ver ADR-004). Persista o veredito com:
+
+```bash
+python scripts/validator-score.py soft --issue <MODULO>-NNN --layer be \
+  --value <0-10> --rationale "<evidencia concreta: midlleware, teste, metricas>"
+```
+
+**Persistencia de itens comportamentais confirmados (D-624).** `score` **re-deriva o
+checklist do zero a cada chamada**, direto dos checkboxes markdown da issue + presenca de
+arquivo -- ele NUNCA le o `.state.json` anterior. Um item sem caminho de arquivo citavel
+(assertion comportamental pura, ex.: "makes exactly 1 call to X's port") so conta como
+`DONE` se o checkbox correspondente no `.md` da issue estiver litealmente `[x]`. Se voce
+confirmou um item assim lendo o conteudo real do spec/teste (nao so presenca de arquivo),
+**marque o checkbox de verdade** antes de reportar -- senao a confirmacao desaparece na
+proxima chamada de `score` (inclusive a do proprio B6):
+
+```bash
+python scripts/validator-score.py mark --issue <MODULO>-NNN --layer be \
+  --item "<trecho unico do texto do item>"
+```
+
+Erra (exit 1) se o trecho casar com 0 ou 2+ itens -- ajuste `--item` para ser unico. Rode
+`mark` para cada item confirmado e SO DEPOIS rode `score` de novo para gerar o
+`.state.json` final -- nunca edite `.state.json` a mao.
 
 No tier leve: `test`, `build` e `e2e` ficam como `"deferred"` no `gates.json` — o score
 desconta esses slots provisoriamente até que o Modo 4 (FULL-VALIDACAO) rode ao final.
@@ -248,12 +291,35 @@ python scripts/validator-score.py score --issue <MODULO>-NNN --layer be \
   --gates tmp/gates.json --report
 ```
 
+**Antes de rodar `score` acima**, para cada issue do modulo cujo checklist voce ja
+confirmou por leitura de conteudo em uma rodada leve (B5) anterior nesta mesma
+invocacao, rode `validator-score.py mark` (ver secao "Persistencia de itens
+comportamentais confirmados (D-624)" acima) — senao o FULL-VALIDACAO re-deriva do
+zero e desfaz essas confirmacoes, mesmo com todos os gates passando.
+
 ### Resultado
 
 - **Gates passam:** score final consolidado. Atualizar README (delta: secoes 3, 4, 6, 7, 8, 9, 10).
   Emitir `VALIDATOR-FULL --status completed`. Autopilot prossegue para Finalização Pipeline B.
-- **Gates falham:** Devolver ao loop B2 com diagnostico. O Planner/Implementador resolve as falhas
-  antes de uma nova rodada de FULL-VALIDACAO. Emitir `VALIDATOR-FULL --status failed`.
+- **Gates falham:** classificar a falha e escrever `b6-failure.json` (D-554) **antes** de
+  devolver ao autopilot — e o `validator-decide.py b6-fix` (rodado pelo autopilot na
+  Etapa B6) que decide entre correção pontual (`implementer-agent` direto) ou replanejamento
+  completo (volta ao B2). Classificação (a partir do output de `test`/`build` em `gates.json`):
+  - `compilation` — erro de compilação/build (nunca elegível a `TARGETED_FIX`).
+  - `single_test` — exatamente 1 teste falhando.
+  - `multiple_tests` — 2+ testes falhando.
+  - `unknown` — falha não classificável a partir do output disponível.
+
+  ```bash
+  python scripts/validator-decide.py write-b6-failure --module <MODULO> --tmp-dir tmp/pipeline-cycle \
+    --failure-type <compilation|single_test|multiple_tests|unknown> \
+    --failing-tests <FQCN#metodo> [--failing-tests <FQCN#metodo2> ...] \
+    --failing-files <caminho> [--failing-files <caminho2> ...] \
+    --error-summary "<primeiras linhas relevantes do erro>"
+  ```
+
+  Emitir `VALIDATOR-FULL --status failed`. **Não decidir a rota aqui** — quem decide
+  `TARGETED_FIX`/`FULL_CYCLE` é o autopilot (Etapa B6), não este agente.
 
 ---
 
@@ -328,9 +394,12 @@ Sempre usar: `DONE` | `PARTIAL` | `MISSING` | `BLOCKED`
 
 - 0-39 Inicial | 40-59 Parcial | 60-79 Consistente | 80-100 Maduro
 
-> **Calculo (D-317):** `validator-score.py` (perfil `be`) computa as parcelas objetivas;
-> `functionality` e provisoria (`needsAgentConfirm`) e os 10 `soft` ficam com voce. O numero
-> do `state.json` alimenta a secao 7 do README.
+> **Calculo (D-317/ADR-004):** `validator-score.py` (perfil `be`) computa as parcelas objetivas;
+> `functionality` e provisoria (`needsAgentConfirm`) e os 10 `soft` ficam com voce.
+> Para `layer be` os 10 soft sao divididos apenas entre **observabilidade** (5 pts) e
+> **enforcement multi-empresa RULE-07** (5 pts) — a11y nao se aplica a backend.
+> Persista o veredito com `validator-score.py soft` (ver ADR-004); o `score` re-le o sidecar
+> e descola `provisional: true`. O numero do `state.json` alimenta a secao 7 do README.
 
 ---
 

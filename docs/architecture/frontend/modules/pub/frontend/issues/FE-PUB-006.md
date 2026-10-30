@@ -1,6 +1,6 @@
 ## [FE-PUB-006] PubShellIntegrationService — empresa subscription, nav registration, lifecycle breadcrumbs
 
-**Status:** 🔲 ABERTA
+**Status:** ✅ DONE
 **GitHub:** [#TBD]
 
 **Outcome:**

@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+!**/.env.example
+**/coverage
+**/tmp
+**/*.log
+services/*/src/infrastructure/prisma-client

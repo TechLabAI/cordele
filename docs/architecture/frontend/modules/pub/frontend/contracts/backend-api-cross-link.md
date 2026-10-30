@@ -37,8 +37,9 @@
 ## 3. Request/response schemas consumed (api-contract §6)
 
 - `PublicacaoStatus` §6.1 (`status`, `epubcheckStatus`, `sequencia`, `totalErros`, `totalAvisos`,
-  `resumoErro`, `arquivoDisponivel`, `iniciadaEm`, `concluidaEm`) → `ExportVM` + `PublicacaoVM`
-  (SPEC-03 §1–§2).
+  `resumoErro`, `arquivoDisponivel`, `tamanhoBytes`, `totalCapitulos`, `totalImagens`, `iniciadaEm`,
+  `concluidaEm`) → `ExportVM` + `PublicacaoVM` (SPEC-03 §1–§2). The last three (non-null iff
+  `status=publicado`) feed `EpubSummaryVM` — ADR-004 / D-S, closes gap 2 below.
 - `PublicacaoHistoryItem` §6.2 (`epubcheckStatus`, `totalErros`, `totalAvisos`, `erros`, `arquivoUrl`,
   `criadoEm`) → T08 history rows (SPEC-03 §2). This is the fixed field set PROJ also consumes.
 - `PublicationStats` §6.3 → T07/T08 KPI cards (SPEC-03 §4).
@@ -75,9 +76,12 @@ not FE inventions:
 1. **Per-warning detail list** — no endpoint/field returns the `{ code, msg, local }` rows for the T07
    `<details>`. The FE renders the **counts** + `resumoErro`; the detailed list stays empty until a BE
    field/endpoint lands (SPEC-03 §5).
-2. **ePub summary KPIs** — `Tamanho/Páginas/Capítulos/Imagens` (T07 `EpubSummaryVM`) have **no** source
-   field in §6. Each tile is **omitted** when unsupplied (never faked); reconcile the source (build
-   metadata vs `Manuscrito` counts) in a BE contract addendum (SPEC-03 §3, R5).
+2. ~~**ePub summary KPIs**~~ — **CLOSED (ADR-004 / api-contract D-S, 2026-09-01).** `Tamanho`,
+   `Capítulos`, `Imagens` now have a source: `PublicacaoStatus.tamanhoBytes` / `.totalCapitulos` /
+   `.totalImagens` (§6.1), non-null iff `status=publicado`. `Páginas` is **not** a gap anymore either — it
+   is permanently omitted from the BE contract by product decision (ePub reflowable has no fixed
+   pagination); the FE tile stays hidden forever, not pending a future field. See PUB-021 (BE) /
+   INT-FE-PUB-005 (FE, now unblocked).
 3. **Project header + author subtitle** — read cross-context from PROJ (§4.x) / COMP (`GetMetadados`);
    whether `pub-service` proxies these or the FE calls PROJ/COMP directly is a scaffold-time decision
    (doc 05 §2). Either way PUB never writes those aggregates.

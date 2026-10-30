@@ -28,10 +28,10 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] Valid `nome` persists `ProjetoEditorial` with `status=rascunho`, `editoraId` from JWT claim
-- [ ] `projeto_status_historico` row appended in same transaction (`status_de=null, status_para=rascunho`)
-- [ ] `ProjectCreated` event emitted with unique `eventId` (UUID v4), never on rollback
-- [ ] 400 `urn:cordele:proj:validation` when `nome` is missing or empty; nothing persisted
+- [x] Valid `nome` persists `ProjetoEditorial` with `status=rascunho`, `editoraId` from JWT claim
+- [x] `projeto_status_historico` row appended in same transaction (`status_de=null, status_para=rascunho`)
+- [x] `ProjectCreated` event emitted with unique `eventId` (UUID v4), never on rollback
+- [x] 400 `urn:cordele:proj:validation` when `nome` is missing or empty; nothing persisted
 - [x] In-process port `CreateProjetoEditorialUseCase.create({ titulo })` returns `{ projetoId }` for IMP
 - [x] `pnpm test` on use case spec exits 0
 

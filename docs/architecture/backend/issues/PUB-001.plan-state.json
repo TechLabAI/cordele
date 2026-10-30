@@ -1,0 +1,42 @@
+{
+  "issue": "PUB-001",
+  "layer": "be",
+  "computedAt": "2026-09-02T08:15:31",
+  "checklist": {
+    "total": 10,
+    "done": 4,
+    "partial": 1,
+    "missing": 5,
+    "blocked": 0
+  },
+  "priorPlan": {
+    "exists": true,
+    "file": "docs\\architecture\\backend\\plans\\plan-PUB.md",
+    "phases": []
+  },
+  "delta": {
+    "done": [
+      "`src/modules/pub/pub.module.ts` — registers `PubController`; declares DI tokens for 6 use cases (`GENERATE_PUBLICATION_USE_CASE`, `PUBLICATION_BUILD_JOB`, `GET_STATUS_USE_CASE`, `LIST_PUBLICATIONS_USE_CASE`, `DOWNLOAD_URL_USE_CASE`, `GET_STATS_USE_CASE`) and 5 port tokens (`EPUB_VALIDATION_PORT`, `FILE_STORAGE_PORT`, `MANUSCRIPT_CONTENT_PORT`, `COMPOSITION_READ_PORT`, `PROJECT_STATUS_PORT`); applies `EmpresaContext` middleware",
+      "`src/modules/pub/pub.tokens.ts` — all Symbol DI token declarations for the PUB module",
+      "`src/modules/pub/pub.controller.ts` — 5 route handlers under `/api/pub/projetos/:projetoId/publicacoes`; stub responses (202/200/204); scopes declared but guards wired as allow-all stubs in P1",
+      "All DI tokens declared in `pub.tokens.ts`: use cases + outbound ports"
+    ],
+    "partial": [
+      "`src/modules/pub/dto/` — `publicacao-status.dto.ts`, `publicacao-history-item.dto.ts`, `download-url.dto.ts`, `publication-stats.dto.ts` matching api-contract §6"
+    ],
+    "notStarted": [
+      "`src/modules/pub/pub.controller.spec.ts` — unit tests verifying all 5 route handlers return stub HTTP statuses",
+      "`pnpm build` exits 0 with `PubModule` present",
+      "All 5 route handlers exist in `PubController` with correct HTTP verbs and paths (verified by controller unit test listing route metadata)",
+      "`@nestjs/swagger` decorators present on each route for OpenAPI generation",
+      "`pnpm test` on the controller spec exits 0"
+    ],
+    "inconsistencies": []
+  },
+  "dependencies": {
+    "issues": [],
+    "notes": []
+  },
+  "suggestedPlanType": "CONTINUACAO",
+  "needsAgentConfirm": true
+}

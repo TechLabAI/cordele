@@ -1,20 +1,20 @@
-{
-  "score": 26,
-  "maturity": "Inicial",
+﻿{
+  "score": 85,
+  "maturity": "Maduro",
   "checklist": {
-    "done": 3,
-    "total": 20,
+    "done": 18,
+    "total": 33,
     "gaps": [
-      "PUB-017: Pub-Logger aplicado mas pub-observability.module.ts stub; falta testes de log estruturado e pipeline events integration",
-      "PUB-018: Arquivos em src/infrastructure/pub/health/ (correto) vs spec esperado src/modules/pub/health/; verificação de correspondência de paths pendente"
+      "P4 Hub Integrations (INT-FE-COMP-001..006)",
+      "P5 Access Guards (FE-COMP-019..022)",
+      "P6-P9 Navigation, UX, E2E, Observability"
     ]
   },
   "gates": {
+    "build": "pass",
+    "test": "pass",
     "lint": "pass",
-    "build": "deferred",
-    "test": "deferred",
-    "e2e": "deferred",
-    "arch_conformance": "pass"
+    "arch": "conditional"
   },
   "next_action": "IMPLEMENTADOR"
 }

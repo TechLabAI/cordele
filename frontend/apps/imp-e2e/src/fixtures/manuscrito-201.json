@@ -1,0 +1,65 @@
+{
+  "id": "f1e2d3c4-b5a6-4789-abcd-012345678901",
+  "projetoId": "a1b2c3d4-e5f6-4789-abcd-012345678901",
+  "nomeArquivo": "cordel-do-sertao.docx",
+  "formato": "docx",
+  "status": "imported",
+  "totalCapitulos": 3,
+  "totalImagens": 2,
+  "trechosNaoParseados": 1,
+  "tamanhoBytes": 102400,
+  "criadoEm": "2026-08-31T10:00:00.000Z",
+  "estrutura": {
+    "schemaVersion": "1.0",
+    "formato": "docx",
+    "chapters": [
+      {
+        "id": "ch-001",
+        "order": 1,
+        "title": "Capítulo 1 — A Chegada",
+        "blocks": [
+          {
+            "type": "paragraph",
+            "id": "p-001",
+            "order": 1,
+            "text": "Era uma vez no sertão nordestino um homem valente..."
+          }
+        ],
+        "sections": []
+      },
+      {
+        "id": "ch-002",
+        "order": 2,
+        "title": "Capítulo 2 — A Partida",
+        "blocks": [
+          {
+            "type": "unparsed",
+            "id": "seg-001",
+            "order": 1,
+            "rawContent": "[tabela de personagens complexa]",
+            "reason": "complex_table",
+            "sourceLocation": { "kind": "docx", "paragraphIndex": 45, "styleName": "Table Grid" }
+          }
+        ],
+        "sections": []
+      },
+      {
+        "id": "ch-003",
+        "order": 3,
+        "title": "Capítulo 3 — O Retorno",
+        "blocks": [
+          {
+            "type": "image",
+            "id": "img-001",
+            "order": 1,
+            "storageKey": "img/capa.png",
+            "mime": "image/png",
+            "alt": "Capa do cordel",
+            "originalName": "capa.png"
+          }
+        ],
+        "sections": []
+      }
+    ]
+  }
+}

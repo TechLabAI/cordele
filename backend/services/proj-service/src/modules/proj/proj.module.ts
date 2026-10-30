@@ -11,7 +11,6 @@ import {
   GET_PUBLICATION_HISTORY_USE_CASE,
   GET_SIGNED_DOWNLOAD_URL_USE_CASE,
   PROJECT_EVENT_PUBLISHER,
-  PROJETO_EDITORIAL_LOOKUP,
   REOPEN_PROJECT_USE_CASE,
 } from './proj.tokens';
 
@@ -88,13 +87,12 @@ import { DeleteProjetoUseCase } from './use-cases/delete-projeto.use-case';
       useClass: ReopenProjectForRevisionUseCase,
     },
 
-    // --- PROJ-006: ProjetoEditorialLookup inbound port ---
-    // P2 stub: returns false (cross-tenant safe default).
-    // P3+ will replace with the real adapter from PersistenceModule.
-    {
-      provide: PROJETO_EDITORIAL_LOOKUP,
-      useValue: { exists: async (_projetoId: string) => false },
-    },
+    // NOTE: PROJETO_EDITORIAL_LOOKUP is provided globally by LookupPortsModule
+    // (@Global()) imported in AppModule (PROJ-006 / PROJ-008). The real adapter
+    // (ProjetoEditorialLookupAdapter) reads empresaId from EmpresaContextStore
+    // (AsyncLocalStorage populated by JwtAuthGuard) and delegates to the
+    // ProjetoEditorialRepository for cross-tenant safety.
+    // ProjModule never imports infrastructure/ directly (RULE-04 compliant).
 
     // NOTE: MANUSCRIPT_SUMMARY_PORT, PROJECT_METADATA_PORT, PUBLICATION_HISTORY_PORT
     // are provided globally by ReadPortsModule (@Global()) imported in AppModule.
@@ -151,9 +149,10 @@ import { DeleteProjetoUseCase } from './use-cases/delete-projeto.use-case';
     },
   ],
   exports: [
-    // PROJ-006: 4 inbound ports exported for IMP / PUB / editor callers
+    // PROJ-006: 3 inbound ports exported for IMP / PUB / editor callers
+    // NOTE: PROJETO_EDITORIAL_LOOKUP is provided globally by LookupPortsModule (@Global())
+    // and is automatically available to all modules — no re-export needed here.
     CREATE_PROJETO_USE_CASE,
-    PROJETO_EDITORIAL_LOOKUP,
     ADVANCE_PROJETO_STATUS_USE_CASE,
     REOPEN_PROJECT_USE_CASE,
   ],

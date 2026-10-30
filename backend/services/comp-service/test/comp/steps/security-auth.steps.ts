@@ -139,8 +139,8 @@ defineFeature(feature, (test) => {
       /^a project with id "(.*)" owned by empresa "(.*)" with titulo "(.*)"$/,
       (_projetoId: string, _ownerEmpresa: string, _titulo: string) => {
         // With real DB: no-op. The emp_aetos schema has no data for this project.
-        // Natural isolation: PrismaMetadadosRepository routes to emp_aetos (from
-        // BddTenantBridgeMiddleware), finds no row, returns lazy default.
+        // Natural isolation: PrismaMetadadosRepository routes to emp_aetos (slug
+        // resolved by EmpresaContextInterceptor), finds no row, returns lazy default.
       },
     );
 

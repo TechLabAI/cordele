@@ -37,7 +37,7 @@ import {
   PUBLICATION_ERASURE_PORT,
   PUBLICATION_HISTORY_PORT,
 } from 'src/modules/proj/proj.tokens';
-import { ProjetoStatus } from 'src/domain/proj/value-objects/project-status.vo';
+import { ProjectStatusVO, ProjetoStatus } from 'src/domain/proj/value-objects/project-status.vo';
 import type {
   CreateProjetoEditorialInput,
   ProjetoEditorialData,
@@ -136,6 +136,20 @@ const fakeProjetoEditorialRepo: ProjetoEditorialRepository = {
     if (proj && proj.editoraId === empresaId) {
       eventIntegrityStore.delete(id);
     }
+  },
+
+  advanceStatusAtomic: async (input) => {
+    // Respect the shouldThrowOnNextWrite flag (simulates a persistence rollback).
+    if (shouldThrowOnNextWrite) {
+      throw new Error('simulated rollback');
+    }
+    const proj = eventIntegrityStore.get(input.id);
+    if (!proj || proj.editoraId !== input.empresaId) return null;
+    const { newStatus, changed } = ProjectStatusVO.advanceTo(proj.status, input.targetStatus);
+    if (!changed) return { data: proj, previousStatus: proj.status, changed: false };
+    const updated: ProjetoEditorialData = { ...proj, status: newStatus, atualizadoEm: new Date() };
+    eventIntegrityStore.set(input.id, updated);
+    return { data: updated, previousStatus: proj.status, changed: true };
   },
 };
 

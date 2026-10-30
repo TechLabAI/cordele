@@ -130,6 +130,23 @@ describe('GetProjetoDetailUseCase', () => {
     expect(result!.status).toBe(ProjetoStatus.em_composicao);
   });
 
+  it('status always present in response even when ManuscriptSummaryPort degrades', async () => {
+    // SPEC-10 invariant: own PROJ fields (id, status, nome) are always returned
+    // regardless of cross-context port availability.
+    repository.findById.mockResolvedValue(makeProject(ProjetoStatus.publicado));
+    manuscriptPort.summaries.mockRejectedValue(new Error('IMP unavailable'));
+    metadataPort.metadata.mockResolvedValue(new Map());
+    publicationPort.history.mockResolvedValue([]);
+
+    const result = await useCase.execute({ projetoId: PROJETO_ID, empresaId: EMPRESA_ID });
+
+    expect(result).not.toBeNull();
+    expect(result!.degraded).toBe(true);
+    // Own fields — always present regardless of port state
+    expect(result!.id).toBe(PROJETO_ID);
+    expect(result!.status).toBe(ProjetoStatus.publicado);
+  });
+
   // ---------------------------------------------------------------------------
   // PROJ-017: structured WARN log on degraded port (observability)
   // ---------------------------------------------------------------------------

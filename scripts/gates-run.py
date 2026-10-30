@@ -61,6 +61,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -207,12 +208,33 @@ def verdict_for(returncode: int | None, found: bool) -> str:
 
 
 def _subprocess_runner(cmd: list[str], cwd: Path) -> tuple[int | None, bool, str]:
-    """Run cmd; return (returncode, found, tail). found=False if the tool is absent."""
-    try:
-        proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True,
-                              encoding="utf-8", errors="replace")
-    except FileNotFoundError:
+    """Run cmd; return (returncode, found, tail). found=False if the tool is absent.
+
+    On Windows, executables such as pnpm and npx are .CMD wrappers; subprocess
+    without shell=True raises FileNotFoundError for bare names like "pnpm".
+    shutil.which() resolves the real path (honoring PATHEXT on Windows) before the
+    subprocess call, eliminating the false-skip.  On Linux/macOS the behaviour is
+    unchanged: which() returns the same path the shell would have used.
+
+    Contract:
+      - Tool absent from PATH          -> (None, False, "")  -> verdict "skip"
+      - Tool found but fails to launch -> (1, True,  msg)   -> verdict "fail"  [VISIBLE]
+      - Tool ran successfully          -> (0, True,  tail)  -> verdict "pass"
+      - Tool ran and returned non-zero -> (rc, True, tail)  -> verdict "fail"
+    """
+    resolved = shutil.which(cmd[0])
+    if resolved is None:
+        # Tool genuinely absent from PATH — the only legitimate "skip" trigger.
         return None, False, ""
+    full_cmd = [resolved] + list(cmd[1:])
+    try:
+        proc = subprocess.run(full_cmd, cwd=cwd, capture_output=True, text=True,
+                              encoding="utf-8", errors="replace")
+    except (FileNotFoundError, OSError) as exc:
+        # Tool existed at which()-time but failed to launch (e.g. permission error,
+        # broken .CMD wrapper).  Must NOT be silent — surfaces as verdict "fail".
+        msg = f"[gates-run] launch error for {cmd[0]!r}: {exc}"
+        return 1, True, msg
     tail = (proc.stdout + proc.stderr)[-2000:]
     return proc.returncode, True, tail
 

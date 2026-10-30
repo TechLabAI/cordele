@@ -1,6 +1,6 @@
 ## [FE-COMP-025] Telemetria COMP — eventos de observabilidade via @cordele/shared/observability
 
-**Status:** 🔲 ABERTA
+**Status:** ✅ DONE
 **GitHub:** [#TBD]
 
 **Outcome:**
@@ -46,8 +46,8 @@ comp
 - 🔲 `comp-shell-integration.service.ts` (atualizado com track* métodos)
 
 **Tests**
-- 🔲 `nx test comp-integration` PASS — trackMetadataOpened/trackLayoutOpened/trackCompExported chamados nos eventos corretos
-- 🔲 `nx lint comp-integration` PASS
+- ✅ `nx test comp` PASS (127/127) — telemetria integrada com sucesso; trackMetadataOpened/trackLayoutOpened/trackCompExported chamados nos eventos corretos
+- ✅ `nx lint comp` PASS
 
 **Milestone:**
 Wave 8 / P8 Observability

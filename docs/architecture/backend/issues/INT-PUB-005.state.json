@@ -1,0 +1,93 @@
+{
+  "issue": "INT-PUB-005",
+  "layer": "be",
+  "computedAt": "2026-09-03T01:30:41",
+  "checklist": {
+    "total": 6,
+    "done": 2,
+    "partial": 0,
+    "missing": 4,
+    "blocked": 0,
+    "items": [
+      {
+        "text": "`src/modules/proj/proj.module.ts` (proj-service) — `PUBLICATION_ERASURE_PORT` fornecido globalmente via `ErasurePortsModule (@Global())` importado em `AppModule`; padrão HTTP adapter para microserviços; verificado P12",
+        "state": "MISSING",
+        "evidence": "marcado mas arquivo ausente: src/modules/proj/proj.module.ts"
+      },
+      {
+        "text": "`src/modules/proj/use-cases/delete-projeto.use-case.ts` — (nome real difere: `delete-projeto` em vez de `delete-project`); chama `PublicationErasurePort.erase(projetoId)` antes de deletar projeto; se erase lança, aborta deleção; verificado P12",
+        "state": "MISSING",
+        "evidence": "marcado mas arquivo ausente: src/modules/proj/use-cases/delete-projeto.use-case.ts"
+      },
+      {
+        "text": "`src/infrastructure/proj/erasure/pub-publication-erasure.adapter.spec.ts` — (path real difere: `infrastructure/proj/erasure/`); spec do adapter HTTP; verificado P12",
+        "state": "MISSING",
+        "evidence": "marcado mas arquivo ausente: src/infrastructure/proj/erasure/pub-publication-erasure.adapter.spec.ts"
+      },
+      {
+        "text": "`pnpm test src/infrastructure/proj/erasure/pub-publication-erasure.adapter.spec.ts` exits 0 (passes no path real)",
+        "state": "MISSING",
+        "evidence": "marcado mas arquivo ausente: src/infrastructure/proj/erasure/pub-publication-erasure.adapter.spec.ts"
+      },
+      {
+        "text": "`erase` chamado antes de `projetoRepository.delete` (ordem verificada) — verificado no `delete-projeto.use-case.ts`",
+        "state": "DONE",
+        "evidence": "arquivo(s) presente(s) e nao-stub: delete-projeto.use-case.ts"
+      },
+      {
+        "text": "Falha em `erase` impede deleção do projeto — verificado no código: erro propagado sem try/catch no use case",
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
+      }
+    ]
+  },
+  "gates": {
+    "build": "unknown",
+    "lint": "unknown",
+    "test": "unknown",
+    "e2e": "unknown"
+  },
+  "score": {
+    "total": 13,
+    "provisional": true,
+    "range": [
+      13,
+      23
+    ],
+    "breakdown": {
+      "structure": {
+        "max": 30,
+        "value": 3,
+        "basis": "deterministic"
+      },
+      "functionality": {
+        "max": 30,
+        "value": 10,
+        "basis": "heuristic",
+        "needsAgentConfirm": true
+      },
+      "tests_lint": {
+        "max": 20,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "e2e": {
+        "max": 10,
+        "value": 0,
+        "basis": "deterministic"
+      },
+      "soft": {
+        "max": 10,
+        "value": null,
+        "basis": "agent",
+        "needsAgentConfirm": true
+      }
+    },
+    "band": "Inicial",
+    "statusTag": "REDUCED"
+  },
+  "agentTodo": [
+    "Confirmar functionality 10/30 -- a funcionalidade alvo funciona?",
+    "Avaliar soft 0-10 -- observabilidade + enforcement multi-empresa (RULE-07); persistir com: validator-score.py soft --issue INT-PUB-005 --value <0-10> --rationale \"<evidencia>\""
+  ]
+}

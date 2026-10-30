@@ -1,0 +1,36 @@
+{
+  "name": "pub-feature-export",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/pub/feature-export/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["scope:pub", "type:feature"],
+  "implicitDependencies": ["pub-data-access", "pub-ui"],
+  "targets": {
+    "build": {
+      "executor": "@nx/angular:ng-packagr-lite",
+      "outputs": ["{workspaceRoot}/dist/{projectRoot}"],
+      "dependsOn": ["^build"],
+      "options": {
+        "project": "libs/pub/feature-export/ng-lib.json",
+        "tsConfig": "libs/pub/feature-export/tsconfig.lib.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "libs/pub/feature-export/tsconfig.lib.prod.json"
+        },
+        "development": {}
+      },
+      "defaultConfiguration": "production"
+    },
+    "test": {
+      "executor": "@nx/angular:unit-test",
+      "options": {
+        "watch": false
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

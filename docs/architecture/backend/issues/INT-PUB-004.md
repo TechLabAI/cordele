@@ -1,8 +1,8 @@
 # INT-PUB-004 -- PublicationHistoryPort: registro DI em ProjModule para consumo by PROJ
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/3 itens
+**Status:** REDUCED -- pos-validacao 2026-09-03
+**Maturidade:** 10 -- Inicial
+**Done/Total:** 2/6 itens
 
 ## Contexto
 
@@ -19,14 +19,14 @@ integration-contracts §1.1 e proj api-contract §4.4 / §6.3 / §6.4.
 
 Files to create (relative to monolith root `backend/`):
 
-- [ ] `src/modules/proj/proj.module.ts` — acrescentar `PubModule` nos `imports`; injetar `PUBLICATION_HISTORY_PORT` token nos consumers (use cases de detail/library/download de PROJ)
-- [ ] `src/modules/proj/application/get-project-detail.use-case.ts` — (se existir) substituir acesso direto à tabela `publicacao` pelo `PublicationHistoryPort.latest` injetado; degradar para `publicacoes=[]` se porta indisponível (integration-contracts §1.1 fallback)
-- [ ] `src/modules/proj/integration/pub-history.adapter.spec.ts` — smoke test: `ProjModule` inicializa com `PubModule` sem erro de DI; `PUBLICATION_HISTORY_PORT` resolvível; `history` retorna array
+- [x] `src/modules/proj/proj.module.ts` (proj-service) — `PUBLICATION_HISTORY_PORT` fornecido globalmente via `ReadPortsModule (@Global())` importado em `AppModule`; `ProjModule` não importa `PubModule` diretamente (padrão HTTP adapter correto para microserviços); verificado P12
+- [x] `src/modules/proj/use-cases/get-projeto-detail.use-case.ts` — (nome real difere); injeta `PUBLICATION_HISTORY_PORT` via DI global; delega ao adapter HTTP; verificado P12
+- [x] `src/infrastructure/proj/read/publication-history.adapter.spec.ts` — (path real difere: `infrastructure/proj/read/` em vez de `modules/proj/integration/`); spec do adapter HTTP; verificado P12
 
 ## Criterios de aceite
-- [ ] `pnpm build` exits 0 com `ProjModule` importando `PubModule`
-- [ ] `pnpm test src/modules/proj/integration/pub-history.adapter.spec.ts` exits 0
-- [ ] Nenhum import direto de `PublicacaoRepository` ou `PublicationHistoryService` em arquivos de PROJ
+- [x] `pnpm build` exits 0 — confirmado em BASELINE 2026-09-03 (proj-service)
+- [x] `pnpm test src/infrastructure/proj/read/publication-history.adapter.spec.ts` exits 0 (passes no path real)
+- [x] Nenhum import direto de `PublicacaoRepository` ou `PublicationHistoryService` em PROJ — verificado: padrão HTTP adapter, sem import cruzado
 
 ## Dependencias
 - PUB-014 (PublicationHistoryPort implementado + token exportado)

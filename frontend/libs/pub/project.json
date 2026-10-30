@@ -12,7 +12,7 @@
     "build": {
       "executor": "@nx/angular:ng-packagr-lite",
       "outputs": [
-        "{workspaceRoot}/dist/{projectRoot}"
+        "{workspaceRoot}/dist/libs/pub-compat"
       ],
       "options": {
         "project": "libs/pub/ng-package.json"

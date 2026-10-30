@@ -38,7 +38,7 @@ import {
   type UpdateStatusInput,
   type ProjetoEditorialFilter,
 } from 'src/domain/proj/projeto-editorial.repository';
-import { ProjetoStatus } from 'src/domain/proj/value-objects/project-status.vo';
+import { ProjectStatusVO, ProjetoStatus } from 'src/domain/proj/value-objects/project-status.vo';
 import type { UsuarioContext } from 'src/domain/shared/usuario-context.interface';
 import {
   ADVANCE_PROJETO_STATUS_USE_CASE,
@@ -143,6 +143,28 @@ const fakeProjetoRepository: ProjetoEditorialRepository = {
 
   async delete(id: string, _empresaId: string): Promise<void> {
     lifecycleStore.delete(id);
+  },
+
+  async advanceStatusAtomic(input) {
+    const proj = lifecycleStore.get(input.id);
+    if (!proj || proj.editoraId !== input.empresaId) return null;
+    const { newStatus, changed } = ProjectStatusVO.advanceTo(proj.status, input.targetStatus);
+    if (!changed) return { data: proj, previousStatus: proj.status, changed: false };
+    // Simulate the Postgres CHECK constraint.
+    if (!(Object.values(ProjetoStatus) as string[]).includes(newStatus as string)) {
+      throw new Error(`invalid status value: '${String(newStatus)}'`);
+    }
+    const now = new Date();
+    const updated: ProjetoEditorialData = { ...proj, status: newStatus, atualizadoEm: now };
+    lifecycleStore.set(input.id, updated);
+    statusHistory.push({
+      statusDe: proj.status,
+      statusPara: newStatus,
+      changedBy: input.changedBy,
+      empresaId: input.empresaId,
+      at: now,
+    });
+    return { data: updated, previousStatus: proj.status, changed: true };
   },
 };
 

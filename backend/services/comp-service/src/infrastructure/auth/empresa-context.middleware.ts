@@ -30,7 +30,7 @@ export class EmpresaContextMiddleware implements NestMiddleware {
 
   constructor(private readonly empresaContextService: EmpresaContextService) {}
 
-  use(req: Request, _res: Response, next: NextFunction): void {
+  use(req: Request & { correlationId?: string }, _res: Response, next: NextFunction): void {
     const authHeader = req.headers['authorization'];
 
     if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
@@ -50,7 +50,13 @@ export class EmpresaContextMiddleware implements NestMiddleware {
           const empresaId = payload.empresa_id ?? '';
 
           if (userId && empresaId) {
-            this.empresaContextService.run({ userId, empresaId }, () => next());
+            // correlationId is set on req by CorrelationMiddleware (which runs first)
+            // and forwarded into the ALS so that every provider can access it via
+            // EmpresaContextService.get()?.correlationId (COMP-018).
+            this.empresaContextService.run(
+              { userId, empresaId, correlationId: req.correlationId },
+              () => next(),
+            );
             return;
           }
         } catch (err) {

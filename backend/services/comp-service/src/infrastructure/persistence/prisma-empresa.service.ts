@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'async_hooks';
 
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../prisma-client';
 
 /**
  * Tenant routing service for COMP — one PrismaClient per schema (D-619).
@@ -58,6 +58,25 @@ export class PrismaEmpresaService implements OnModuleDestroy {
   /** Returns the current empresa slug, or undefined when outside a request context. */
   static getCurrentSlug(): string | undefined {
     return PrismaEmpresaService.store.getStore();
+  }
+
+  /**
+   * Transitions the current async resource to use `slug` as the empresa context.
+   *
+   * Unlike `runWithSlug`, no callback is needed — all subsequent async
+   * continuations from this point forward will see `slug` via `getCurrentSlug()`.
+   *
+   * Called by `JwtAuthGuard.canActivate()` AFTER successful JWT signature
+   * verification so the slug comes from a cryptographically verified source.
+   * RULE-07: the schema routing slug must be set from the authenticated principal,
+   * never from an unverified token decoded before the guard runs.
+   *
+   * Validates slug before entering the context to fail fast on misconfiguration.
+   * An invalid slug throws immediately — never silently falls back to any default schema.
+   */
+  static enterWith(slug: string): void {
+    PrismaEmpresaService.validateSlug(slug);
+    PrismaEmpresaService.store.enterWith(slug);
   }
 
   // ---------------------------------------------------------------------------

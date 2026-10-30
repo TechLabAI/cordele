@@ -116,20 +116,20 @@ describe('EpubBuilder', () => {
 
   describe('OCF ZIP structure', () => {
     it('produces a non-empty Buffer for minimal input (1 chapter, 1 paragraph)', async () => {
-      const buf = await builder.build(minimalTree(), minimalMetadados(), null);
+      const { epubBytes: buf } = await builder.build(minimalTree(), minimalMetadados(), null);
       expect(buf).toBeInstanceOf(Buffer);
       expect(buf.length).toBeGreaterThan(0);
     });
 
     it('first entry is "mimetype" and is STORED (OCF §3.3)', async () => {
-      const buf = await builder.build(minimalTree(), minimalMetadados(), null);
+      const { epubBytes: buf } = await builder.build(minimalTree(), minimalMetadados(), null);
       expect(firstEntryIsStored(buf)).toBe(true);
       const content = readFirstEntryContent(buf);
       expect(content).toBe('application/epub+zip');
     });
 
     it('ZIP contains required ePub 3 entries', async () => {
-      const buf = await builder.build(minimalTree(), minimalMetadados(), null);
+      const { epubBytes: buf } = await builder.build(minimalTree(), minimalMetadados(), null);
       const entries = listZipEntries(buf);
       expect(entries).toContain('mimetype');
       expect(entries).toContain('META-INF/container.xml');
@@ -142,7 +142,7 @@ describe('EpubBuilder', () => {
 
   describe('OPF metadata', () => {
     it('OPF contains titulo, autor, and idioma', async () => {
-      const buf = await builder.build(minimalTree(), minimalMetadados(), null);
+      const { epubBytes: buf } = await builder.build(minimalTree(), minimalMetadados(), null);
       const opfBytes = findEntryContent(buf, 'OEBPS/content.opf');
       expect(opfBytes).not.toBeNull();
       const opfXml = opfBytes!.toString('utf-8');
@@ -153,14 +153,14 @@ describe('EpubBuilder', () => {
 
     it('OPF uses isbn URN when isbn is provided', async () => {
       const meta = { ...minimalMetadados(), isbn: '978-85-000-0000-0' };
-      const buf = await builder.build(minimalTree(), meta, null);
+      const { epubBytes: buf } = await builder.build(minimalTree(), meta, null);
       const opfBytes = findEntryContent(buf, 'OEBPS/content.opf');
       const opfXml = opfBytes!.toString('utf-8');
       expect(opfXml).toContain('urn:isbn:');
     });
 
     it('OPF falls back to deterministic urn:uuid when isbn is null', async () => {
-      const buf = await builder.build(minimalTree(), minimalMetadados(), null);
+      const { epubBytes: buf } = await builder.build(minimalTree(), minimalMetadados(), null);
       const opfBytes = findEntryContent(buf, 'OEBPS/content.opf');
       expect(opfBytes!.toString('utf-8')).toContain('urn:uuid:cordele-');
     });
@@ -168,7 +168,7 @@ describe('EpubBuilder', () => {
 
   describe('Content rendering', () => {
     it('chapter XHTML includes the chapter title and paragraph text', async () => {
-      const buf = await builder.build(minimalTree(), minimalMetadados(), null);
+      const { epubBytes: buf } = await builder.build(minimalTree(), minimalMetadados(), null);
       const xhtmlBytes = findEntryContent(buf, 'OEBPS/chapter-1.xhtml');
       expect(xhtmlBytes).not.toBeNull();
       const xhtml = xhtmlBytes!.toString('utf-8');
@@ -189,7 +189,7 @@ describe('EpubBuilder', () => {
           },
         ],
       };
-      const buf = await builder.build(treeWithUnparsed, minimalMetadados(), null);
+      const { epubBytes: buf } = await builder.build(treeWithUnparsed, minimalMetadados(), null);
       const xhtmlBytes = findEntryContent(buf, 'OEBPS/chapter-1.xhtml');
       const xhtml = xhtmlBytes!.toString('utf-8');
       expect(xhtml).toContain('unparsed');
@@ -212,7 +212,7 @@ describe('EpubBuilder', () => {
         ],
       };
       const loadImage = jest.fn().mockResolvedValue(imageContent);
-      const buf = await builder.build(treeWithImage, minimalMetadados(), null, loadImage);
+      const { epubBytes: buf } = await builder.build(treeWithImage, minimalMetadados(), null, loadImage);
       const entries = listZipEntries(buf);
       // Image is embedded in the OCF package
       expect(entries.some((e) => e.includes('covers_cover.png') || e.includes('cover'))).toBe(true);
@@ -231,7 +231,7 @@ describe('EpubBuilder', () => {
         ],
       };
       const loadImage = jest.fn().mockResolvedValue(null);
-      const buf = await builder.build(treeWithImage, minimalMetadados(), null, loadImage);
+      const { epubBytes: buf } = await builder.build(treeWithImage, minimalMetadados(), null, loadImage);
       expect(buf.length).toBeGreaterThan(0);
     });
   });
@@ -243,7 +243,7 @@ describe('EpubBuilder', () => {
         fonteCorpoFamilia: 'sans-serif',
         h1Tamanho: 30,
       };
-      const buf = await builder.build(minimalTree(), minimalMetadados(), layout);
+      const { epubBytes: buf } = await builder.build(minimalTree(), minimalMetadados(), layout);
       const cssBytes = findEntryContent(buf, 'OEBPS/css/style.css');
       const css = cssBytes!.toString('utf-8');
       expect(css).toContain('sans-serif');
@@ -251,7 +251,7 @@ describe('EpubBuilder', () => {
     });
 
     it('CSS uses documented defaults when layout is null', async () => {
-      const buf = await builder.build(minimalTree(), minimalMetadados(), null);
+      const { epubBytes: buf } = await builder.build(minimalTree(), minimalMetadados(), null);
       const cssBytes = findEntryContent(buf, 'OEBPS/css/style.css');
       const css = cssBytes!.toString('utf-8');
       // Default: fonteCorpoFamilia=serif, h1=24pt
@@ -265,9 +265,59 @@ describe('EpubBuilder', () => {
       const tree = minimalTree();
       const meta = minimalMetadados();
       const layout = defaultLayout();
-      const buf1 = await builder.build(tree, meta, layout);
-      const buf2 = await builder.build(tree, meta, layout);
+      const { epubBytes: buf1 } = await builder.build(tree, meta, layout);
+      const { epubBytes: buf2 } = await builder.build(tree, meta, layout);
       expect(buf1.equals(buf2)).toBe(true);
+    });
+  });
+
+  describe('ADR-004: KPIs de resumo (totalCapitulos, totalImagens)', () => {
+    it('retorna totalCapitulos igual ao número de capítulos no manuscrito', async () => {
+      const treeWith2Chapters: EpubContentTree = {
+        manuscritoId: 'ms-1',
+        estrutura: [
+          { type: 'chapter', title: 'Cap 1', blocks: [{ type: 'paragraph', runs: [{ text: 'Texto 1.' }] }] },
+          { type: 'chapter', title: 'Cap 2', blocks: [{ type: 'paragraph', runs: [{ text: 'Texto 2.' }] }] },
+        ],
+      };
+      const { totalCapitulos } = await builder.build(treeWith2Chapters, minimalMetadados(), null);
+      expect(totalCapitulos).toBe(2);
+    });
+
+    it('retorna totalCapitulos=0 para manuscrito sem capítulos (fallback inserido pelo builder)', async () => {
+      const emptyTree: EpubContentTree = { manuscritoId: 'ms-empty', estrutura: [] };
+      const { totalCapitulos } = await builder.build(emptyTree, minimalMetadados(), null);
+      expect(totalCapitulos).toBe(0);
+    });
+
+    it('retorna totalImagens igual ao número de imagens distintas referenciadas', async () => {
+      const treeWithImages: EpubContentTree = {
+        manuscritoId: 'ms-1',
+        estrutura: [
+          {
+            type: 'chapter',
+            title: 'Cap 1',
+            blocks: [
+              { type: 'image', storageKey: 'img/a.png', alt: 'A' },
+              { type: 'image', storageKey: 'img/b.png', alt: 'B' },
+            ],
+          },
+        ],
+      };
+      const loadImage = jest.fn().mockResolvedValue(null);
+      const { totalImagens } = await builder.build(treeWithImages, minimalMetadados(), null, loadImage);
+      expect(totalImagens).toBe(2);
+    });
+
+    it('retorna totalImagens=0 para manuscrito sem imagens', async () => {
+      const { totalImagens } = await builder.build(minimalTree(), minimalMetadados(), null);
+      expect(totalImagens).toBe(0);
+    });
+
+    it('retorna epubBytes como Buffer não vazio', async () => {
+      const { epubBytes } = await builder.build(minimalTree(), minimalMetadados(), null);
+      expect(epubBytes).toBeInstanceOf(Buffer);
+      expect(epubBytes.length).toBeGreaterThan(0);
     });
   });
 });

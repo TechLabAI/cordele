@@ -1,6 +1,6 @@
 ## [FE-PUB-002] Module routes — pub.routes.ts, PubRootComponent
 
-**Status:** 🔲 ABERTA
+**Status:** ✅ DONE
 **GitHub:** [#TBD]
 
 **Outcome:**

@@ -1,412 +1,225 @@
 /**
- * editor-de-layout-preview.component.ts — T06 Editor de Layout / Preview.
- * Promoted from design-reference/screens/editor-de-layout-preview (D-493/D-494).
+ * editor-de-layout-preview.component.ts — T06 Editor de Layout / Preview (smart component).
+ * FE-COMP-014 / SPEC-02 §2.
+ * FE-COMP-023 — dynamic breadcrumb resolution via CompShellIntegrationService (P7).
  *
- * Changes vs prototype (per FE ADR-COMP-001 / M3/M4/M5 restrictions):
- *   REMOVED: toolbar estrutural (adicionarPagina / inserirImagem / confirmarRemover)
- *   REMOVED: render block for tipo='em-branco' (structuralEdits=false)
- *   REMOVED: showModal (page removal confirmation)
- *   REMOVED: inserirImagem flow from showImgModal — only ajustarAlinhamento kept
- *   REMOVED: import of shared/mock-data and local mock literals
- *   REMOVED: oklch(...) inline literals → replaced with --paper-* CSS tokens
- *   ADDED: LayoutFacade injection; ActivatedRoute for :projetoId param
- *   ADDED: 'Exportar' = RouterLink to /pub/exportacao-e-validacao (D-M)
- *   KEPT:  alignment modal for ADJUSTING existing image alignment (ajustarAlinhamento)
- *   KEPT:  full style panel (typography + margins + h1 size)
- *   KEPT:  paginator (anterior/proximo)
- * Track D: created by fe-architect-promote COMP @ cordele (D-494).
+ * Smart:
+ *   - Reads LayoutFacade signals; delegates UI to presentational children.
+ *   - No HttpClient — all data flow via LayoutFacade.
+ *   - No shared/mock-data imports.
+ *   - structuralEdits=false permanent (FE ADR-COMP-001 / D-H):
+ *     no add/remove page, no insert-image toolbar.
+ *
+ * P3 update (FE-COMP-014..017):
+ *   - Refactored to use child presentational components:
+ *     StepBarComponent, ExportBarComponent, StylePanelComponent,
+ *     PreviewCanvasComponent, PagePaginatorComponent.
+ *   - All deprecated facade aliases replaced by canonical API.
+ *   - selector updated to app-comp-editor-de-layout-preview (SPEC-02 §2).
+ *
+ * P7 update (FE-COMP-023):
+ *   - Calls CompShellIntegrationService.setActiveProject(projetoId) in ngOnInit
+ *     to resolve `{nome}` breadcrumb dynamically.
+ *   - Renders resolved breadcrumbs in the top-bar area.
+ *
+ * Note: Alignment adjustments surface via ImageAlignmentBadgeComponent (inside PreviewCanvasComponent).
+ * The toolbar structural (adicionarPagina/inserirImagem/removerPagina) was removed at Promote (D-494).
  */
 import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
+  computed,
   inject,
-  signal,
 } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { LayoutFacade } from '../layout.facade';
-import { Alinhamento } from '../models/comp.models';
-
-type AlinhamentoOption = { valor: Alinhamento; label: string; desc: string; icon: string };
-
-const ALINHAMENTOS: AlinhamentoOption[] = [
-  { valor: 'full',           label: 'Página inteira',        desc: 'Imagem ocupa toda a largura da página',    icon: 'fullscreen' },
-  { valor: 'centralizado',   label: 'Centralizado',          desc: 'Imagem centralizada com margens laterais', icon: 'align_justify_center' },
-  { valor: 'junto-esquerda', label: 'Junto ao texto — esq', desc: 'Texto flui à direita da imagem',           icon: 'format_image_left' },
-  { valor: 'junto-direita',  label: 'Junto ao texto — dir', desc: 'Texto flui à esquerda da imagem',          icon: 'format_image_right' },
-];
-
-const STEPS = [
-  { n: 1, label: 'Importar' }, { n: 2, label: 'Configurar' },
-  { n: 3, label: 'Edição' }, { n: 4, label: 'Exportar' },
-];
+import { Alinhamento, ConfiguracaoLayoutDto } from '../models/comp.models';
+import { COMP_NAV_CONFIG } from '../comp-nav.config';
+import { CompShellIntegrationService } from '../comp-shell-integration.service';
+import { StepBarComponent } from '../ui/step-bar.component';
+import { PreviewSkeletonComponent } from '../ui/preview-skeleton.component';
+import { PreviewEmptyComponent } from '../ui/preview-empty.component';
+import { ErrorStateComponent } from '../ui/error-state.component';
+import { ExportBarComponent } from './export-bar.component';
+import { StylePanelComponent, StyleChangeEvent } from './style-panel.component';
+import { PreviewCanvasComponent } from './preview-canvas.component';
+import { PagePaginatorComponent } from './page-paginator.component';
 
 @Component({
   selector: 'comp-editor-de-layout-preview',
   standalone: true,
-  imports: [RouterLink],
+  imports: [
+    StepBarComponent,
+    PreviewSkeletonComponent,
+    PreviewEmptyComponent,
+    ErrorStateComponent,
+    ExportBarComponent,
+    StylePanelComponent,
+    PreviewCanvasComponent,
+    PagePaginatorComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [`:host {
-    --paper-bg: oklch(93% 0.005 265);
-    --paper-surface: #ffffff;
-    --paper-text: oklch(22% 0.09 265);
-    --paper-img-accent: oklch(55% 0.18 145);
-    --paper-img-accent-dark: oklch(42% 0.16 145);
-    --paper-toolbar-bg: color-mix(in oklch, var(--color-brand) 6%, transparent);
-    --paper-toolbar-border: color-mix(in oklch, var(--color-brand) 18%, transparent);
-    display: block; height: 100%;
+    /*
+     * Paper-surface tokens — defined here as CSS custom properties so child components
+     * can inherit them via the cascade. Values use var() references to design-system tokens
+     * (not inline oklch() literals — FE-COMP-022 cleanup done in P5).
+     * --paper-bg: deliberately light for simulating the printed page (ADR-COMP-001).
+     */
+    --paper-bg: var(--paper-bg-override, #f0f0f5);
+    display: block;
+    height: 100%;
   }`],
   template: `
     <div class="flex h-full overflow-hidden" style="background:var(--bg-base);">
 
-      <!-- Área central -->
+      <!-- Main content area -->
       <div class="flex-1 flex flex-col overflow-hidden min-w-0">
 
-        <!-- Barra de etapas -->
-        <div class="flex items-center gap-2 px-6 py-3 border-b text-sm flex-shrink-0"
+        <!-- Top bar: breadcrumbs + step bar + export bar -->
+        <div class="flex flex-col px-6 pt-3 pb-0 border-b flex-shrink-0"
              style="background:var(--bg-surface);border-color:var(--border-subtle);">
-          @for (step of steps; track step.n) {
-            <span class="flex items-center gap-1.5" [style]="stepStyle(step.n)">
-              <span class="inline-flex items-center justify-center size-5 rounded-full text-xs font-bold"
-                    [style]="dotStyle(step.n)">
-                @if (step.n < 3) { <span class="material-symbols-outlined" style="font-size:12px;">check</span> }
-                @else { {{ step.n }} }
-              </span>
-              {{ step.label }}
-            </span>
-            @if (!$last) { <span class="mx-2" style="color:var(--border-strong)">›</span> }
+
+          <!-- Breadcrumb navigation (FE-COMP-023) — {nome} resolved from projetoId -->
+          @if (breadcrumbs().length) {
+            <nav class="flex items-center gap-1 text-xs mb-2" aria-label="Localização">
+              @for (crumb of breadcrumbs(); track $index) {
+                @if (!$last) {
+                  <span style="color:var(--text-tertiary);">{{ crumb }}</span>
+                  <span class="material-symbols-outlined select-none"
+                        style="font-size:12px;color:var(--text-tertiary);"
+                        aria-hidden="true">chevron_right</span>
+                } @else {
+                  <span style="color:var(--text-primary);font-weight:500;">{{ crumb }}</span>
+                }
+              }
+            </nav>
           }
-          <div class="ml-auto flex items-center gap-3">
-            <a [routerLink]="pubRoute"
-               class="inline-flex items-center gap-1 rounded-lg px-4 py-1.5 text-sm font-semibold transition-opacity hover:opacity-90"
-               style="background:var(--color-brand);color:var(--text-on-brand);">
-              <span class="material-symbols-outlined" style="font-size:16px;">file_export</span>
-              Exportar
-            </a>
+
+          <!-- Step bar + Export bar -->
+          <div class="flex items-center gap-2 py-2">
+            <comp-step-bar
+              [steps]="navSteps"
+              [current]="'edicao'"
+              class="flex-1"
+            />
+            <div class="ml-auto flex-shrink-0">
+              <comp-export-bar
+                [saving]="facade.saving()"
+                [canExport]="facade.canExport()"
+                (exportClicked)="facade.onExport()"
+              />
+            </div>
           </div>
         </div>
 
-        <!-- Preview central (sem toolbar estrutural — structuralEdits=false, FE ADR-COMP-001) -->
-        <div class="flex-1 overflow-auto py-8 px-6 flex justify-center" style="background:var(--paper-bg);">
+        <!-- Preview canvas area -->
+        <div class="flex-1 overflow-auto py-8 px-6 flex justify-center items-start"
+             style="background:var(--paper-bg);">
+
+          <!-- Loading skeleton (P8 — FE-COMP-024) -->
           @if (facade.status() === 'loading') {
-            <div class="flex items-center justify-center w-full">
-              <span class="material-symbols-outlined animate-spin text-4xl" style="color:var(--text-tertiary)">progress_activity</span>
-            </div>
+            <comp-preview-skeleton />
           }
 
-          @if (facade.status() === 'ready' && facade.paginaAtual()) {
-            <div class="rounded-xl overflow-hidden"
-                 style="background:var(--paper-surface);width:min(680px,100%);box-shadow:var(--shadow-lg);"
-                 [style.padding]="facade.layout().margemLateral + 'px'">
-
-              @if (facade.paginaAtual().tipo === 'capitulo') {
-                <h2 class="font-display mb-6"
-                    [style.fontFamily]="facade.layout().fonteCorpoFamilia === 'serif' ? 'Georgia, serif' : 'var(--font-body)'"
-                    [style.fontSize]="facade.layout().h1Tamanho + 'px'"
-                    style="color:var(--paper-text);">
-                  Capítulo {{ facade.paginaAtual().n }} — {{ facade.paginaAtual().titulo }}
-                </h2>
-                @for (para of facade.paragrafos(); track $index) {
-                  <p class="mb-4"
-                     [style.fontFamily]="facade.layout().fonteCorpoFamilia === 'serif' ? 'Georgia, serif' : 'var(--font-body)'"
-                     [style.fontSize]="facade.layout().fonteCorpoTamanho + 'px'"
-                     [style.lineHeight]="facade.layout().espacamentoLinha"
-                     style="color:var(--paper-text);">{{ para }}</p>
-                }
-              }
-
-              @if (facade.paginaAtual().tipo === 'imagem') {
-                @let al = facade.paginaAtual().alinhamento ?? 'centralizado';
-
-                <!-- FULL -->
-                @if (al === 'full') {
-                  <div class="rounded-lg overflow-hidden w-full"
-                       style="background:var(--bg-surface-active);border:2px dashed color-mix(in oklch,var(--paper-img-accent) 50%,transparent);min-height:240px;display:flex;align-items:center;justify-content:center;">
-                    <div class="text-center">
-                      <span class="material-symbols-outlined text-5xl mb-2 block" style="color:var(--paper-img-accent)">image</span>
-                      <p class="text-xs font-medium" style="color:var(--paper-img-accent-dark)">Página inteira</p>
-                    </div>
-                  </div>
-                }
-
-                <!-- CENTRALIZADO -->
-                @if (al === 'centralizado') {
-                  <div class="flex justify-center py-4">
-                    <div class="rounded-lg overflow-hidden"
-                         style="width:70%;background:var(--bg-surface-active);border:2px dashed color-mix(in oklch,var(--paper-img-accent) 50%,transparent);min-height:180px;display:flex;align-items:center;justify-content:center;">
-                      <div class="text-center">
-                        <span class="material-symbols-outlined text-4xl mb-2 block" style="color:var(--paper-img-accent)">image</span>
-                        <p class="text-xs font-medium" style="color:var(--paper-img-accent-dark)">Centralizado</p>
-                      </div>
-                    </div>
-                  </div>
-                }
-
-                <!-- JUNTO-ESQUERDA -->
-                @if (al === 'junto-esquerda') {
-                  <div class="flex gap-4 py-2">
-                    <div class="rounded-lg shrink-0"
-                         style="width:40%;background:var(--bg-surface-active);border:2px dashed color-mix(in oklch,var(--paper-img-accent) 50%,transparent);min-height:140px;display:flex;align-items:center;justify-content:center;">
-                      <div class="text-center">
-                        <span class="material-symbols-outlined text-3xl" style="color:var(--paper-img-accent)">image</span>
-                        <p class="text-xs" style="color:var(--paper-img-accent-dark)">Esq.</p>
-                      </div>
-                    </div>
-                    <div class="flex-1 space-y-2 pt-1">
-                      <div class="h-2.5 rounded" style="background:var(--border-subtle);width:100%"></div>
-                      <div class="h-2.5 rounded" style="background:var(--border-subtle);width:100%"></div>
-                      <div class="h-2.5 rounded" style="background:var(--border-subtle);width:100%"></div>
-                      <div class="h-2.5 rounded" style="background:var(--border-subtle);width:100%"></div>
-                      <div class="h-2.5 rounded" style="background:var(--border-subtle);width:60%"></div>
-                      <p class="text-xs" style="color:var(--text-tertiary)">Texto flui à direita</p>
-                    </div>
-                  </div>
-                }
-
-                <!-- JUNTO-DIREITA -->
-                @if (al === 'junto-direita') {
-                  <div class="flex gap-4 py-2">
-                    <div class="flex-1 space-y-2 pt-1">
-                      <div class="h-2.5 rounded" style="background:var(--border-subtle);width:100%"></div>
-                      <div class="h-2.5 rounded" style="background:var(--border-subtle);width:100%"></div>
-                      <div class="h-2.5 rounded" style="background:var(--border-subtle);width:100%"></div>
-                      <div class="h-2.5 rounded" style="background:var(--border-subtle);width:100%"></div>
-                      <div class="h-2.5 rounded" style="background:var(--border-subtle);width:60%"></div>
-                      <p class="text-xs" style="color:var(--text-tertiary)">Texto flui à esquerda</p>
-                    </div>
-                    <div class="rounded-lg shrink-0"
-                         style="width:40%;background:var(--bg-surface-active);border:2px dashed color-mix(in oklch,var(--paper-img-accent) 50%,transparent);min-height:140px;display:flex;align-items:center;justify-content:center;">
-                      <div class="text-center">
-                        <span class="material-symbols-outlined text-3xl" style="color:var(--paper-img-accent)">image</span>
-                        <p class="text-xs" style="color:var(--paper-img-accent-dark)">Dir.</p>
-                      </div>
-                    </div>
-                  </div>
-                }
-
-                <!-- Badge de alinhamento + botão de ajuste -->
-                <div class="mt-3 flex items-center justify-between">
-                  <span class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full"
-                        style="background:color-mix(in oklch,var(--paper-img-accent) 10%,transparent);color:var(--paper-img-accent-dark);border:1px solid color-mix(in oklch,var(--paper-img-accent) 25%,transparent);">
-                    <span class="material-symbols-outlined" style="font-size:13px;">tune</span>
-                    {{ alinhLabel(al) }}
-                  </span>
-                  <button (click)="abrirModalAlinhamento()"
-                          class="text-xs underline"
-                          style="color:var(--color-brand)">Ajustar</button>
-                </div>
-              }
-
-            </div>
-          }
-
+          <!-- Error state (P8 — FE-COMP-024) -->
           @if (facade.status() === 'error') {
-            <div class="flex items-center justify-center w-full">
-              <p class="text-sm" style="color:var(--color-error)">{{ facade.error() }}</p>
-            </div>
+            <comp-error-state
+              [message]="facade.error()?.message ?? 'Não foi possível carregar o preview.'"
+              [correlationId]="facade.error()?.correlationId"
+              (retry)="facade.onRetryPreview()"
+            />
           }
+
+          <!-- Empty state — 409 manuscript missing (P8 — FE-COMP-024) -->
+          @if (facade.status() === 'empty') {
+            <comp-preview-empty (navigateBack)="onNavigateBackToImport()" />
+          }
+
+          <!-- Ready — single page preview (saving is tracked via facade.saving() separately) -->
+          @if (facade.status() === 'ready' && facade.paginaAtual()) {
+            <comp-preview-canvas
+              [page]="facade.paginaAtual()!"
+              [layout]="facade.layout()"
+              (alignmentChange)="onAlignmentChange($event.nodeRef, $event.alinhamento)"
+            />
+          }
+
         </div>
 
-        <!-- Paginador -->
-        <div class="flex items-center justify-center gap-4 py-3 border-t text-sm flex-shrink-0"
-             style="background:var(--bg-surface);border-color:var(--border-subtle);">
-          <button (click)="facade.anterior()" [disabled]="facade.paginaIdx() === 0"
-                  class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg"
-                  [style]="facade.paginaIdx() === 0 ? 'color:var(--text-tertiary);cursor:not-allowed' : 'color:var(--text-secondary)'">
-            <span class="material-symbols-outlined" style="font-size:18px;">chevron_left</span>
-            Anterior
-          </button>
-          <span style="color:var(--text-secondary)">
-            Página {{ facade.paginaIdx() + 1 }} de {{ facade.paginas().length }}
-            <span class="ml-1 text-xs" style="color:var(--text-tertiary)">(prévia)</span>
-          </span>
-          <button (click)="facade.proximo()" [disabled]="facade.paginaIdx() === facade.paginas().length - 1"
-                  class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg"
-                  [style]="facade.paginaIdx() === facade.paginas().length - 1 ? 'color:var(--text-tertiary);cursor:not-allowed' : 'color:var(--text-secondary)'">
-            Próxima
-            <span class="material-symbols-outlined" style="font-size:18px;">chevron_right</span>
-          </button>
-        </div>
+        <!-- Page paginator (shown only when pages exist) -->
+        @if (facade.paginas().length > 0) {
+          <comp-page-paginator
+            [index]="facade.paginaIdx()"
+            [total]="facade.paginas().length"
+            (prev)="facade.onPrevPage()"
+            (next)="facade.onNextPage()"
+          />
+        }
+
+        <!-- Toast error -->
+        @if (facade.toast()) {
+          <div class="px-6 py-2 flex items-center gap-2 border-t flex-shrink-0"
+               style="background:color-mix(in srgb,var(--color-error) 8%,var(--bg-surface));border-color:var(--border-subtle);">
+            <span class="material-symbols-outlined text-sm" style="color:var(--color-error)" aria-hidden="true">error</span>
+            <p class="text-xs" style="color:var(--color-error)" role="alert">{{ facade.toast() }}</p>
+          </div>
+        }
 
       </div>
 
-      <!-- Painel de estilos -->
-      <aside class="w-64 flex-shrink-0 overflow-y-auto border-l"
-             style="background:var(--bg-surface);border-color:var(--border-subtle);">
-
-        <div class="px-5 py-3 border-b" style="background:var(--paper-toolbar-bg);border-color:var(--paper-toolbar-border);">
-          <p class="text-xs font-bold uppercase tracking-wider" style="color:var(--color-brand)">Painel de Estilos</p>
-        </div>
-
-        <div class="px-5 py-5 space-y-6">
-
-          <div>
-            <label class="block text-xs font-medium mb-2" style="color:var(--text-secondary)">Fonte do corpo</label>
-            <select [value]="facade.layout().fonteCorpoFamilia"
-                    (change)="facade.setLayoutParam('fonteCorpoFamilia', $any($event.target).value)"
-                    class="w-full rounded-lg px-3 py-2 text-sm outline-none cursor-pointer"
-                    style="background:var(--bg-base);border:1px solid var(--border-default);color:var(--text-primary);"
-                    onfocus="this.style.borderColor='var(--color-brand)'"
-                    onblur="this.style.borderColor='var(--border-default)'">
-              <option value="serif">Serif (Georgia)</option>
-              <option value="sans-serif">Sans-serif (Inter)</option>
-            </select>
-          </div>
-
-          <div>
-            <div class="flex items-center justify-between mb-1">
-              <label class="text-xs font-medium" style="color:var(--text-secondary)">Tamanho</label>
-              <span class="text-xs font-mono px-1.5 py-0.5 rounded" style="color:var(--color-brand);background:color-mix(in oklch,var(--color-brand) 10%,transparent)">{{ facade.layout().fonteCorpoTamanho }}px</span>
-            </div>
-            <input type="range" min="12" max="20" step="1"
-                   [value]="facade.layout().fonteCorpoTamanho"
-                   (input)="facade.setLayoutParam('fonteCorpoTamanho', +$any($event.target).value)"
-                   class="w-full h-1 rounded-full cursor-pointer"
-                   style="accent-color:var(--color-brand);"/>
-            <div class="flex justify-between text-xs mt-0.5" style="color:var(--text-tertiary)">
-              <span>12px</span><span>20px</span>
-            </div>
-          </div>
-
-          <div>
-            <div class="flex items-center justify-between mb-1">
-              <label class="text-xs font-medium" style="color:var(--text-secondary)">Linha</label>
-              <span class="text-xs font-mono px-1.5 py-0.5 rounded" style="color:var(--color-brand);background:color-mix(in oklch,var(--color-brand) 10%,transparent)">{{ facade.layout().espacamentoLinha.toFixed(1) }}</span>
-            </div>
-            <input type="range" min="1.2" max="2.0" step="0.1"
-                   [value]="facade.layout().espacamentoLinha"
-                   (input)="facade.setLayoutParam('espacamentoLinha', +$any($event.target).value)"
-                   class="w-full h-1 rounded-full cursor-pointer"
-                   style="accent-color:var(--color-brand);"/>
-            <div class="flex justify-between text-xs mt-0.5" style="color:var(--text-tertiary)">
-              <span>1.2</span><span>2.0</span>
-            </div>
-          </div>
-
-          <div>
-            <div class="flex items-center justify-between mb-1">
-              <label class="text-xs font-medium" style="color:var(--text-secondary)">H1 (capítulo)</label>
-              <span class="text-xs font-mono px-1.5 py-0.5 rounded" style="color:var(--color-brand);background:color-mix(in oklch,var(--color-brand) 10%,transparent)">{{ facade.layout().h1Tamanho }}px</span>
-            </div>
-            <input type="range" min="20" max="40" step="2"
-                   [value]="facade.layout().h1Tamanho"
-                   (input)="facade.setLayoutParam('h1Tamanho', +$any($event.target).value)"
-                   class="w-full h-1 rounded-full cursor-pointer"
-                   style="accent-color:var(--color-brand);"/>
-          </div>
-
-          <div>
-            <div class="flex items-center justify-between mb-1">
-              <label class="text-xs font-medium" style="color:var(--text-secondary)">Margens laterais</label>
-              <span class="text-xs font-mono px-1.5 py-0.5 rounded" style="color:var(--color-brand);background:color-mix(in oklch,var(--color-brand) 10%,transparent)">{{ facade.layout().margemLateral }}px</span>
-            </div>
-            <input type="range" min="24" max="80" step="8"
-                   [value]="facade.layout().margemLateral"
-                   (input)="facade.setLayoutParam('margemLateral', +$any($event.target).value)"
-                   class="w-full h-1 rounded-full cursor-pointer"
-                   style="accent-color:var(--color-brand);"/>
-          </div>
-
-        </div>
-      </aside>
-
-      <!-- Modal de alinhamento de imagem (APENAS ajustar — sem inserir) -->
-      @if (showAlinhModal()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center"
-             style="background:color-mix(in oklch,var(--paper-text) 55%,transparent);">
-          <div class="rounded-2xl p-6 max-w-md w-full mx-4"
-               style="background:var(--bg-base);box-shadow:var(--shadow-lg);border:1px solid var(--border-default);">
-            <div class="flex items-center gap-2 mb-5">
-              <span class="material-symbols-outlined" style="color:var(--paper-img-accent);font-size:22px;">tune</span>
-              <h3 class="font-display font-semibold text-base" style="color:var(--text-primary)">Ajustar alinhamento</h3>
-            </div>
-
-            <p class="text-xs mb-3" style="color:var(--text-secondary)">Como a imagem será posicionada na página?</p>
-
-            <div class="grid grid-cols-2 gap-3 mb-5">
-              @for (op of alinhamentos; track op.valor) {
-                <button (click)="alinhSelecionado.set(op.valor)"
-                        class="rounded-xl p-3 text-left transition-all"
-                        [style]="alinhSelecionado() === op.valor
-                          ? 'background:color-mix(in oklch,var(--paper-img-accent) 10%,transparent);border:2px solid var(--paper-img-accent);'
-                          : 'background:var(--bg-surface);border:2px solid var(--border-subtle);'">
-                  <span class="material-symbols-outlined block mb-1.5"
-                        [style]="alinhSelecionado() === op.valor ? 'color:var(--paper-img-accent-dark);font-size:22px' : 'color:var(--text-tertiary);font-size:22px'">
-                    {{ op.icon }}
-                  </span>
-                  <p class="text-xs font-semibold"
-                     [style]="alinhSelecionado() === op.valor ? 'color:var(--paper-img-accent-dark)' : 'color:var(--text-primary)'">
-                    {{ op.label }}
-                  </p>
-                  <p class="text-xs mt-0.5" style="color:var(--text-tertiary)">{{ op.desc }}</p>
-                </button>
-              }
-            </div>
-
-            <div class="flex gap-3 justify-end">
-              <button (click)="showAlinhModal.set(false)"
-                      class="rounded-lg px-4 py-2 text-sm font-medium"
-                      style="background:var(--bg-surface-active);color:var(--text-secondary);">
-                Cancelar
-              </button>
-              <button (click)="aplicarAlinhamento()"
-                      class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-opacity hover:opacity-90"
-                      style="background:var(--paper-img-accent);color:white;">
-                <span class="material-symbols-outlined" style="font-size:16px;">check</span>
-                Aplicar
-              </button>
-            </div>
-          </div>
-        </div>
-      }
+      <!-- Style panel (always rendered — empty state still allows typography config) -->
+      <comp-style-panel
+        [layout]="facade.layout()"
+        [canEdit]="true"
+        (styleChange)="onStyleChange($event)"
+      />
 
     </div>
   `,
 })
 export class EditorDeLayoutPreviewComponent implements OnInit {
-  readonly facade       = inject(LayoutFacade);
+  readonly facade        = inject(LayoutFacade);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly shellIntegration = inject(CompShellIntegrationService);
 
-  readonly steps       = STEPS;
-  readonly alinhamentos = ALINHAMENTOS;
+  readonly navSteps = COMP_NAV_CONFIG.stepBar;
 
-  projetoId        = '';
-  showAlinhModal   = signal(false);
-  alinhSelecionado = signal<Alinhamento>('centralizado');
-  pubRoute         = ['/pub', 'exportacao-e-validacao']; // placeholder — PUB module route
+  /**
+   * Resolved breadcrumbs for T06: ['Projetos', '<projetoId>', 'Edição'].
+   * Updated by setActiveProject() in ngOnInit — empty before first navigation.
+   * FE-COMP-023 / SPEC-06 §2.
+   */
+  readonly breadcrumbs = computed(
+    () => this.shellIntegration.resolvedBreadcrumbs()['edicao'],
+  );
+
+  projetoId = '';
 
   ngOnInit(): void {
     this.projetoId = this.route.snapshot.paramMap.get('projetoId') ?? '';
-    this.facade.load(this.projetoId);
+    // FE-COMP-023: resolve {nome} in breadcrumbs before loading data.
+    this.shellIntegration.setActiveProject(this.projetoId);
+    // FE-COMP-025: telemetry — user entered T06 Editor de Layout screen.
+    this.shellIntegration.trackLayoutOpened(this.projetoId);
+    this.facade.loadData(this.projetoId);
   }
 
-  abrirModalAlinhamento(): void {
-    const currentAlinh = this.facade.paginaAtual()?.alinhamento ?? 'centralizado';
-    this.alinhSelecionado.set(currentAlinh);
-    this.showAlinhModal.set(true);
+  onStyleChange(event: StyleChangeEvent): void {
+    this.facade.onStyleChange(
+      event.param as keyof ConfiguracaoLayoutDto,
+      event.value as ConfiguracaoLayoutDto[keyof ConfiguracaoLayoutDto],
+    );
   }
 
-  aplicarAlinhamento(): void {
-    const nodeId = this.facade.paginaAtual()?.nodeId;
-    if (nodeId) {
-      this.facade.setAlinhamento(nodeId, this.alinhSelecionado());
-    }
-    this.showAlinhModal.set(false);
+  onAlignmentChange(nodeId: string, alinhamento: Alinhamento): void {
+    this.facade.onAlignmentChange(nodeId, alinhamento);
   }
 
-  alinhLabel(al: string): string {
-    return ALINHAMENTOS.find(a => a.valor === al)?.label ?? al;
-  }
-
-  stepStyle(n: number): string {
-    if (n < 3) return 'color:var(--paper-success-text,oklch(35% 0.14 145));font-weight:600';
-    if (n === 3) return 'color:var(--color-brand);font-weight:600';
-    return 'color:var(--text-tertiary)';
-  }
-
-  dotStyle(n: number): string {
-    if (n < 3) return 'background:var(--paper-success-bg,oklch(58% 0.18 145));color:#fff';
-    if (n === 3) return 'background:var(--color-brand);color:var(--text-on-brand)';
-    return 'background:var(--bg-surface-active);color:var(--text-tertiary)';
+  /** Handles PreviewEmptyComponent navigateBack output — routes to IMP importar screen. */
+  onNavigateBackToImport(): void {
+    this.router.navigate(['/imp', 'projetos', this.projetoId, 'importar']);
   }
 }

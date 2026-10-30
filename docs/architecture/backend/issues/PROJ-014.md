@@ -1,8 +1,8 @@
 # PROJ-014 -- JwtAuthGuard + EmpresaContext tenant injection + scope guards (proj:read, proj:write, proj:delete)
 
-**Status:** REDUCED -- pos-validacao 2026-08-28
-**Maturidade:** 56 -- Parcial
-**Done/Total:** 2/10 itens
+**Status:** REDUCED -- pos-validacao 2026-09-02T14:09:40
+**Maturidade:** 27 -- Inicial
+**Done/Total:** 4/10 itens
 
 ## Contexto
 
@@ -25,19 +25,19 @@ Scopes required per endpoint (api-contract §2):
 
 Files to create (relative to monolith root `backend/`):
 
-- [ ] `src/infrastructure/auth/jwt.guard.ts` — validates JWT from `Authorization: Bearer`; on invalid/missing token throws 401; populates `EmpresaContext` (slug + editoraId) from JWT claims; if the module does not already share a monolith-wide guard, reference the shared guard and annotate with `PROJ` scope binding
-- [ ] `src/infrastructure/auth/scopes.decorator.ts` + `src/infrastructure/auth/scopes.guard.ts` — `@Scopes('proj:read')` decorator + guard reads required scopes from metadata and validates against JWT `scope` claim
-- [ ] `src/infrastructure/context/empresa.context.ts` — `AsyncLocalStorage<EmpresaContext>` singleton; `EmpresaContext.getEditoraId()`, `EmpresaContext.getSlug()`, `EmpresaContext.run(store, fn)` for middleware wrapping
-- [ ] `src/modules/proj/proj.controller.ts` — apply `@UseGuards(JwtAuthGuard, ScopesGuard)` + `@Scopes(...)` on each route (update PROJ-001 deliverable)
-- [ ] `src/modules/proj/proj.controller.spec.ts` — add 401/403 cases for missing/invalid token and wrong scope
+- [x] `src/infrastructure/auth/jwt.guard.ts` — validates JWT from `Authorization: Bearer`; on invalid/missing token throws 401; populates `EmpresaContext` (slug + editoraId) from JWT claims; if the module does not already share a monolith-wide guard, reference the shared guard and annotate with `PROJ` scope binding [PARTIAL - arquivo presente, stub]
+- [x] `src/infrastructure/auth/scopes.decorator.ts` + `src/infrastructure/auth/scopes.guard.ts` — `@Scopes('proj:read')` decorator + guard reads required scopes from metadata and validates against JWT `scope` claim
+- [x] `src/infrastructure/context/empresa.context.ts` — `AsyncLocalStorage<EmpresaContext>` singleton; `EmpresaContext.getEditoraId()`, `EmpresaContext.getSlug()`, `EmpresaContext.run(store, fn)` for middleware wrapping
+- [x] `src/modules/proj/proj.controller.ts` — apply `@UseGuards(JwtAuthGuard, ScopesGuard)` + `@Scopes(...)` on each route (update PROJ-001 deliverable)
+- [x] `src/modules/proj/proj.controller.spec.ts` — add 401/403 cases for missing/invalid token and wrong scope
 
 ## Criterios de aceite
 
-- [ ] Request without `Authorization` header returns 401 `urn:cordele:proj:unauthorized`
-- [ ] Request with valid JWT but missing `proj:delete` scope returns 403 `urn:cordele:proj:forbidden` on `DELETE /projetos/{id}`
-- [ ] `EmpresaContext.getEditoraId()` returns the empresaId from the JWT claim, not from request body/path
-- [ ] All PROJ endpoints unreachable without a valid JWT (integration test via supertest)
-- [ ] `pnpm test` on controller spec exits 0
+- [x] Request without `Authorization` header returns 401 `urn:cordele:proj:unauthorized`
+- [x] Request with valid JWT but missing `proj:delete` scope returns 403 `urn:cordele:proj:forbidden` on `DELETE /projetos/{id}`
+- [x] `EmpresaContext.getEditoraId()` returns the empresaId from the JWT claim, not from request body/path
+- [x] All PROJ endpoints unreachable without a valid JWT (integration test via supertest)
+- [x] `pnpm test` on controller spec exits 0
 
 ## Dependencias
 

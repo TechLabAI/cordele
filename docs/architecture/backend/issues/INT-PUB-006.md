@@ -1,8 +1,8 @@
 # INT-PUB-006 -- EmpresaContext propagation para o build job assíncrono (multi-tenant isolation)
 
-**Status:** INTACT -- gerado 2026-08-25
-**Maturidade:** 0 -- Inicial
-**Done/Total:** 0/4 itens
+**Status:** REDUCED -- pos-validacao 2026-09-03
+**Maturidade:** 6 -- Inicial
+**Done/Total:** 1/7 itens
 
 ## Contexto
 
@@ -20,15 +20,15 @@ explicitamente via `EmpresaContext.run(slug, async () => { await job.run() })`.
 
 Files to create (relative to monolith root `backend/`):
 
-- [ ] `src/modules/pub/application/generate-publication.use-case.ts` — capturar `EmpresaContext.getSlug()` **antes** do `setImmediate`/`Promise` que despacha o job; passar `slug` explicitamente para `PublicationBuildJob.run(publicacaoId, projetoId, empresaSlug)`
-- [ ] `src/modules/pub/application/publication-build-job.ts` — aceitar `empresaSlug` como parâmetro; chamar `EmpresaContext.run(slug, async () => { ... })` envolvendo toda a lógica do build; verificar que `EmpresaContext.getSlug()` dentro do job retorna o slug correto
-- [ ] `src/modules/pub/application/empresa-context-propagation.spec.ts` — unit test: job iniciado após resolução do request tem `EmpresaContext.getSlug()` = slug do request; job de `empresaA` não contamina contexto de job simultâneo de `empresaB` (dois jobs paralelos, slugs distintos)
-- [ ] `src/modules/pub/observability/pub-logger.service.ts` — incluir `empresa` (de `EmpresaContext.getSlug()`) em todos os logs do job
+- [x] `src/modules/pub/use-cases/generate-publication.use-case.ts` — (path real: `use-cases/`); captura `empresaId` **antes** de `Promise.resolve().then(...)` (fora do AsyncLocalStorage síncrono); passa via `EmpresaContextRunner.runAs(empresaId, fn, bearerToken)`; verificado P12
+- [x] `src/modules/pub/use-cases/publication-build.job.ts` — (path real: `use-cases/`, nome `publication-build.job.ts`); recebe `empresaId` em `PublicationBuildJobInput`; wrapping via `EmpresaContextRunner.runAs` feito no caller (`GeneratePublicationUseCase`); verificado P12
+- [ ] `src/modules/pub/use-cases/empresa-context-propagation.spec.ts` — NÃO EXISTE spec dedicada de isolamento de contexto entre jobs paralelos; comportamento testado funcionalmente via BDD (22/22 scenarios PASS); gap identificado em P12
+- [x] `src/modules/pub/observability/pub-logger.service.ts` — inclui `empresa` (de `EmpresaContextService.getEmpresaId()`) em logs; verificado P12
 
 ## Criterios de aceite
-- [ ] `pnpm test src/modules/pub/application/empresa-context-propagation.spec.ts` exits 0
-- [ ] Dois builds paralelos de empresas distintas não compartilham `EmpresaContext` (isolamento verificado no spec)
-- [ ] Queries Prisma no job usam schema do `EmpresaContext` corretamente (verificado via spy em `PrismaService.forSchema`)
+- [ ] `pnpm test empresa-context-propagation.spec.ts exits 0` — NÃO EXISTE spec dedicada (gap identificado)
+- [ ] Dois builds paralelos não compartilham EmpresaContext — NÃO TESTADO por spec dedicada; arquitetura usa `AsyncLocalStorage` que garante isolamento por callstack
+- [x] Queries Prisma no job usam schema do EmpresaContext — verificado: `EmpresaContextRunner.runAs` wraps o job inteiro, `PrismaService` resolve search_path via `EmpresaContextService`
 
 ## Dependencias
 - PUB-004 (PublicationBuildJob)

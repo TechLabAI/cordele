@@ -55,6 +55,7 @@ describe('DeleteProjetoUseCase', () => {
       updateStatus: jest.fn(),
       existsByIdAndEmpresa: jest.fn(),
       findAll: jest.fn(),
+      advanceStatusAtomic: jest.fn(),
       delete: jest.fn().mockImplementation(async () => {
         callOrder.push('DB');
       }),
@@ -107,6 +108,15 @@ describe('DeleteProjetoUseCase', () => {
     expect(callOrder).toEqual(['PUB', 'COMP', 'IMP', 'DB']);
   });
 
+  it('calls each purge step exactly once per request', async () => {
+    await useCase.execute({ projetoId: 'projeto-id-1' }, makeUser());
+
+    expect(mockPublicationErasure.erase).toHaveBeenCalledTimes(1);
+    expect(mockCompositionErasure.erase).toHaveBeenCalledTimes(1);
+    expect(mockManuscriptErasure.erase).toHaveBeenCalledTimes(1);
+    expect(mockRepository.delete).toHaveBeenCalledTimes(1);
+  });
+
   it('emits ProjectDeleted only after the DB delete succeeds', async () => {
     await useCase.execute({ projetoId: 'projeto-id-1' }, makeUser());
 
@@ -128,6 +138,26 @@ describe('DeleteProjetoUseCase', () => {
     expect(mockManuscriptErasure.erase).not.toHaveBeenCalled();
     expect(mockRepository.delete).not.toHaveBeenCalled();
     expect(mockPublisher.publish).not.toHaveBeenCalled();
+  });
+
+  it('BadGatewayException carries type urn:cordele:proj:erasure-failed and the failing port name', async () => {
+    mockPublicationErasure.erase.mockRejectedValueOnce(new Error('PUB unreachable'));
+
+    let caughtError: BadGatewayException | undefined;
+    try {
+      await useCase.execute({ projetoId: 'projeto-id-1' }, makeUser());
+    } catch (err) {
+      caughtError = err as BadGatewayException;
+    }
+
+    expect(caughtError).toBeInstanceOf(BadGatewayException);
+    const response = caughtError!.getResponse() as {
+      type: string;
+      port: string;
+      message: string;
+    };
+    expect(response.type).toBe('urn:cordele:proj:erasure-failed');
+    expect(response.port).toBe('PublicationErasurePort');
   });
 
   it('aborts the cascade and does NOT delete when COMP erasure fails (PUB already ran)', async () => {

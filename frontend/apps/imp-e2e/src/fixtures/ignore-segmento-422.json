@@ -1,0 +1,6 @@
+{
+  "type": "urn:cordele:imp:segmento-not-found",
+  "title": "Segmento não encontrado",
+  "status": 422,
+  "detail": "O segmento informado não existe neste manuscrito ou já foi removido"
+}

@@ -42,24 +42,28 @@ try:
     from cli_utils import force_utf8_stdio
     from issue_state import (
         LAYER_PROFILES,
+        UNVERIFIABLE_EVIDENCE,
         atomic_write,
         consolidate,
         find_root,
         issue_bases,
         parse_checklist,
         resolve_issue,
+        toggle_checkbox,
     )
 except ImportError:  # pragma: no cover
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from cli_utils import force_utf8_stdio
     from issue_state import (
         LAYER_PROFILES,
+        UNVERIFIABLE_EVIDENCE,
         atomic_write,
         consolidate,
         find_root,
         issue_bases,
         parse_checklist,
         resolve_issue,
+        toggle_checkbox,
     )
 
 
@@ -76,17 +80,35 @@ _GATE_ALIAS = {
     "test": "test",
     "e2e": "e2e", "integrationTest": "e2e",
 }
-_VERDICTS = {"pass", "fail", "warn", "skip", "unknown"}
+# Single source of truth: a verdict is valid iff compute_score can weigh it.
+_VERDICTS = frozenset(_BUILD_FACTOR)
+
+# Keys accepted, in precedence order, when a gate value is a rich object
+# (``{"status": "pass", "suites": 26}``) instead of a bare verdict string.
+_RICH_VERDICT_KEYS = ("status", "verdict", "result")
 
 
 # ── Scoring ────────────────────────────────────────────────────────────────────
 
 def normalize_gates(raw: dict, layer: str) -> dict:
+    """Map raw gate names onto the canonical slots, loudly rejecting junk.
+
+    An unrecognised verdict scores 0.0 in ``_BUILD_FACTOR``; degrading in
+    silence has cost this project real rework, so it is reported on stderr
+    and stored as an explicit ``unknown``.
+    """
     canon = {"build": "unknown", "lint": "unknown", "test": "unknown", "e2e": "unknown"}
     for key, verdict in raw.items():
         slot = _GATE_ALIAS.get(key, key)
-        if slot in canon and verdict:
-            canon[slot] = verdict
+        if slot not in canon or not verdict:
+            continue
+        if verdict not in _VERDICTS:
+            shown = str(verdict)[:60]
+            print(f"warn: gate '{slot}' com veredito irreconhecivel: {shown!r} "
+                  f"-- esperado {'|'.join(sorted(_VERDICTS))}; tratado como unknown",
+                  file=sys.stderr)
+            verdict = "unknown"
+        canon[slot] = verdict
     return canon
 
 
@@ -107,7 +129,26 @@ def status_tag(checklist: dict, structure: int) -> str:
     return "INTACT"
 
 
-def compute_score(checklist: dict, gates: dict) -> dict:
+def _load_soft_sidecar(issue_file: Path) -> dict | None:
+    """Load the persisted agent soft verdict sidecar, if present.
+
+    Written by ``validator-score.py soft`` (see ``cmd_soft``).  The sidecar
+    survives re-runs of ``score`` because ``score`` never overwrites it.
+    Returns ``None`` when the sidecar is absent or unreadable (best-effort).
+    """
+    sidecar = issue_file.with_name(f"{issue_file.stem}.soft.json")
+    if not sidecar.is_file():
+        return None
+    try:
+        return json.loads(sidecar.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"warn: sidecar soft ilegivel ({sidecar.name}): {exc} -- ignorado",
+              file=sys.stderr)
+        return None
+
+
+def compute_score(checklist: dict, gates: dict,
+                  soft_sidecar: dict | None = None) -> dict:
     total = checklist["total"]
     done = checklist["done"]
 
@@ -129,20 +170,37 @@ def compute_score(checklist: dict, gates: dict) -> dict:
 
     e2e = WEIGHTS["e2e"] if gates.get("e2e") == "pass" else 0
 
-    total_prov = structure + functionality + tests_lint + e2e
+    # Soft: use persisted agent verdict when available (survives re-runs).
+    soft_value: int | None = None
+    soft_basis = "agent"
+    soft_needs_confirm = True
+    if soft_sidecar and isinstance(soft_sidecar.get("softValue"), int):
+        soft_value = soft_sidecar["softValue"]
+        soft_basis = "agent-persisted"
+        soft_needs_confirm = False
+
+    deterministic_total = structure + functionality + tests_lint + e2e
+    total_score = deterministic_total + (soft_value if soft_value is not None else 0)
+    provisional = soft_value is None
+    score_range = (
+        [deterministic_total, deterministic_total + WEIGHTS["soft"]]
+        if provisional
+        else [total_score, total_score]
+    )
     return {
-        "total": total_prov,
-        "provisional": True,
-        "range": [total_prov, total_prov + WEIGHTS["soft"]],
+        "total": total_score,
+        "provisional": provisional,
+        "range": score_range,
         "breakdown": {
             "structure": {"max": WEIGHTS["structure"], "value": structure, "basis": "deterministic"},
             "functionality": {"max": WEIGHTS["functionality"], "value": functionality,
                               "basis": "heuristic", "needsAgentConfirm": True},
             "tests_lint": {"max": WEIGHTS["tests_lint"], "value": tests_lint, "basis": "deterministic"},
             "e2e": {"max": WEIGHTS["e2e"], "value": e2e, "basis": "deterministic"},
-            "soft": {"max": WEIGHTS["soft"], "value": None, "basis": "agent", "needsAgentConfirm": True},
+            "soft": {"max": WEIGHTS["soft"], "value": soft_value, "basis": soft_basis,
+                     "needsAgentConfirm": soft_needs_confirm},
         },
-        "band": band_for(total_prov),
+        "band": band_for(total_score),
         "statusTag": status_tag(checklist, structure),
     }
 
@@ -165,12 +223,21 @@ def verdict_from_log(path: str) -> str:
     return "unknown"
 
 
+def gate_verdict(value) -> str:
+    """Verdict of one gate entry: bare scalar, or rich object keyed by status."""
+    if isinstance(value, dict):
+        for key in _RICH_VERDICT_KEYS:
+            if key in value:
+                return str(value[key]).lower()
+    return str(value).lower()
+
+
 def collect_gates(args) -> dict:
     raw: dict[str, str] = {}
     if args.gates:
         try:
             data = json.loads(Path(args.gates).read_text(encoding="utf-8"))
-            raw.update({k: str(v).lower() for k, v in data.items()})
+            raw.update({k: gate_verdict(v) for k, v in data.items()})
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
             print(f"error: --gates ilegivel: {exc}", file=sys.stderr)
             raise SystemExit(1) from exc
@@ -211,6 +278,34 @@ def write_back(issue_file: Path, block: str) -> None:
     atomic_write(issue_file, new)
 
 
+# ── Unverified-item warning (never degrade in silence) ───────────────────────
+
+def count_unverified(checklist: dict) -> int:
+    """Items MISSING only because the heuristic had nothing to inspect.
+
+    An unchecked item citing no file path (a behavioral assertion such as
+    "retorna 502 com urn:...") never reaches any code -- it is scored MISSING
+    regardless of the implementation. MISSING for an absent/stub file is a real
+    gap and is deliberately NOT counted here.
+    """
+    return sum(1 for it in checklist["items"]
+               if it["state"] == "MISSING" and it["evidence"] == UNVERIFIABLE_EVIDENCE)
+
+
+def warn_unverified(issue: str, layer: str, checklist: dict) -> int:
+    """Report the unverifiable items on stderr. Returns how many there were."""
+    n = count_unverified(checklist)
+    if n:
+        print(f"warn: {issue}: {n} de {checklist['total']} itens do checklist NAO foram "
+              f"verificados contra o codigo -- sao assercoes comportamentais sem arquivo "
+              f"citado, que o heuristico nao consegue conferir e conta como MISSING.",
+              file=sys.stderr)
+        print(f"warn: confirme cada um com: python scripts/validator-score.py mark "
+              f"--issue {issue} --layer {layer} --item \"<substring do item>\"",
+              file=sys.stderr)
+    return n
+
+
 # ── Subcommands ──────────────────────────────────────────────────────────────
 
 def _load_issue(args) -> tuple[str, Path, Path, str]:
@@ -237,10 +332,35 @@ def cmd_checklist(args) -> int:
         print(f"error: issue sem checklist parseavel: {issue_file}", file=sys.stderr)
         return 2
     checklist = consolidate(items, root, issue_bases(args.issue, layer, root))
+    warn_unverified(args.issue, layer, checklist)
     public = {k: v for k, v in checklist.items() if not k.startswith("_")}
     _emit(args, {"issue": args.issue, "layer": layer, "checklist": public},
           issue_file, default_suffix="checklist")
     print(f"OK: checklist {public['done']}/{public['total']} -- {issue_file.stem}.checklist.json")
+    return 0
+
+
+def cmd_mark(args) -> int:
+    """Persist an agent's content-verified confirmation of one checklist item.
+
+    ``validator-score.py score`` re-derives the checklist from the issue's
+    markdown checkboxes on every run (D-317/D-319) -- it never reads a prior
+    ``.state.json`` back. An item with no file path cited (a pure behavioral
+    assertion, e.g. "makes exactly 1 call to X's port") is classified DONE
+    only if its markdown checkbox is literally ``[x]``. This subcommand is
+    the supported way to flip it once an agent has read the actual test/spec
+    content and confirmed the assertion is really implemented -- skipping it
+    means the confirmation is silently discarded on the next ``score`` run.
+    """
+    layer, root, issue_file, text = _load_issue(args)
+    try:
+        new_text, matched = toggle_checkbox(text, args.item, checked=not args.undone)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    atomic_write(issue_file, new_text)
+    state = "desmarcado" if args.undone else "marcado [x]"
+    print(f"OK: item {state} em {issue_file.name}: {matched}")
     return 0
 
 
@@ -252,18 +372,30 @@ def cmd_score(args) -> int:
         return 2
 
     checklist = consolidate(items, root, issue_bases(args.issue, layer, root))
+    unverified = warn_unverified(args.issue, layer, checklist)
     gates = normalize_gates(collect_gates(args), layer)
-    score = compute_score(checklist, gates)
+    soft_sidecar = _load_soft_sidecar(issue_file)
+    score = compute_score(checklist, gates, soft_sidecar)
 
     today = _dt.date.today().isoformat()
     now = _dt.datetime.now().isoformat(timespec="seconds")
     public_checklist = {k: v for k, v in checklist.items() if not k.startswith("_")}
 
     fv = score["breakdown"]["functionality"]["value"]
+    # Layer-aware soft prompt: a11y does NOT apply to backend (see ADR-004).
+    if layer == "be":
+        soft_desc = "observabilidade + enforcement multi-empresa (RULE-07)"
+    else:
+        soft_desc = "a11y + observabilidade + enforcement multi-tenancy"
     agent_todo = [
         f"Confirmar functionality {fv}/{WEIGHTS['functionality']} -- a funcionalidade alvo funciona?",
-        f"Avaliar soft 0-{WEIGHTS['soft']} -- a11y + observability + multi-tenancy enforcement",
     ]
+    if score["breakdown"]["soft"]["needsAgentConfirm"]:
+        agent_todo.append(
+            f"Avaliar soft 0-{WEIGHTS['soft']} -- {soft_desc}; "
+            f"persistir com: validator-score.py soft --issue {args.issue} "
+            f"--value <0-{WEIGHTS['soft']}> --rationale \"<evidencia>\""
+        )
 
     out = {
         "issue": args.issue,
@@ -284,6 +416,55 @@ def cmd_score(args) -> int:
 
     print(f"OK: score {score['total']} ({score['band']}) -- {out_path.name} "
           f"[Done/Total {checklist['done']}/{checklist['total']}]")
+
+    limit = getattr(args, "strict_unverified", None)
+    if limit is not None and unverified > limit:
+        print(f"error: --strict-unverified {limit}: {unverified} itens nao verificados "
+              f"em {args.issue}", file=sys.stderr)
+        return 2
+    return 0
+
+
+def cmd_soft(args) -> int:
+    """Persist the agent's soft-dimension verdict for one issue.
+
+    The value is written to ``<issue>.soft.json`` alongside the issue file
+    (same directory) and is re-read by ``score`` on every subsequent run,
+    which then sets ``breakdown.soft.value`` and collapses ``provisional``
+    to ``False`` when the soft verdict is present.
+
+    ``--rationale`` is mandatory and must cite concrete evidence (log, test
+    path, code reference) so the verdict is auditable.  Exit 0 on success,
+    exit 1 on validation failure.
+    """
+    layer, root, issue_file, _ = _load_issue(args)
+
+    max_soft = WEIGHTS["soft"]
+    if not (0 <= args.value <= max_soft):
+        print(
+            f"error: --value {args.value} fora do intervalo 0..{max_soft}",
+            file=sys.stderr,
+        )
+        return 1
+
+    if not args.rationale or not args.rationale.strip():
+        print("error: --rationale e obrigatorio e nao pode ser vazio", file=sys.stderr)
+        return 1
+
+    now = _dt.datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    payload = {
+        "issue": args.issue,
+        "layer": layer,
+        "softValue": args.value,
+        "rationale": args.rationale.strip(),
+        "evaluatedAt": now,
+        "evaluatedBy": args.evaluated_by,
+    }
+
+    sidecar = issue_file.with_name(f"{issue_file.stem}.soft.json")
+    atomic_write(sidecar, json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+    snippet = args.rationale.strip()[:60]
+    print(f"OK: soft {args.value}/{max_soft} persistido em {sidecar.name} -- {snippet!r}")
     return 0
 
 
@@ -327,11 +508,37 @@ def main() -> None:
     sc.add_argument("--gates", metavar="PATH", help="JSON file of gate verdicts")
     sc.add_argument("--write-back", action="store_true",
                     help="(opt-in) update the status block in the issue, atomically")
+    sc.add_argument("--strict-unverified", nargs="?", type=int, const=0, default=None,
+                    metavar="N",
+                    help="(CI) exit 2 when more than N checklist items could not be "
+                         "verified against code (default N=0 when the flag is given)")
     sc.set_defaults(func=cmd_score)
 
     cl = sub.add_parser("checklist", help="consolidate checklist only -> JSON")
     _add_common(cl)
     cl.set_defaults(func=cmd_checklist)
+
+    mk = sub.add_parser("mark", help="persist a content-verified checklist confirmation (flips the issue's markdown checkbox)")
+    _add_common(mk)
+    mk.add_argument("--item", required=True, metavar="TEXT",
+                     help="substring (case-insensitive) uniquely identifying the checklist item")
+    mk.add_argument("--undone", action="store_true",
+                     help="uncheck instead of check (default: check)")
+    mk.set_defaults(func=cmd_mark)
+
+    sf = sub.add_parser(
+        "soft",
+        help="persist the agent soft verdict (0-10) into <issue>.soft.json; "
+             "re-read by 'score' to resolve provisional:true",
+    )
+    _add_common(sf)
+    sf.add_argument("--value", required=True, type=int, metavar="N",
+                    help=f"soft score 0..{WEIGHTS['soft']}")
+    sf.add_argument("--rationale", required=True, metavar="TEXT",
+                    help="mandatory evidence citation (auditable; stored in sidecar)")
+    sf.add_argument("--evaluated-by", default="be-validator", metavar="ACTOR",
+                    help="actor writing the verdict (default: be-validator)")
+    sf.set_defaults(func=cmd_soft)
 
     args = parser.parse_args()
     sys.exit(args.func(args))

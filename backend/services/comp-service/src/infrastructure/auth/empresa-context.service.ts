@@ -6,10 +6,17 @@ import { AsyncLocalStorage } from 'async_hooks';
  *
  * Populated by `EmpresaContextMiddleware` before any guard or handler runs.
  * Every repository call is scoped by `empresaId` (RULE-07).
+ *
+ * `correlationId` is set by `CorrelationMiddleware` (runs before
+ * `EmpresaContextMiddleware`) and forwarded into the ALS so that any provider
+ * that injects `EmpresaContextService` can include it in structured logs
+ * without receiving it as an explicit parameter.
  */
 export interface EmpresaRequestContext {
   readonly userId: string;
   readonly empresaId: string;
+  /** Distributed tracing id forwarded from `X-Correlation-Id` (COMP-018). */
+  readonly correlationId?: string;
 }
 
 /**

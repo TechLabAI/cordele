@@ -18,3 +18,6 @@ export interface ProjetoEditorialLookupPort {
    */
   exists(projetoId: string): Promise<boolean>;
 }
+
+/** DI injection token for ProjetoEditorialLookupPort. Re-exported by proj.tokens.ts */
+export const ProjetoEditorialLookupPort = Symbol('ProjetoEditorialLookupPort');

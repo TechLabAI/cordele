@@ -1,1 +1,1 @@
-﻿{"score":95,"maturity":"Maduro","checklist":{"done":10,"total":10,"gaps":[]},"gates":{"test":"pass","build":"pass","lint":"pass","e2e":"pass"},"next_action":"PLANNER"}
+﻿{"score":48,"maturity":"Parcial","checklist":{"done":184,"total":187,"gaps":["PUB-004: 3 behavior gaps"]},"gates":{"lint":"pass","arch_conformance":"pass"},"next_action":"VALIDACAO"}

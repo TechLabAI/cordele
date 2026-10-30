@@ -1,0 +1,10 @@
+{
+  "name": "@cordele/imp/integration",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/core": "^21.0.0",
+    "@cordele/shared/empresa-context": "*",
+    "@cordele/shared/access-decision": "*"
+  },
+  "sideEffects": false
+}

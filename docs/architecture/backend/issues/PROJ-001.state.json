@@ -1,7 +1,7 @@
 {
   "issue": "PROJ-001",
   "layer": "be",
-  "computedAt": "2026-08-28T10:36:22",
+  "computedAt": "2026-09-03T00:54:16",
   "checklist": {
     "total": 10,
     "done": 10,
@@ -68,11 +68,11 @@
     "e2e": "pass"
   },
   "score": {
-    "total": 90,
-    "provisional": true,
+    "total": 96,
+    "provisional": false,
     "range": [
-      90,
-      100
+      96,
+      96
     ],
     "breakdown": {
       "structure": {
@@ -98,16 +98,15 @@
       },
       "soft": {
         "max": 10,
-        "value": null,
-        "basis": "agent",
-        "needsAgentConfirm": true
+        "value": 6,
+        "basis": "agent-persisted",
+        "needsAgentConfirm": false
       }
     },
     "band": "Maduro",
     "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?",
-    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?"
   ]
 }

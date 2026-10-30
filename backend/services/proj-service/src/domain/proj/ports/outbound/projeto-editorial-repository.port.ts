@@ -66,6 +66,28 @@ export interface ProjetoEditorialFilter {
   readonly limit?: number;
 }
 
+/**
+ * Input for advanceStatusAtomic — locks the row, validates the transition and
+ * writes the change (if any) in a single database transaction.
+ */
+export interface AdvanceStatusAtomicInput {
+  readonly id: string;
+  readonly targetStatus: ProjetoStatus;
+  /** Requesting context ('imp' | 'pub' | 'comp' | 'editor' | 'system'). */
+  readonly changedBy: string;
+  readonly empresaId: string;
+}
+
+/**
+ * Result of advanceStatusAtomic.
+ * `null` is returned when the project does not exist in this empresa.
+ */
+export interface AdvanceStatusAtomicResult {
+  readonly data: ProjetoEditorialData;
+  readonly previousStatus: ProjetoStatus;
+  readonly changed: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // Port interface
 // ---------------------------------------------------------------------------
@@ -112,6 +134,24 @@ export interface ProjetoEditorialRepositoryPort {
    * Used by ProjetoEditorialLookup (cross-context tenancy gate, PROJ-006).
    */
   existsByIdAndEmpresa(id: string, empresaId: string): Promise<boolean>;
+
+  /**
+   * Atomically: acquires a SELECT FOR UPDATE row lock on the projeto, re-reads
+   * its current status under the lock, validates the requested transition via
+   * ProjectStatusVO, and — only when the transition produces a real change —
+   * writes both the status UPDATE and the projeto_status_historico INSERT inside
+   * the same Prisma $transaction (lock held until commit).
+   *
+   * This eliminates the TOCTOU window that existed when findById and updateStatus
+   * were called in separate transactions: concurrent advanceTo calls now serialize
+   * at the database row lock, so at most one of them will observe "changed=true".
+   *
+   * Returns null when the project does not exist in this empresa.
+   * Throws IllegalStatusTransitionError for illegal moves (same as ProjectStatusVO).
+   */
+  advanceStatusAtomic(
+    input: AdvanceStatusAtomicInput,
+  ): Promise<AdvanceStatusAtomicResult | null>;
 }
 
 /** DI injection token for ProjetoEditorialRepositoryPort. */

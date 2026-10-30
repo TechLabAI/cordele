@@ -1,0 +1,8 @@
+{
+  "name": "@cordele/shared/auth-session",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/core": "^21.0.0"
+  },
+  "sideEffects": false
+}

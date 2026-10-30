@@ -15,6 +15,9 @@ export { HistoryFacade } from './lib/history.facade';
 export { provideProj } from './lib/proj.providers';
 export type { ProjFeatureConfig } from './lib/proj.providers';
 
+// API service (P2 — standardised HTTP client for proj-service)
+export { ProjetoApiService } from './lib/api/projeto-api.service';
+
 // Port tokens — for testing overrides
 export { PROJETO_PORT } from './lib/api/projeto.port';
 export { PUBLICACAO_PORT } from './lib/api/publicacao.port';

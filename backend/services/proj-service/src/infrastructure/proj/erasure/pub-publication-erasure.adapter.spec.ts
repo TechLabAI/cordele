@@ -36,10 +36,21 @@ describe('PubPublicationErasureAdapter', () => {
     adapter = new PubPublicationErasureAdapter(mockConfig);
   });
 
-  it('resolves when PUB responds 2xx', async () => {
+  it('resolves when PUB responds 2xx — calls PUB erase port exactly once', async () => {
+    // Batching invariant: exactly 1 call to PUB per erase invocation.
     mockFetch.mockResolvedValue({ ok: true, status: 204 });
 
     await expect(adapter.erase('projeto-1', 'emp-aetos')).resolves.toBeUndefined();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('resolves (idempotent) when project has no publications — PUB returns 204 no-op', async () => {
+    // PUB is idempotent: when there are no publications for the project it returns 204 (safe no-op).
+    // The adapter must complete without error so the LGPD cascade (PROJ-016) can proceed.
+    // PUB erasure is the first step (leaf before COMP and IMP) — must not block the cascade.
+    mockFetch.mockResolvedValue({ ok: true, status: 204 });
+
+    await expect(adapter.erase('projeto-sem-publicacoes', 'emp-aetos')).resolves.toBeUndefined();
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 

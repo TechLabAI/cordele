@@ -7,9 +7,11 @@ import { PersistenceModule } from './infrastructure/persistence/persistence.modu
 import { AuthModule } from './infrastructure/auth/auth.module';
 import { JwtAuthGuard } from './infrastructure/auth/jwt-auth.guard';
 import { CorrelationIdInterceptor } from './infrastructure/http/correlation-id.interceptor';
+import { EmpresaContextInterceptor } from './infrastructure/auth/empresa-context.interceptor';
 import { HealthModule } from './infrastructure/health/health.module';
 import { ReadPortsModule } from './infrastructure/proj/read-ports.module';
 import { ErasurePortsModule } from './infrastructure/proj/erasure-ports.module';
+import { LookupPortsModule } from './infrastructure/proj/lookup-ports.module';
 import { ProjModule } from './modules/proj/proj.module';
 
 /**
@@ -38,6 +40,7 @@ import { ProjModule } from './modules/proj/proj.module';
     PersistenceModule,
     ReadPortsModule,
     ErasurePortsModule,
+    LookupPortsModule,
     AuthModule,
     ProjModule,
   ],
@@ -45,6 +48,7 @@ import { ProjModule } from './modules/proj/proj.module';
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_INTERCEPTOR, useClass: CorrelationIdInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: EmpresaContextInterceptor },
   ],
 })
 export class AppModule {}

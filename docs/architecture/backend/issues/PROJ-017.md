@@ -25,14 +25,14 @@ Files to create (relative to monolith root `backend/`):
 
 - [ ] `src/infrastructure/health/health.controller.ts` — `GET /api/proj/health` (or shared monolith health endpoint if already registered); uses `@nestjs/terminus` `HealthCheckService` + `PrismaHealthIndicator`; returns 200 `{ status: 'ok' }` or 503 on DB unavailability
 - [ ] `src/infrastructure/http/correlation-id.interceptor.ts` — NestJS interceptor: reads `X-Correlation-Id` from request or generates UUID v4; stores in `AsyncLocalStorage<{ correlationId }>`; sets response header `X-Correlation-Id`; applies to all routes in `ProjModule`
-- [ ] Logger configuration (if not already shared) — structured JSON logger with fields: `correlationId`, `port` (when `degraded:true`), `level` (`WARN` on degraded), `module: 'proj'`
+- [x] Logger configuration (if not already shared) — structured JSON logger with fields: `correlationId`, `port` (when `degraded:true`), `level` (`WARN` on degraded), `module: 'proj'`
 
 ## Criterios de aceite
 
-- [ ] `GET /api/proj/health` returns 200 `{ status: 'ok' }` when DB reachable
-- [ ] Every response includes `X-Correlation-Id` header matching the request header (or a new UUID if absent)
-- [ ] When `ManuscriptSummaryPort` stub emits `degraded:true`, a `WARN` log entry contains `port=ManuscriptSummaryPort` and `correlationId` (verifiable via logger spy in integration test)
-- [ ] `pnpm build` exits 0 with health controller registered
+- [x] `GET /api/proj/health` returns 200 `{ status: 'ok' }` when DB reachable
+- [x] Every response includes `X-Correlation-Id` header matching the request header (or a new UUID if absent)
+- [x] When `ManuscriptSummaryPort` stub emits `degraded:true`, a `WARN` log entry contains `port=ManuscriptSummaryPort` and `correlationId` (verifiable via logger spy in integration test)
+- [x] `pnpm build` exits 0 with health controller registered
 
 ## Dependencias
 

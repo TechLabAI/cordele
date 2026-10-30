@@ -204,19 +204,23 @@ export class EpubBuilder {
   /**
    * Assembles the complete ePub 3 package.
    *
+   * ADR-004: retorna um objeto com `epubBytes`, `totalCapitulos` e `totalImagens`
+   * em vez de apenas o Buffer, para que o `PublicationBuildJob` possa persistir
+   * os KPIs de resumo sem re-inspecionar o arquivo gerado.
+   *
    * @param tree       Manuscript content tree (from ManuscriptContentPort).
    * @param metadados  Editorial metadata (from CompositionMetadataPort).
    * @param layout     Layout configuration (from CompositionLayoutPort), or null for defaults.
    * @param loadImage  Optional async loader for image bytes by storage key.
    *                   When absent or returning null, the image is omitted from OCF.
-   * @returns          Buffer containing the complete OCF/ePub 3 ZIP archive.
+   * @returns          `{ epubBytes, totalCapitulos, totalImagens }`
    */
   async build(
     tree: EpubContentTree,
     metadados: EpubMetadados,
     layout: EpubLayout | null,
     loadImage?: EpubImageLoader,
-  ): Promise<Buffer> {
+  ): Promise<{ epubBytes: Buffer; totalCapitulos: number; totalImagens: number }> {
     const titulo = metadados.titulo ?? 'Sem título';
     const autor = metadados.autor ?? 'Autor desconhecido';
     const idioma = metadados.idioma ?? 'pt-BR';
@@ -225,6 +229,9 @@ export class EpubBuilder {
     const chapters: ChapterNode[] = (tree.estrutura as unknown[])
       .map(toChapterNode)
       .filter((c): c is ChapterNode => c !== null);
+
+    // ADR-004: contar capítulos do manuscrito original (antes de inserir o fallback)
+    const totalCapitulosContados = chapters.length;
 
     // Ensure at least one chapter exists (ePub must have content)
     if (chapters.length === 0) {
@@ -248,13 +255,15 @@ export class EpubBuilder {
     manifestItems.push({ id: 'css-style', href: 'css/style.css', mediaType: 'text/css' });
 
     // ── Load images ────────────────────────────────────────────────────────
-    // Collect all image storage keys referenced in all chapters
+    // Collect all image storage keys referenced in all chapters (ADR-004: totalImagens)
     const imageKeys = new Set<string>();
     for (const chapter of chapters) {
       for (const img of collectImages(chapter.blocks)) {
         imageKeys.add(img.storageKey);
       }
     }
+    // ADR-004: totalImagens = number of distinct image references in the manuscript
+    const totalImagensContadas = imageKeys.size;
 
     for (const key of imageKeys) {
       const imageBytes = loadImage ? await loadImage(key) : null;
@@ -322,6 +331,13 @@ export class EpubBuilder {
       ...zipEntries,
     ];
 
-    return buildOcfZip(allEntries);
+    const epubBytes = buildOcfZip(allEntries);
+
+    // ADR-004: retornar KPIs de resumo junto com o buffer do ePub
+    return {
+      epubBytes,
+      totalCapitulos: totalCapitulosContados,
+      totalImagens: totalImagensContadas,
+    };
   }
 }

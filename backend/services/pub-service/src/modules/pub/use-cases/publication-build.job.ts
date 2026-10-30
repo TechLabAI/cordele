@@ -11,11 +11,15 @@ import {
   COMPOSITION_LAYOUT_PORT,
   COMPOSITION_METADATA_PORT,
   EPUB_VALIDATION_PORT,
+  EVENT_PUBLISHER_PORT,
   FILE_STORAGE_PORT,
   MANUSCRIPT_CONTENT_PORT,
   PUBLICACAO_REPOSITORY_PORT,
 } from '../pub.tokens';
 import { type AdvanceProjetoStatusPort, type ProjetoTargetStatus } from '../ports/advance-projeto-status.port';
+import { type EventPublisherPort } from '../ports/event-publisher.port';
+import { PublicationFailedEvent } from '../../../domain/pub/events/publication-failed.event';
+import { PublicationSucceededEvent } from '../../../domain/pub/events/publication-succeeded.event';
 import { type CompositionLayoutPort, type LayoutRead } from '../ports/composition-layout.port';
 import { type CompositionMetadataPort, type MetadadosRead } from '../ports/composition-metadata.port';
 import { type EpubValidationPort, type ValidationReport } from '../ports/epub-validation.port';
@@ -77,6 +81,8 @@ export class PublicationBuildJob {
     private readonly fileStoragePort: FileStoragePort,
     @Inject(ADVANCE_PROJETO_STATUS_PORT)
     private readonly advanceProjetoStatusPort: AdvanceProjetoStatusPort,
+    @Inject(EVENT_PUBLISHER_PORT)
+    private readonly eventEmitter: EventPublisherPort,
   ) {}
 
   async run(input: PublicationBuildJobInput): Promise<void> {
@@ -94,21 +100,25 @@ export class PublicationBuildJob {
         this.compositionLayoutPort.get(input.projetoId),
       ]);
 
-      const epubBytes = await this.assemble(contentTree, metadados, layout);
+      const buildResult = await this.assemble(contentTree, metadados, layout);
 
       const validando = gerando.iniciarValidacao();
       await this.repository.save(validando);
 
-      const report = await this.validateEpub(epubBytes, validando, input);
+      const report = await this.validateEpub(buildResult.epubBytes, validando, input);
       if (!report) return; // EpubcheckUnavailableError handled inside validateEpub
 
       const { publicacao: terminal, targetStatus } = await this.resolveOutcome(
         validando,
         report,
-        epubBytes,
+        buildResult,
         input,
       );
+      // Persist the terminal outcome BEFORE dispatching any domain event (PUB-004).
       await this.repository.save(terminal);
+
+      // Dispatch domain event after persistence — timing is contractual (PUB-004).
+      this.dispatchOutcomeEvent(terminal, targetStatus, input, buildResult);
 
       await this.requestProjectStatus(input.projetoId, targetStatus, input.publicacaoId, bearerToken);
     } catch (error) {
@@ -120,10 +130,11 @@ export class PublicationBuildJob {
    * Assembles the OCF/ePub 3 package using the `EpubBuilder` domain service
    * (PUB-009, P4).
    *
-   * If content tree or metadata are absent (pre-flight guard missed or null
-   * returned by stub), returns an empty Buffer — the epubcheck adapter will
-   * reject it with `erros_criticos`, correctly yielding `com_erros` (D-Q,
-   * ADR-003: never publish unvalidated).
+   * ADR-004: retorna o objeto `{ epubBytes, totalCapitulos, totalImagens }` em vez de
+   * apenas o Buffer, para que `resolveOutcome` possa persistir os KPIs de resumo.
+   *
+   * Se a árvore de conteúdo ou os metadados estiverem ausentes, retorna um Buffer vazio
+   * com contagens zeradas — o adaptador epubcheck rejeita e o resultado é `com_erros`.
    *
    * Images are loaded via `fileStoragePort.get()` as Readable streams,
    * converted to Buffers inline; failures per-image are silently absorbed
@@ -133,9 +144,9 @@ export class PublicationBuildJob {
     contentTree: ManuscriptContentTree | null,
     metadados: MetadadosRead | null,
     layout: LayoutRead | null,
-  ): Promise<Buffer> {
+  ): Promise<{ epubBytes: Buffer; totalCapitulos: number; totalImagens: number }> {
     if (!contentTree || !metadados) {
-      return Buffer.alloc(0);
+      return { epubBytes: Buffer.alloc(0), totalCapitulos: 0, totalImagens: 0 };
     }
 
     const loadImage = async (storageKey: string): Promise<Buffer | null> => {
@@ -154,7 +165,7 @@ export class PublicationBuildJob {
   private async resolveOutcome(
     validando: PublicacaoEntity,
     report: ValidationReport,
-    epubBytes: Buffer,
+    buildResult: { epubBytes: Buffer; totalCapitulos: number; totalImagens: number },
     input: PublicationBuildJobInput,
   ): Promise<{ publicacao: PublicacaoEntity; targetStatus: ProjetoTargetStatus }> {
     const totalErros = report.messages.filter((m) => m.severity === ValidationSeverity.ERROR).length;
@@ -174,8 +185,9 @@ export class PublicationBuildJob {
     }
 
     const key = `publicacoes/${input.publicacaoId}/output.epub`;
+    let storeResult: { url: string; bytesWritten: number };
     try {
-      await this.fileStoragePort.put(key, epubBytes, 'application/epub+zip');
+      storeResult = await this.fileStoragePort.put(key, buildResult.epubBytes, 'application/epub+zip');
     } catch (error) {
       this.logger.error(`Artifact storage failed for publicacao ${input.publicacaoId}`, error as Error);
       return {
@@ -196,6 +208,10 @@ export class PublicationBuildJob {
         totalErros,
         totalAvisos,
         concluidaEm,
+        // ADR-004: KPIs de resumo do ePub gerado
+        tamanhoBytes: storeResult.bytesWritten,
+        totalCapitulos: buildResult.totalCapitulos,
+        totalImagens: buildResult.totalImagens,
       }),
       targetStatus: 'publicado',
     };
@@ -227,11 +243,60 @@ export class PublicationBuildJob {
           totalAvisos: 0,
           concluidaEm: new Date(),
         });
+        // Persist failure BEFORE dispatching the domain event (PUB-004).
         await this.repository.save(comErros);
+        this.dispatchOutcomeEvent(comErros, 'com_erros', input, { epubBytes: Buffer.alloc(0), totalCapitulos: 0, totalImagens: 0 });
         await this.requestProjectStatus(input.projetoId, 'com_erros', input.publicacaoId, input.bearerToken ?? '');
         return null;
       }
       throw error;
+    }
+  }
+
+  /**
+   * Dispatches the appropriate domain event after the terminal Publicacao
+   * state has been **durably persisted** (PUB-004).
+   *
+   * Called as the LAST step before `requestProjectStatus` so the event is
+   * never emitted before the database write commits. Best-effort: failures
+   * in the event bus are logged and swallowed — they must not affect the
+   * recorded build result (same resilience contract as `advanceTo`).
+   */
+  private dispatchOutcomeEvent(
+    terminal: PublicacaoEntity,
+    targetStatus: ProjetoTargetStatus,
+    input: PublicationBuildJobInput,
+    buildResult: { epubBytes: Buffer; totalCapitulos: number; totalImagens: number },
+  ): void {
+    try {
+      if (targetStatus === 'publicado') {
+        this.eventEmitter.emit(
+          'publication.succeeded',
+          new PublicationSucceededEvent({
+            publicacaoId: input.publicacaoId,
+            projetoId: input.projetoId,
+            empresaId: input.empresaId,
+            tamanhoBytes: terminal.tamanhoBytes ?? buildResult.epubBytes.byteLength,
+            totalCapitulos: terminal.totalCapitulos ?? buildResult.totalCapitulos,
+            totalImagens: terminal.totalImagens ?? buildResult.totalImagens,
+          }),
+        );
+      } else {
+        this.eventEmitter.emit(
+          'publication.failed',
+          new PublicationFailedEvent({
+            publicacaoId: input.publicacaoId,
+            projetoId: input.projetoId,
+            empresaId: input.empresaId,
+            reason: terminal.resumoErro ?? 'publication build failed',
+          }),
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `domain event dispatch failed for publicacao ${input.publicacaoId}`,
+        error as Error,
+      );
     }
   }
 

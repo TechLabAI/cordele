@@ -373,6 +373,20 @@ the command above is unchanged.
 - **Never** hardcode a secret -- `ConfigModule` reads the environment
 - **Never** write DDL outside `prisma/migrations/`
 - **Never** run a microservice before `cordele-migrations`
+- **Never** attack issues/tickets one-by-one directly via `Bash` in the main chat
+  (build, test, manual fix loop) instead of going through `/be-autopilot` /
+  `/fe-autopilot` (or `/be-validator` + `/be-planner` + `/be-implement` directly).
+  Measured (D-622): a session that did this in a different project accumulated
+  1.32B input tokens across 2,565 turns and only 9 subagent delegations, vs. a
+  comparable autopilot-driven session in this project at 179M tokens across 471
+  turns and 62 subagent delegations -- because every subsequent turn re-sends the
+  entire accumulated Bash output via cache. Even a "quick fix" goes through
+  `implementer-agent`/`fe-implementer-agent`, never a raw edit in the
+  orchestrator's own context.
+- **Never** keep the same chat session open across multiple modules or after a long
+  idle gap (hours) resuming an autopilot run (D-622, extends D-463) -- start a new
+  session; the checkpoint on disk (`tmp/be-autopilot/<MODULE>/state.json`) carries
+  the state, not the chat history.
 
 ---
 

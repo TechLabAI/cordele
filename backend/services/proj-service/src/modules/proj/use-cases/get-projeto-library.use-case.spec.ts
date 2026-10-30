@@ -221,6 +221,15 @@ describe('GetProjetoLibraryUseCase', () => {
         expect.objectContaining({ status: ProjetoStatus.rascunho }),
       );
     });
+
+    it('accepts limit and cursor without throwing (reserved pagination params)', async () => {
+      repository.findAll.mockResolvedValue([]);
+
+      // ?limit and ?cursor are reserved for future pagination (G5); must not cause errors.
+      await expect(
+        useCase.execute({ empresaId: 'emp-aetos', limit: 25, cursor: 'cursor-abc' }),
+      ).resolves.toEqual({ cards: [], degraded: false });
+    });
   });
 
   // ---------------------------------------------------------------------------

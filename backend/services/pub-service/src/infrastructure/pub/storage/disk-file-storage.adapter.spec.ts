@@ -42,6 +42,24 @@ describe('DiskFileStorageAdapter', () => {
       const result = await adapter.put(key, Buffer.from('x'), 'application/epub+zip');
       expect(result.url).toContain(encodeURIComponent(key));
     });
+
+    it('ADR-004: retorna bytesWritten igual ao tamanho do Buffer escrito', async () => {
+      const adapter = buildAdapter(storageRoot);
+      const key = `emp_aetos/publicacoes/${randomUUID()}/output.epub`;
+      const content = Buffer.from('epub-content-com-tamanho-conhecido');
+      const result = await adapter.put(key, content, 'application/epub+zip');
+      expect(result.bytesWritten).toBe(content.byteLength);
+    });
+
+    it('ADR-004: retorna bytesWritten para Readable stream', async () => {
+      const { Readable } = await import('node:stream');
+      const adapter = buildAdapter(storageRoot);
+      const key = `emp_aetos/publicacoes/${randomUUID()}/output.epub`;
+      const data = Buffer.from('stream-content');
+      const stream = Readable.from(data);
+      const result = await adapter.put(key, stream, 'application/epub+zip');
+      expect(result.bytesWritten).toBe(data.byteLength);
+    });
   });
 
   describe('delete', () => {

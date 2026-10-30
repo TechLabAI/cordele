@@ -52,7 +52,7 @@ import {
 } from 'src/modules/proj/proj.tokens';
 import { ProjModule } from 'src/modules/proj/proj.module';
 import { IllegalStatusTransitionError } from 'src/domain/proj/errors/illegal-status-transition.error';
-import { ProjetoStatus } from 'src/domain/proj/value-objects/project-status.vo';
+import { ProjectStatusVO, ProjetoStatus } from 'src/domain/proj/value-objects/project-status.vo';
 import type {
   ProjetoEditorialData,
   ProjetoEditorialRepository as IProjetoEditorialRepository,
@@ -119,6 +119,16 @@ const fakeProjetoRepo: IProjetoEditorialRepository = {
 
   delete: async (id: string): Promise<void> => {
     projetoStore.delete(id);
+  },
+
+  advanceStatusAtomic: async (input) => {
+    const existing = projetoStore.get(input.id);
+    if (!existing || existing.editoraId !== input.empresaId) return null;
+    const { newStatus, changed } = ProjectStatusVO.advanceTo(existing.status, input.targetStatus);
+    if (!changed) return { data: existing, previousStatus: existing.status, changed: false };
+    const updated: ProjetoEditorialData = { ...existing, status: newStatus, atualizadoEm: new Date() };
+    projetoStore.set(input.id, updated);
+    return { data: updated, previousStatus: existing.status, changed: true };
   },
 };
 

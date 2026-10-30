@@ -29,9 +29,9 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] `erase(projetoId, empresaId)` calls IMP's erase port exactly once
-- [ ] `erase(projetoId, empresaId)` for a project with no manuscripts completes without error (idempotent)
-- [ ] IMP port unavailability: adapter rethrows; PROJ-016 catches and returns 502
+- [x] `erase(projetoId, empresaId)` calls IMP's erase port exactly once
+- [x] `erase(projetoId, empresaId)` for a project with no manuscripts completes without error (idempotent)
+- [x] IMP port unavailability: adapter rethrows; PROJ-016 catches and returns 502
 - [ ] `pnpm test` on adapter spec exits 0
 
 ## Dependencias

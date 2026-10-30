@@ -27,9 +27,9 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] `metadata(projetoIds)` makes exactly 1 call to COMP's query port
-- [ ] `autor=undefined` for projects with no COMP metadata (not an error)
-- [ ] COMP unavailability returns empty `Map` — no rethrow
+- [x] `metadata(projetoIds)` makes exactly 1 call to COMP's query port
+- [x] `autor=undefined` for projects with no COMP metadata (not an error)
+- [x] COMP unavailability returns empty `Map` — no rethrow
 - [ ] `pnpm test` on adapter spec exits 0
 
 ## Dependencias

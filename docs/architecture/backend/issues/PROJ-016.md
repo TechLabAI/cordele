@@ -31,18 +31,18 @@ Each step is idempotent — a partial failure can be retried safely.
 Files to create (relative to monolith root `backend/`):
 
 - [ ] `src/modules/proj/use-cases/delete-projeto.use-case.ts` — validates projetoId exists in active empresa (404 otherwise); calls purge ports in order 1→3; on any port failure: catches error, throws `BadGatewayException` (no identity deletion); on all ports OK: deletes `projeto_editorial` row via repository; emits `ProjectDeleted` after commit
-- [ ] `BadGatewayException` used instead of a custom error — carries type `urn:cordele:proj:erasure-failed` + `port` field indicating which erasure port failed
+- [x] `BadGatewayException` used instead of a custom error — carries type `urn:cordele:proj:erasure-failed` + `port` field indicating which erasure port failed
 - [ ] `src/domain/proj/events/project-deleted.event.ts` — payload: `{ eventId, occurredAt, projetoId, editoraId }`
 - [ ] `src/modules/proj/use-cases/delete-projeto.use-case.spec.ts` — full purge success → 204, `ProjectDeleted` emitted; PUB purge fails → 502, `projeto_editorial` NOT deleted, no event; IMP purge fails → 502, same; idempotent retry succeeds when all stubs are no-ops; unknown projetoId → 404
 - [ ] `src/modules/proj/proj.controller.ts` — wire `DELETE /projetos/:projetoId` (update PROJ-001 stub); map `ErasureFailedError` → 502; return 204 on success
 
 ## Criterios de aceite
 
-- [ ] Full purge: 204 returned; `projeto_editorial` row deleted; `ProjectDeleted` emitted
-- [ ] PUB purge failure: 502 `urn:cordele:proj:erasure-failed`; `projeto_editorial` row still exists (verified in spec by repository mock assertion)
-- [ ] Each purge step called exactly once per request in order: PUB → COMP → IMP → DB delete (verified by mock call order assertion in spec)
-- [ ] Retried deletion (stubs return no-op on missing data) completes without error (idempotent)
-- [ ] `pnpm test` on use case spec exits 0
+- [x] Full purge: 204 returned; `projeto_editorial` row deleted; `ProjectDeleted` emitted
+- [x] PUB purge failure: 502 `urn:cordele:proj:erasure-failed`; `projeto_editorial` row still exists (verified in spec by repository mock assertion)
+- [x] Each purge step called exactly once per request in order: PUB → COMP → IMP → DB delete (verified by mock call order assertion in spec)
+- [x] Retried deletion (stubs return no-op on missing data) completes without error (idempotent)
+- [x] `pnpm test` on use case spec exits 0
 
 ## Dependencias
 

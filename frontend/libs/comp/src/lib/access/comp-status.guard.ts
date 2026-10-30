@@ -1,20 +1,77 @@
 /**
- * comp-status.guard.ts — Guard verifying that the resolved project is in em_composicao.
- * Replaces the 409 illegal-status from vision (not in api-contract §5) with a FE-only UX
- * redirect so the user is never navigated to COMP on a rascunho/publicado project.
- * STUB: Full implementation in FE-COMP-020 (Layer 2).
+ * comp-status.guard.ts — Guards that the resolved project is in em_composicao status.
+ *
+ * INT-FE-COMP-003 (P4): real implementation using GET to proj-service.
+ * FE-COMP-020 (P5) will refine with ProjetoStore integration if @cordele/proj exports one.
+ *
+ * Strategy:
+ *   1. Extract projetoId from ActivatedRouteSnapshot.
+ *   2. GET /api/proj/projetos/{projetoId} via AccessHttpClient (X-Empresa-Id propagated).
+ *   3. em_composicao → allow.
+ *   4. rascunho → redirect to /imp/projetos/:projetoId/importar.
+ *   5. publicado / com_erros → redirect to /proj/projetos/:projetoId/historico.
+ *   6. Error (404 / 5xx) → redirect to /proj/biblioteca-de-projetos.
+ *
+ * This is a FE-only UX guard (SPEC-01 §3): the BE api-contract defines no COMP
+ * illegal-status error. The guard pre-empts the navigation; it is not a security boundary.
+ *
+ * HTTP: uses AccessHttpClient (not HttpClient directly) — all module HTTP passes via
+ * access-http-base so X-Empresa-Id is propagated consistently (INT-FE-COMP-001).
+ *
  * Track D: created by fe-architect-promote COMP @ cordele (D-494).
+ * Updated: INT-FE-COMP-003 (P4) — real proj-service integration via AccessHttpClient.
  */
-import { CanActivateFn } from '@angular/router';
+import { inject } from '@angular/core';
+import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
+import { AccessHttpClient } from '@cordele/shared/access-http-base';
+import { catchError, map, of } from 'rxjs';
+
+// Canonical project status values (mirrors BE ProjetoStatus enum)
+type ProjetoStatus = 'rascunho' | 'em_composicao' | 'publicado' | 'com_erros';
+
+interface ProjetoStatusDto {
+  readonly id: string;
+  readonly status: ProjetoStatus;
+}
 
 /**
- * Guards that the resolved project has status = em_composicao.
- * Stub: always allows. Layer 2 (FE-COMP-020) will check status and redirect:
- *   - rascunho → /imp/projetos/:projetoId/importar
- *   - publicado / com_erros → /proj/projetos/:projetoId/historico
+ * compStatusGuard — verifies the project is in em_composicao before activating COMP routes.
+ *
+ * Reads projetoId from ActivatedRouteSnapshot.params['projetoId'].
+ * On success (em_composicao): returns true.
+ * On any other status: redirects appropriately.
+ * On HTTP error: redirects to library (safe degradation).
  */
-export const compStatusGuard: CanActivateFn = () => {
-  // TODO[FE-COMP-020]: inject PROJETO_PORT, check status from resolved project,
-  // redirect out of COMP if status != 'em_composicao'.
-  return true;
+export const compStatusGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
+  const http      = inject(AccessHttpClient);
+  const router    = inject(Router);
+  const projetoId = route.paramMap.get('projetoId') ?? '';
+
+  if (!projetoId) {
+    return router.createUrlTree(['/proj/biblioteca-de-projetos']);
+  }
+
+  return http
+    .get<ProjetoStatusDto>(`/api/proj/projetos/${projetoId}`)
+    .pipe(
+      map(projeto => {
+        switch (projeto.status) {
+          case 'em_composicao':
+            return true;
+          case 'rascunho':
+            // Not yet in composicao → redirect to IMP to continue importation
+            return router.createUrlTree(['/imp', 'projetos', projetoId, 'importar']);
+          case 'publicado':
+          case 'com_erros':
+            // Past composicao → redirect to PROJ historico
+            return router.createUrlTree(['/proj', 'projetos', projetoId, 'historico']);
+          default:
+            return router.createUrlTree(['/proj/biblioteca-de-projetos']);
+        }
+      }),
+      catchError(() =>
+        // Network error or 404 → redirect to project library (safe degradation)
+        of(router.createUrlTree(['/proj/biblioteca-de-projetos'])),
+      ),
+    );
 };

@@ -8,10 +8,16 @@ import { AsyncLocalStorage } from 'async_hooks';
  * re-bound by `GeneratePublicationUseCase` for the async `PublicationBuildJob`
  * (INT-PUB-006: context is captured synchronously before the fire-and-forget
  * dispatch, then restored inside the job via `runAs`).
+ *
+ * `bearerToken` (INT-PUB-002): the raw JWT bearer token from the originating
+ * HTTP request, stored so outbound HTTP adapters (e.g. CompCompositionMetadataAdapter)
+ * can retrieve it via `getBearerToken()` without changing port signatures.
+ * `null` inside async jobs unless explicitly propagated via `runAs(..., bearerToken)`.
  */
 export interface EmpresaRequestContext {
   readonly userId: string;
   readonly empresaId: string;
+  readonly bearerToken?: string;
 }
 
 /**
@@ -69,9 +75,28 @@ export class EmpresaContextService {
    * síncrona. Capturar o `empresaId` ANTES do `Promise.resolve()` e chamar
    * `runAs` dentro do callback garante que toda operação interna do job
    * (inclusive sub-promises) vê o contexto correto.
+   *
+   * `bearerToken` (INT-PUB-002): quando informado, é armazenado no ALS para
+   * que adapters HTTP de saída (ex.: CompCompositionMetadataAdapter) possam
+   * recuperá-lo via `getBearerToken()` sem mudança de assinatura de porta.
+   * Parâmetro opcional; chamadas existentes sem o terceiro argumento continuam
+   * funcionando.
    */
-  runAs<T>(empresaId: string, fn: () => T): T {
-    return this.als.run({ userId: '', empresaId }, fn);
+  runAs<T>(empresaId: string, fn: () => T, bearerToken?: string): T {
+    return this.als.run({ userId: '', empresaId, bearerToken }, fn);
+  }
+
+  /**
+   * Retorna o bearer token do contexto ALS corrente, ou `null` se:
+   *   - não há contexto ativo (rota pública, test unitário sem middleware), ou
+   *   - o contexto foi criado sem token (job assíncrono sem `runAs(..., token)`).
+   *
+   * Usado pelos adapters HTTP de saída (INT-PUB-002) para propagar o JWT do
+   * request original às chamadas ao comp-service, sem alterar as assinaturas
+   * das portas `CompositionMetadataPort` e `CompositionLayoutPort`.
+   */
+  getBearerToken(): string | null {
+    return this.als.getStore()?.bearerToken ?? null;
   }
 
   /**

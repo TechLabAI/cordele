@@ -1,4 +1,4 @@
-import type { ValidationMessage as ValidationMessageModel } from '@prisma/client';
+import type { ValidationMessage as ValidationMessageModel } from '../prisma-client';
 
 import { ValidationMessageEntity } from '../../domain/pub/validation-message.entity';
 import { ValidationSeverity } from '../../domain/pub/validation-severity.enum';

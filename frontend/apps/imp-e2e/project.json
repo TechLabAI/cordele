@@ -16,6 +16,12 @@
       "options": {
         "config": "apps/imp-e2e/playwright.config.ts"
       }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint",
+      "options": {
+        "lintFilePatterns": ["apps/imp-e2e/**/*.ts"]
+      }
     }
   }
 }

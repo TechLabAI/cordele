@@ -19,6 +19,10 @@ import {
   COMP_UPDATE_LAYOUT_UC,
   COMP_GET_PREVIEW_CONTEXT_UC,
 } from './comp.tokens';
+import { DomainException } from '../../domain/shared/domain-exception';
+// ProblemJsonFilter is an infrastructure adapter; imported only in this spec file
+// so we can verify the filter → HTTP status mapping end-to-end (COMP-004 item 4).
+import { ProblemJsonFilter } from '../../infrastructure/comp/filters/problem-json.filter';
 
 /**
  * Unit tests for CompController.
@@ -329,5 +333,79 @@ describe('CompController — RequiredScopes metadata (P5)', () => {
       const scopes: string[] | undefined = Reflect.getMetadata(REQUIRED_SCOPES_KEY, handler);
       expect(scopes).toContain('comp:write');
     }
+  });
+});
+
+// ============================================================================
+// P2 — COMP-004 item 4: DomainException → HTTP 422 via ProblemJsonFilter
+// ============================================================================
+/**
+ * Verifies that ProblemJsonFilter maps a DomainException carrying status=422
+ * to HTTP 422 (not 400). This test mounts the REAL filter (not mocked) via
+ * `app.useGlobalFilters()` so the full exception-filter pipeline runs.
+ *
+ * The mock UpdateMetadadosUseCase always throws DomainException('TITULO_INVALIDO', 422),
+ * simulating what the aggregate would throw for a blank titulo.
+ */
+describe('CompExceptionFilter HTTP status mapping (P2 — COMP-004 item 4)', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    const passGuard = {
+      canActivate: (ctx: ExecutionContext): boolean => {
+        const req = ctx.switchToHttp().getRequest<Record<string, unknown>>();
+        req['user'] = STUB_USER;
+        return true;
+      },
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [CompController],
+      providers: [
+        { provide: APP_GUARD, useValue: passGuard },
+        { provide: COMP_GET_METADADOS_UC, useValue: stubUseCase },
+        {
+          provide: COMP_UPDATE_METADADOS_UC,
+          useValue: {
+            // Simulates UpdateMetadadosUseCase throwing a DomainException with status=422
+            // (as happens when the aggregate rejects a blank titulo).
+            execute: (): never => {
+              throw new DomainException('TITULO_INVALIDO', 422);
+            },
+          },
+        },
+        { provide: COMP_UPLOAD_CAPA_UC, useValue: stubUseCase },
+        { provide: COMP_REMOVE_CAPA_UC, useValue: stubUseCase },
+        { provide: COMP_GET_LAYOUT_UC, useValue: stubUseCase },
+        { provide: COMP_UPDATE_LAYOUT_UC, useValue: stubUseCase },
+        { provide: COMP_GET_PREVIEW_CONTEXT_UC, useValue: stubUseCase },
+      ],
+    }).compile();
+
+    app = module.createNestApplication();
+    app.setGlobalPrefix('api');
+    app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
+    // Register the REAL ProblemJsonFilter — not mocked — so DomainException is
+    // mapped to the status it carries (422) rather than a generic 500.
+    app.useGlobalFilters(new ProblemJsonFilter());
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('should return HTTP 422 (not 400) when DomainException thrown by UpdateMetadadosUseCase', async () => {
+    const res = await request(app.getHttpServer())
+      .put(`/api/v1/comp/projetos/${PROJETO_ID}/metadados`)
+      .set('Authorization', 'Bearer test-token')
+      .send({ titulo: '', autor: 'Qualquer Autor', idioma: 'pt' });
+
+    // ProblemJsonFilter reads exception.status (422) — not a hardcoded 400.
+    expect(res.status).toBe(422);
+    // Response must be application/problem+json (RFC 7807).
+    expect(res.headers['content-type']).toMatch(/application\/problem\+json/);
+    expect(res.body.status).toBe(422);
+    expect(res.body.title).toBe('TITULO_INVALIDO');
   });
 });

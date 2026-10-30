@@ -1,0 +1,36 @@
+{
+  "name": "pub-feature-history",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/pub/feature-history/src",
+  "prefix": "lib",
+  "projectType": "library",
+  "tags": ["scope:pub", "type:feature"],
+  "implicitDependencies": ["pub-data-access", "pub-ui"],
+  "targets": {
+    "build": {
+      "executor": "@nx/angular:ng-packagr-lite",
+      "outputs": ["{workspaceRoot}/dist/{projectRoot}"],
+      "dependsOn": ["^build"],
+      "options": {
+        "project": "libs/pub/feature-history/ng-lib.json",
+        "tsConfig": "libs/pub/feature-history/tsconfig.lib.json"
+      },
+      "configurations": {
+        "production": {
+          "tsConfig": "libs/pub/feature-history/tsconfig.lib.prod.json"
+        },
+        "development": {}
+      },
+      "defaultConfiguration": "production"
+    },
+    "test": {
+      "executor": "@nx/angular:unit-test",
+      "options": {
+        "watch": false
+      }
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

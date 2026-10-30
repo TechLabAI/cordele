@@ -32,10 +32,10 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] `latest(projetoIds)` makes exactly 1 call to PUB's query port (batching invariant)
-- [ ] `signedDownloadUrl(publicacaoId)` returns `{ arquivoUrl: string, expiresAt: string }` from PUB's signed URL — PROJ never calls storage directly
-- [ ] PUB unavailability: `history()` returns `[]`, `latest()` returns empty Map (callers degrade gracefully)
-- [ ] `signedDownloadUrl` for a non-downloadable publication: the port itself does not 409; the use case (PROJ-013) enforces the 409 based on `epubcheckStatus`
+- [x] `latest(projetoIds)` makes exactly 1 call to PUB's query port (batching invariant)
+- [x] `signedDownloadUrl(publicacaoId)` returns `{ arquivoUrl: string, expiresAt: string }` from PUB's signed URL — PROJ never calls storage directly
+- [x] PUB unavailability: `history()` returns `[]`, `latest()` returns empty Map (callers degrade gracefully)
+- [x] `signedDownloadUrl` for a non-downloadable publication: the port itself does not 409; the use case (PROJ-013) enforces the 409 based on `epubcheckStatus`
 - [ ] `pnpm test` on adapter spec exits 0
 
 ## Dependencias

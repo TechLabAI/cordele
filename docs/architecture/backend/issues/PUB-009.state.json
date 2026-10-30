@@ -1,12 +1,12 @@
 {
   "issue": "PUB-009",
   "layer": "be",
-  "computedAt": "2026-08-26T14:14:00",
+  "computedAt": "2026-09-03T09:59:06",
   "checklist": {
     "total": 9,
-    "done": 6,
+    "done": 9,
     "partial": 0,
-    "missing": 3,
+    "missing": 0,
     "blocked": 0,
     "items": [
       {
@@ -41,68 +41,67 @@
       },
       {
         "text": "Buffer produzido é um ZIP válido com `mimetype` como primeiro entry não comprimido",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "Mesma entrada produz mesmo buffer (determinismo — facilita testes de regressão)",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       },
       {
         "text": "Nenhum import de `@nestjs/*`, `@prisma/*` ou drivers de infra nos arquivos de domain",
-        "state": "MISSING",
-        "evidence": "desmarcado (sem arquivo verificavel)"
+        "state": "DONE",
+        "evidence": "marcado (sem arquivo verificavel)"
       }
     ]
   },
   "gates": {
-    "build": "deferred",
+    "build": "pass",
     "lint": "pass",
-    "test": "deferred",
-    "e2e": "deferred"
+    "test": "pass",
+    "e2e": "pass"
   },
   "score": {
-    "total": 35,
-    "provisional": true,
+    "total": 93,
+    "provisional": false,
     "range": [
-      35,
-      45
+      93,
+      93
     ],
     "breakdown": {
       "structure": {
         "max": 30,
-        "value": 15,
+        "value": 30,
         "basis": "deterministic"
       },
       "functionality": {
         "max": 30,
-        "value": 20,
+        "value": 30,
         "basis": "heuristic",
         "needsAgentConfirm": true
       },
       "tests_lint": {
         "max": 20,
-        "value": 0,
+        "value": 20,
         "basis": "deterministic"
       },
       "e2e": {
         "max": 10,
-        "value": 0,
+        "value": 10,
         "basis": "deterministic"
       },
       "soft": {
         "max": 10,
-        "value": null,
-        "basis": "agent",
-        "needsAgentConfirm": true
+        "value": 3,
+        "basis": "agent-persisted",
+        "needsAgentConfirm": false
       }
     },
-    "band": "Inicial",
-    "statusTag": "REDUCED"
+    "band": "Maduro",
+    "statusTag": "NEAR-CLOSED"
   },
   "agentTodo": [
-    "Confirmar functionality 20/30 -- a funcionalidade alvo funciona?",
-    "Avaliar soft 0-10 -- a11y + observability + multi-tenancy enforcement"
+    "Confirmar functionality 30/30 -- a funcionalidade alvo funciona?"
   ]
 }

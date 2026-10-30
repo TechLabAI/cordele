@@ -1,8 +1,8 @@
 # INT-PUB-001 -- ManuscriptContentPort adapter: wiring in-process com IMP
 
-**Status:** DONE -- implementado 2026-08-29
-**Maturidade:** 4 -- Completo
-**Done/Total:** 4/4 itens
+**Status:** REDUCED -- pos-validacao 2026-09-03
+**Maturidade:** 13 -- Inicial
+**Done/Total:** 4/9 itens
 
 ## Contexto
 

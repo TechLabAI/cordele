@@ -27,9 +27,9 @@ Files to create (relative to monolith root `backend/`):
 
 ## Criterios de aceite
 
-- [ ] `erase(projetoId, empresaId)` calls COMP's erase port once
-- [ ] `erase(projetoId, empresaId)` for a project with no COMP data completes without error
-- [ ] COMP port failure: adapter rethrows; PROJ-016 aborts with 502
+- [x] `erase(projetoId, empresaId)` calls COMP's erase port once
+- [x] `erase(projetoId, empresaId)` for a project with no COMP data completes without error
+- [x] COMP port failure: adapter rethrows; PROJ-016 aborts with 502
 - [ ] `pnpm test` on adapter spec exits 0
 
 ## Dependencias

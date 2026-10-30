@@ -1,0 +1,9 @@
+{
+  "name": "@cordele/pub-integration",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/core": "^21.0.0",
+    "@cordele/shared/empresa-context": "0.0.1"
+  },
+  "sideEffects": false
+}

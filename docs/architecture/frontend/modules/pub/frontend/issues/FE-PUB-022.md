@@ -1,6 +1,6 @@
 ## [FE-PUB-022] pubStatusGuard — modo export (em_composicao) e modo history (≥1 Publicacao)
 
-**Status:** 🔲 ABERTA
+**Status:** ✅ DONE
 **GitHub:** [#TBD]
 
 **Outcome:**

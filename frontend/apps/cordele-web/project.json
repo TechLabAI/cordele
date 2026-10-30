@@ -7,7 +7,7 @@
   "tags": ["type:app", "scope:web"],
   "targets": {
     "build": {
-      "executor": "@angular-devkit/build-angular:application",
+      "executor": "@angular/build:application",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/apps/cordele-web",
@@ -41,7 +41,7 @@
       "defaultConfiguration": "production"
     },
     "serve": {
-      "executor": "@angular-devkit/build-angular:dev-server",
+      "executor": "@angular/build:dev-server",
       "configurations": {
         "production": { "buildTarget": "cordele-web:build:production" },
         "development": { "buildTarget": "cordele-web:build:development" }

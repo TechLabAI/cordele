@@ -86,6 +86,27 @@ enforced by a partial unique index (`data-model.md` §2.1) and checked in the us
 a **short-TTL signed URL minted by PUB** via its `FileStoragePort` (§4.4 / D-F); PUB serves bytes only
 through storage, never proxied through the app.
 
+### D-S — EpubSummaryVM KPI fields: build-time snapshot for Tamanho/Capítulos/Imagens; Páginas permanently omitted (closes PUB-021)
+
+Resolves the third open point carried since the Vision phase: the source of the T07 KPI tiles
+(`EpubSummaryVM` — Tamanho/Páginas/Capítulos/Imagens, SPEC-03 §3). Full rationale in local
+`adr/ADR-004-epub-summary-kpi-field-sources.md`.
+
+- `PublicacaoStatus` (§6.1) gains `tamanhoBytes`, `totalCapitulos`, `totalImagens` — non-null iff
+  `status = publicado` (same rule as `arquivoDisponivel`/`artefato_ref`). **Not** added to
+  `PublicacaoHistoryItem` (§6.2): `EpubSummaryVM` is scoped to the T07 "KPI grid for a valid export"
+  (SPEC-03 §1), sourced from `PublicacaoStatus` only (cross-link §3) — T08 history rows don't render it,
+  and §6.2's field set is fixed/shared with PROJ's `PublicationHistoryPort` (G2), so it is left untouched
+  to avoid an unrequested ripple into `proj-service`'s mirrored contract.
+- Chapter/image counts are **counted during the `ManuscriptContentPort` walk PUB already performs** at
+  assembly (`integration-contracts.md` §2.1) — no new cross-context port. Size is the byte length of the
+  assembled `.epub` at the point it is written to `FileStoragePort`. All three are captured together, at
+  the `gerando → validando` transition, and persisted as a snapshot (append-only, like the rest of
+  `publicacao` — they reflect the manuscript *at that build*, not its current state).
+- **`paginas`/`pages` is not part of this contract, and will not be added.** ePub reflowable content has
+  no fixed pagination; the FE tile stays permanently hidden (`null` forever) by product decision (ADR-004),
+  not as a pending gap.
+
 ---
 
 ## 1. Conventions
@@ -291,6 +312,9 @@ Example:
   "totalAvisos": 0,
   "resumoErro": null,
   "arquivoDisponivel": false,
+  "tamanhoBytes": null,
+  "totalCapitulos": null,
+  "totalImagens": null,
   "iniciadaEm": "2026-08-25T15:00:00Z",
   "concluidaEm": null
 }
@@ -302,6 +326,10 @@ Example:
 - `arquivoDisponivel` is `true` only when `status=publicado` (`epubcheckStatus ∈ {valido, avisos}`); the
   client then calls §4.4 for the signed URL.
 - `resumoErro` is a short human-readable failure summary, non-null only when `com_erros`.
+- `tamanhoBytes`, `totalCapitulos`, `totalImagens` are non-null **only** when `status=publicado` (D-S /
+  ADR-004) — a build-time snapshot (byte size of the assembled `.epub`; chapter/image counts from the
+  `ManuscriptContentPort` walk at that build), never recomputed from the manuscript's current state. There
+  is no `paginas`/`pages` field — permanently omitted (D-S), not a future gap.
 
 ### 6.2 `PublicacaoHistoryItem` (history read-model — T08; the fixed field set PROJ consumes, D-E/G2)
 
