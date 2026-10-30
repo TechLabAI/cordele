@@ -1,8 +1,0 @@
-{
-  "issue": "PUB-001",
-  "layer": "be",
-  "softValue": 8,
-  "rationale": "Observabilidade: correlation interceptor em P7, structured JSON logging em use-cases/adapters, health endpoint para epubcheck. Resilience: fallback de storage (resolveOutcome), advanceTo nao descarta resultado (testado em pub.controller.spec), runbook operacional de reconciliacao de orphans (PUB-020). RULE-07 enforcement via JWT claim + EmpresaContext middleware em todas as rotas. Integracao real INT-PUB-001/003 validada com adapters HTTP reais.",
-  "evaluatedAt": "2026-09-03T12:55:14Z",
-  "evaluatedBy": "be-validator"
-}

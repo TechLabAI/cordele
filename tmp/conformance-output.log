@@ -1,7 +1,0 @@
-arch-conformance: stack=node (resolved from D:\01_Trabalho\Cybersoft\TechLab IA\cordele\project-context.json)
-  [ok ] no-adapter-instantiation-in-service (0 violation(s))
-  [ok ] no-framework-import-in-domain (0 violation(s))
-  [ok ] no-infrastructure-import-in-modules (0 violation(s))
-  [ok ] no-console-log (0 violation(s))
-  [ok ] no-ddl-outside-migrations (0 violation(s))
-OK: arch-conformance clean (be, 5 rules)

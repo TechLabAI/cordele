@@ -1,8 +1,0 @@
-{
-  "issue": "COMP-011",
-  "layer": "be",
-  "softValue": 7,
-  "rationale": "REVISADO apos auditoria de codigo (2026-09-03); o veredito anterior de 10/10 aceitava comentario e nome de arquivo como evidencia de comportamento. Observabilidade 5/5: correlationId propagado ao ALS via EmpresaRequestContext, ProblemJsonFilter RFC 7807, health readiness+liveness, GET /api/v1/comp/metrics em formato Prometheus; 17 specs verificados em execucao. Multi-empresa RULE-07 2/5: as pecas existem (EmpresaContextMiddleware, PrismaEmpresaService com client por schema, validacao de slug, testes de isolamento cross-schema com Testcontainers reais) MAS NAO ESTAO LIGADAS EM PRODUCAO: o middleware popula EmpresaContextService.als e todos os repositorios leem PrismaEmpresaService.store; runWithSlug so e chamado em test/comp/cucumber-context.ts:279, num BddTenantBridgeMiddleware que existe apenas no harness de teste. Em boot real toda rota que toca o banco lanca 'empresa context not set' -> 500. O enforcement e 0 em runtime; os 2 pontos reconhecem apenas o mecanismo escrito e testado, nao o comportamento entregue.",
-  "evaluatedAt": "2026-09-03T03:53:44Z",
-  "evaluatedBy": "code-audit-2026-09-03"
-}

@@ -1,8 +1,0 @@
-node_modules/
-dist/
-.angular/
-tmp/
-.nx/
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
